@@ -12,15 +12,23 @@
 # wget
 # development tools
 
+set -e
+
 # install cmake
-sudo yum -y -q install cmake3
+sudo yum -y -q install cmake3 || echo "all deps installed"
 
 ## get opencv and opencv_contrib
 if [ ! -d "opencv" ]; then
     git clone https://github.com/opencv/opencv.git
+    cd opencv
+    git checkout 3.4
+    cd ../
 fi
 if [ ! -d "opencv_contrib" ]; then
     git clone https://github.com/opencv/opencv_contrib.git
+    cd opencv_contrib
+    git checkout 3.4
+    cd ../
 fi
 
 if [ ! -d "x264" ]; then
@@ -68,6 +76,7 @@ if [ ! -d "opencv/build" ]; then
                    -DWITH_FFMPEG=OFF -DWITH_JASPER=OFF -DWITH_PNG=OFF \
                    -DBUILD_opencv_python=OFF \
                    -DOPENCV_EXTRA_MODULES_PATH=../../opencv_contrib/modules \
+                   -DOPENCV_GENERATE_PKGCONFIG=True \
                    -DBUILD_opencv_core=ON \
                    -DBUILD_opencv_imgproc=ON \
                    -DBUILD_opencv_img_hash=ON \
