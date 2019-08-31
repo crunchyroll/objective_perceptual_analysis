@@ -33,6 +33,9 @@ fi
 
 if [ ! -d "x264" ]; then
     git clone https://code.videolan.org/videolan/x264.git
+    cd x264
+    git checkout stable
+    cd ../
 fi
 
 if [ ! -d "FFmpeg" ]; then
@@ -137,21 +140,13 @@ if [ ! -d "opencv/build" ]; then
 fi
 
 ## Setup x264
-if [ ! -f /usr/bin/x264 ]; then
-    cd x264
-    git checkout stable
-    ./configure --prefix=/usr --disable-lavf --enable-static --enable-shared
-    make -j8
-    sudo make install
-    sudo ldconfig
-    cd ../
+if [ ! -f /usr/lib/libx264.a ]; then
+    make x264lib
 fi
 
 ## Setup FFmpeg
 if [ ! -f FFmpeg/ffmpeg ]; then
-    cd FFmpeg
-    ./configure --prefix=/usr --enable-libx264 --enable-gpl
-    make -j8
+    make ffmpeg
 fi
 
 # build tools
