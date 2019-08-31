@@ -31,6 +31,11 @@ if [ ! -d "FFmpeg" ]; then
     git clone git@github.com:bitbytebit-cr/FFmpeg.git
 fi
 
+if [ ! -f "image006.jpg" ]; then
+    wget https://kishoresblog.files.wordpress.com/2010/04/image006.jpg
+    wget https://i.ytimg.com/vi/Z0aLjw52ip4/maxresdefault.jpg
+fi
+
 # requirement for x264
 if [ ! -f "nasm-2.14.03rc2.tar.bz2" ]; then
     wget https://www.nasm.us/pub/nasm/releasebuilds/2.14.03rc2/nasm-2.14.03rc2.tar.bz2
@@ -114,7 +119,7 @@ if [ ! -d "opencv/build" ]; then
                    ..
 
     # build opencv
-    make
+    make -j8
 
     # install opencv
     sudo make install
@@ -127,7 +132,7 @@ if [ ! -f /usr/bin/x264 ]; then
     cd x264
     git checkout stable
     ./configure --prefix=/usr --disable-lavf --enable-static --enable-shared
-    make -j 16
+    make -j8
     sudo make install
     sudo ldconfig
     cd ../
@@ -137,7 +142,8 @@ fi
 if [ ! -f FFmpeg/ffmpeg ]; then
     cd FFmpeg
     ./configure --prefix=/usr --enable-libx264 --enable-gpl
-    make -j 16
+    make -j8
 fi
 
-
+# build tools
+make
