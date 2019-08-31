@@ -1,4 +1,16 @@
 #!/bin/sh
+#
+# Setup an FFmpeg with the ability to
+# per title encode via image hashes
+# hamming distance values
+
+# should run on Linux, other systems untested
+#
+# requires:
+#
+# git
+# wget
+# development tools
 
 # install cmake
 sudo yum -y -q install cmake3
@@ -113,6 +125,7 @@ fi
 ## Setup x264
 if [ ! -f /usr/bin/x264 ]; then
     cd x264
+    git checkout stable
     ./configure --prefix=/usr --disable-lavf --enable-static --enable-shared
     make -j 16
     sudo make install
