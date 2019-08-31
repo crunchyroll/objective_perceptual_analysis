@@ -66,6 +66,8 @@ if [ ! -d "opencv/build" ]; then
                    -DBUILD_opencv_core=ON \
                    -DBUILD_opencv_imgproc=ON \
                    -DBUILD_opencv_img_hash=ON \
+                   -DBUILD_opencv_imgcodecs=ON \
+                   -DBUILD_opencv_highgui=ON \
                    -DBUILD_opencv_aruco=OFF \
                    -DBUILD_opencv_bgsegm=OFF \
                    -DBUILD_opencv_bioinspired=OFF \
@@ -81,8 +83,6 @@ if [ ! -d "opencv/build" ]; then
                    -DBUILD_opencv_fuzzy=OFF \
                    -DBUILD_opencv_gapi=OFF \
                    -DBUILD_opencv_hfs=OFF \
-                   -DBUILD_opencv_highgui=OFF \
-                   -DBUILD_opencv_imgcodecs=OFF \
                    -DBUILD_opencv_line_descriptor=OFF \
                    -DBUILD_opencv_ml=OFF \
                    -DBUILD_opencv_objdetect=OFF \
