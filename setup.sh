@@ -39,7 +39,7 @@ if [ ! -d "x264" ]; then
 fi
 
 if [ ! -d "FFmpeg" ]; then
-    git clone git@github.com:bitbytebit-cr/FFmpeg.git
+    git clone git@github.com:bitbytebit-cr/FFmpeg_perceptual.git FFmpeg
 fi
 
 if [ ! -f "image006.jpg" ]; then
