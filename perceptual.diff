@@ -12,41 +12,94 @@ index 08a54a7..0c6de6a 100755
  overlay_opencl_filter_deps="opencl"
  overlay_qsv_filter_deps="libmfx"
 diff --git a/libavcodec/libx264.c b/libavcodec/libx264.c
-index 86e3530..4ce2edd 100644
+index 86e3530..a919b34 100644
 --- a/libavcodec/libx264.c
 +++ b/libavcodec/libx264.c
-@@ -275,6 +275,31 @@ static void reconfig_encoder(AVCodecContext *ctx, const AVFrame *frame)
-             x264_encoder_reconfig(x4->enc, &x4->params);
-         }
+@@ -195,24 +195,73 @@ static void reconfig_encoder(AVCodecContext *ctx, const AVFrame *frame)
+         x264_encoder_reconfig(x4->enc, &x4->params);
      }
-+    /* alter bitrate depending on perceptual filter */
-+    if (x4->avcintra_class < 0) {
-+        if (frame->perceptual_score > 0.0) {
-+            if (x4->params.rc.i_rc_method == X264_RC_CRF) {
-+                float crf_value = 0.0;
-+                /* set crf value from perceptual score */
-+                /* increase compression by raising the score by up to 3 CRF points */
-+                crf_value = x4->crf - ((frame->perceptual_score * 100.0) / 33.0);
-+                av_log(ctx, AV_LOG_DEBUG,
-+                   "Setting Perceptual CRF to %0.2f\n", crf_value);
-+                x4->params.rc.f_rf_constant = crf_value;
-+            }
-+            if (x4->params.rc.i_rc_method == X264_RC_ABR) {
-+                int bitrate = 0;
-+                /* set ABR bitrate value from perceptual score */
-+                /* increase compression by lowering the avg bitrate up to 2.5 times */
-+                bitrate = (ctx->bit_rate / 1000) + ((frame->perceptual_score * 1.0) * (ctx->bit_rate / 1000.0));
-+                av_log(ctx, AV_LOG_DEBUG,
-+                   "Setting Perceptual Bitrate to %d\n", bitrate);
-+                x4->params.rc.i_bitrate = bitrate;
-+            }
-+            x264_encoder_reconfig(x4->enc, &x4->params);
-+            x4->pic.param = &x4->params;
-+        }
-+    }
- }
  
- static int X264_frame(AVCodecContext *ctx, AVPacket *pkt, const AVFrame *frame,
+-    if (x4->params.rc.i_vbv_buffer_size != ctx->rc_buffer_size / 1000 ||
+-        x4->params.rc.i_vbv_max_bitrate != ctx->rc_max_rate    / 1000) {
+-        x4->params.rc.i_vbv_buffer_size = ctx->rc_buffer_size / 1000;
+-        x4->params.rc.i_vbv_max_bitrate = ctx->rc_max_rate    / 1000;
+-        x264_encoder_reconfig(x4->enc, &x4->params);
++    if (frame->perceptual_score <= 0.0) {
++        if (x4->params.rc.i_vbv_buffer_size != ctx->rc_buffer_size / 1000 ||
++            x4->params.rc.i_vbv_max_bitrate != ctx->rc_max_rate    / 1000) {
++            x4->params.rc.i_vbv_buffer_size = ctx->rc_buffer_size / 1000;
++            x4->params.rc.i_vbv_max_bitrate = ctx->rc_max_rate    / 1000;
++            x264_encoder_reconfig(x4->enc, &x4->params);
++        }
+     }
+ 
+     if (x4->params.rc.i_rc_method == X264_RC_ABR &&
+-        x4->params.rc.i_bitrate != ctx->bit_rate / 1000) {
+-        x4->params.rc.i_bitrate = ctx->bit_rate / 1000;
+-        x264_encoder_reconfig(x4->enc, &x4->params);
++        (frame->perceptual_score > 0.0 ||
++         x4->params.rc.i_bitrate != ctx->bit_rate / 1000)) {
++        if (frame->perceptual_score > 0.0) {
++            int bitrate = 0;
++            /* set ABR bitrate value from perceptual score */
++            /* increase compression by lowering the avg bitrate up to 2.5 times */
++            bitrate = (ctx->bit_rate / 1000) + ((frame->perceptual_score * 2.0) * (ctx->bit_rate / 1000.0));
++            x4->params.rc.i_bitrate = bitrate;
++            x4->params.rc.i_vbv_max_bitrate = bitrate * 1.5;
++            x4->params.rc.i_vbv_buffer_size = bitrate * 1.5 * 1.5;
++            av_log(ctx, AV_LOG_DEBUG,
++               "Perceptual: bitrate %d maxbitrate %d from %"PRIu64"\n", 
++               x4->params.rc.i_bitrate, 
++               x4->params.rc.i_vbv_max_bitrate,
++               ctx->bit_rate / 1000);
++
++            /* tag this frame with this specific config */
++            x4->pic.param = &x4->params;
++            x264_encoder_reconfig(x4->enc, &x4->params);
++        } else {
++            x4->params.rc.i_bitrate = ctx->bit_rate / 1000;
++            x264_encoder_reconfig(x4->enc, &x4->params);
++        }
+     }
+ 
+     if (x4->crf >= 0 &&
+         x4->params.rc.i_rc_method == X264_RC_CRF &&
+-        x4->params.rc.f_rf_constant != x4->crf) {
+-        x4->params.rc.f_rf_constant = x4->crf;
+-        x264_encoder_reconfig(x4->enc, &x4->params);
++        (frame->perceptual_score > 0.0 ||
++         x4->params.rc.f_rf_constant != x4->crf)) {
++        if (frame->perceptual_score > 0.0) {
++            float crf_value = 0.0;
++            if (ctx->rc_max_rate) {
++                int bitrate = 0;
++                /* set crf value from perceptual score */
++                /* increase compression by raising the score by up to N CRF points */
++                crf_value = x4->crf - ((frame->perceptual_score * 100.0) / 4.0);
++                x4->params.rc.f_rf_constant = crf_value;
++
++                /* set ABR bitrate value from perceptual score */
++                /* increase compression by lowering the avg bitrate up to N times */
++                bitrate = (ctx->rc_max_rate / 1000) + ((frame->perceptual_score * 2.0) * (ctx->rc_max_rate / 1000.0));
++                x4->params.rc.i_vbv_max_bitrate = bitrate;
++                x4->params.rc.i_vbv_buffer_size = bitrate * 1.5 * 1.5;
++            }
++            av_log(ctx, AV_LOG_DEBUG,
++               "Perceptual: crf: %0.2f bitrate %d maxbitrate %d from %"PRIu64"\n", 
++               x4->params.rc.f_rf_constant,
++               x4->params.rc.i_bitrate, 
++               x4->params.rc.i_vbv_max_bitrate,
++               ctx->rc_max_rate / 1000);
++
++            /* tag this frame with this specific config */
++            x4->pic.param = &x4->params;
++        } else {
++            x4->params.rc.f_rf_constant = x4->crf;
++            x264_encoder_reconfig(x4->enc, &x4->params);
++        }
+     }
+ 
+     if (x4->params.rc.i_rc_method == X264_RC_CQP &&
 diff --git a/libavfilter/Makefile b/libavfilter/Makefile
 index 3ef4191..a0b96d8 100644
 --- a/libavfilter/Makefile
@@ -243,7 +296,7 @@ index 0000000..9e48f04
 +#endif
 diff --git a/libavfilter/vf_perceptual.c b/libavfilter/vf_perceptual.c
 new file mode 100644
-index 0000000..e779a1b
+index 0000000..dd78c70
 --- /dev/null
 +++ b/libavfilter/vf_perceptual.c
 @@ -0,0 +1,140 @@
@@ -335,7 +388,7 @@ index 0000000..e779a1b
 +                hash_type = 2;
 +        }
 +        score = getScore(perceptual->lastframe, in, inlink->format, hash_type);
-+        av_log(perceptual, AV_LOG_DEBUG, "Perceptual score of %lf\n", score);
++        av_log(perceptual, AV_LOG_DEBUG, "Perceptual: %s hamming score %0.1lf\n", perceptual->hash_type, score);
 +
 +        /* mark frame, normalize to percentage */
 +        in->perceptual_score = .01 * (score * 2.0);
@@ -345,7 +398,7 @@ index 0000000..e779a1b
 +    /* save last frame */
 +    perceptual->lastframe = av_frame_clone(in);
 +
-+    av_log(perceptual, AV_LOG_DEBUG, "Perceptual Score %0.2f\n", in->perceptual_score);
++    av_log(perceptual, AV_LOG_DEBUG, "Perceptual: %%%0.1lf frame change\n", in->perceptual_score * 100);
 +
 +    return ff_filter_frame(outlink, in);
 +}
