@@ -1,5 +1,14 @@
-#perceptual_hash_encoder
-Use an OpenCV img_hash based FFmpeg libavfilter for per title encoding
+Perceptual Hash Encoder
+Use OpenCV img_hash frame comparisons in FFmpeg libavfilter for per title encoding
+
+This will use perceptual hashes from OpenCV's img_hash module which includes PHash
+and it the main algorithm used. Each video frame is compared to the last video frame
+then a hamming distance is derived from the two hashes. This values shows the perceptual
+similarity of the two images. The hamming distance is used to vary the encoders bitrate
+or CRF level. Currently only X264 is supported in this implementation. 
+
+Everything can be easily setup via setup.sh, it will install what is necessary
+for the most part. Please report back any issues so this can be improved for edge cases.
 
 Setup everything, setup.sh will install opencv, libx264
 you will need wget, git installed beforehand.
