@@ -296,10 +296,10 @@ index 0000000..9e48f04
 +#endif
 diff --git a/libavfilter/vf_perceptual.c b/libavfilter/vf_perceptual.c
 new file mode 100644
-index 0000000..dd78c70
+index 0000000..fc19ece
 --- /dev/null
 +++ b/libavfilter/vf_perceptual.c
-@@ -0,0 +1,140 @@
+@@ -0,0 +1,142 @@
 +/*
 + * PERCEPTUAL FILTER: Chris Kennedy (C) 2019
 + *
@@ -379,19 +379,21 @@ index 0000000..dd78c70
 +    /* compare last frame with this current frame */
 +    if (perceptual->frame_count > 1) {
 +        int hash_type = 0;
++        double score_multiple = 2;
 +        if (perceptual->hash_type) {
 +            if (!strcmp(perceptual->hash_type, "phash"))
 +                hash_type = 0;
-+            else if (!strcmp(perceptual->hash_type, "colormomenthash"))
++            else if (!strcmp(perceptual->hash_type, "colormomenthash")) {
 +                hash_type = 1;
-+            else if (!strcmp(perceptual->hash_type, "average"))
++                score_multiple = 1;
++            } else if (!strcmp(perceptual->hash_type, "average"))
 +                hash_type = 2;
 +        }
 +        score = getScore(perceptual->lastframe, in, inlink->format, hash_type);
 +        av_log(perceptual, AV_LOG_DEBUG, "Perceptual: %s hamming score %0.1lf\n", perceptual->hash_type, score);
 +
 +        /* mark frame, normalize to percentage */
-+        in->perceptual_score = .01 * (score * 2.0);
++        in->perceptual_score = .01 * FFMIN((score * score_multiple), 100);
 +
 +        av_frame_free(&perceptual->lastframe);
 +    }
