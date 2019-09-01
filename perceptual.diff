@@ -1,0 +1,434 @@
+diff --git a/configure b/configure
+index 08a54a7..0c6de6a 100755
+--- a/configure
++++ b/configure
+@@ -3494,6 +3494,8 @@ nlmeans_opencl_filter_deps="opencl"
+ nnedi_filter_deps="gpl"
+ ocr_filter_deps="libtesseract"
+ ocv_filter_deps="libopencv"
++perceptual_filter_deps="libopencv"
++perceptual_filter_extralibs="-lstdc++ -lopencv_img_hash"
+ openclsrc_filter_deps="opencl"
+ overlay_opencl_filter_deps="opencl"
+ overlay_qsv_filter_deps="libmfx"
+diff --git a/libavcodec/libx264.c b/libavcodec/libx264.c
+index 86e3530..4ce2edd 100644
+--- a/libavcodec/libx264.c
++++ b/libavcodec/libx264.c
+@@ -275,6 +275,31 @@ static void reconfig_encoder(AVCodecContext *ctx, const AVFrame *frame)
+             x264_encoder_reconfig(x4->enc, &x4->params);
+         }
+     }
++    /* alter bitrate depending on perceptual filter */
++    if (x4->avcintra_class < 0) {
++        if (frame->perceptual_score > 0.0) {
++            if (x4->params.rc.i_rc_method == X264_RC_CRF) {
++                float crf_value = 0.0;
++                /* set crf value from perceptual score */
++                /* increase compression by raising the score by up to 3 CRF points */
++                crf_value = x4->crf - ((frame->perceptual_score * 100.0) / 33.0);
++                av_log(ctx, AV_LOG_DEBUG,
++                   "Setting Perceptual CRF to %0.2f\n", crf_value);
++                x4->params.rc.f_rf_constant = crf_value;
++            }
++            if (x4->params.rc.i_rc_method == X264_RC_ABR) {
++                int bitrate = 0;
++                /* set ABR bitrate value from perceptual score */
++                /* increase compression by lowering the avg bitrate up to 2.5 times */
++                bitrate = (ctx->bit_rate / 1000) + ((frame->perceptual_score * 1.0) * (ctx->bit_rate / 1000.0));
++                av_log(ctx, AV_LOG_DEBUG,
++                   "Setting Perceptual Bitrate to %d\n", bitrate);
++                x4->params.rc.i_bitrate = bitrate;
++            }
++            x264_encoder_reconfig(x4->enc, &x4->params);
++            x4->pic.param = &x4->params;
++        }
++    }
+ }
+ 
+ static int X264_frame(AVCodecContext *ctx, AVPacket *pkt, const AVFrame *frame,
+diff --git a/libavfilter/Makefile b/libavfilter/Makefile
+index 3ef4191..a0b96d8 100644
+--- a/libavfilter/Makefile
++++ b/libavfilter/Makefile
+@@ -309,6 +309,7 @@ OBJS-$(CONFIG_NORMALIZE_FILTER)              += vf_normalize.o
+ OBJS-$(CONFIG_NULL_FILTER)                   += vf_null.o
+ OBJS-$(CONFIG_OCR_FILTER)                    += vf_ocr.o
+ OBJS-$(CONFIG_OCV_FILTER)                    += vf_libopencv.o
++OBJS-$(CONFIG_PERCEPTUAL_FILTER)             += vf_perceptual.o img_hash.o
+ OBJS-$(CONFIG_OSCILLOSCOPE_FILTER)           += vf_datascope.o
+ OBJS-$(CONFIG_OVERLAY_FILTER)                += vf_overlay.o framesync.o
+ OBJS-$(CONFIG_OVERLAY_OPENCL_FILTER)         += vf_overlay_opencl.o opencl.o \
+@@ -492,6 +493,7 @@ OBJS-$(CONFIG_SHARED)                        += log2_tab.o
+ SKIPHEADERS-$(CONFIG_QSVVPP)                 += qsvvpp.h
+ SKIPHEADERS-$(CONFIG_OPENCL)                 += opencl.h
+ SKIPHEADERS-$(CONFIG_VAAPI)                  += vaapi_vpp.h
++SKIPHEADERS-$(CONFIG_LIBOPENCV)              += img_hash.h
+ 
+ TOOLS     = graph2dot
+ TESTPROGS = drawutils filtfmts formats integral
+diff --git a/libavfilter/allfilters.c b/libavfilter/allfilters.c
+index b675c68..6cc2243 100644
+--- a/libavfilter/allfilters.c
++++ b/libavfilter/allfilters.c
+@@ -294,6 +294,7 @@ extern AVFilter ff_vf_normalize;
+ extern AVFilter ff_vf_null;
+ extern AVFilter ff_vf_ocr;
+ extern AVFilter ff_vf_ocv;
++extern AVFilter ff_vf_perceptual;
+ extern AVFilter ff_vf_oscilloscope;
+ extern AVFilter ff_vf_overlay;
+ extern AVFilter ff_vf_overlay_opencl;
+diff --git a/libavfilter/img_hash.cpp b/libavfilter/img_hash.cpp
+new file mode 100644
+index 0000000..d9a99a0
+--- /dev/null
++++ b/libavfilter/img_hash.cpp
+@@ -0,0 +1,128 @@
++// Christopher Kennedy 2019
++// License: Apache 2.0
++//
++// Tutorial and code from
++// https://qtandopencv.blogspot.com/2016/06/introduction-to-image-hash-module-of.html
++//
++#include <opencv2/core.hpp>
++#include <opencv2/core/ocl.hpp>
++#include <opencv2/highgui.hpp>
++#include <opencv2/img_hash.hpp>
++#include <opencv2/imgproc.hpp>
++
++#include <iostream>
++
++#include "img_hash.h"
++#include "libavutil/pixdesc.h"
++extern "C" {
++#include "avfilter.h"
++}
++
++using namespace cv;
++using namespace cv::img_hash;
++using namespace std;
++
++static cv::Mat computeColorMomentHash(cv::Mat input)
++{
++    cv::Ptr<cv::img_hash::ImgHashBase> algo = cv::img_hash::ColorMomentHash::create();
++    
++    cv::Mat inHash; //hash of input image
++
++    //compute hash of input
++    algo->compute(input, inHash);
++
++    return inHash;
++}
++
++static cv::Mat computeAverageHash(cv::Mat input)
++{
++    cv::Ptr<cv::img_hash::ImgHashBase> algo = cv::img_hash::AverageHash::create();
++    
++    cv::Mat inHash; //hash of input image
++
++    //compute hash of input
++    algo->compute(input, inHash);
++
++    return inHash;
++}
++
++static cv::Mat computePHash(cv::Mat input)
++{
++    cv::Ptr<cv::img_hash::ImgHashBase> algo = cv::img_hash::PHash::create();
++    
++    cv::Mat inHash; //hash of input image
++
++    //compute hash of input
++    algo->compute(input, inHash);
++
++    return inHash;
++}
++
++static double compareAverageHash(cv::Mat inHash, cv::Mat targetHash)
++{
++    cv::Ptr<cv::img_hash::ImgHashBase> algo = cv::img_hash::AverageHash::create();
++
++    // compare hashes
++    return algo->compare(inHash, targetHash);
++}
++
++static double compareColorMomentHash(cv::Mat inHash, cv::Mat targetHash)
++{
++    cv::Ptr<cv::img_hash::ImgHashBase> algo = cv::img_hash::ColorMomentHash::create();
++
++    // compare hashes
++    //return (algo->compare(inHash, targetHash) / 1000) * .01;
++    return algo->compare(inHash, targetHash);
++}
++
++static double comparePHash(cv::Mat inHash, cv::Mat targetHash)
++{
++    cv::Ptr<cv::img_hash::ImgHashBase> algo = cv::img_hash::PHash::create();
++
++    // compare hashes
++    return algo->compare(inHash, targetHash);
++}
++
++static void fill_iplimage_from_frame(IplImage *img, const AVFrame *frame, enum AVPixelFormat pixfmt)
++{
++    IplImage *tmpimg;
++    int depth, channels_nb;
++
++    if      (pixfmt == AV_PIX_FMT_GRAY8) { depth = IPL_DEPTH_8U;  channels_nb = 1; }
++    else if (pixfmt == AV_PIX_FMT_BGRA)  { depth = IPL_DEPTH_8U;  channels_nb = 4; }
++    else if (pixfmt == AV_PIX_FMT_BGR24) { depth = IPL_DEPTH_8U;  channels_nb = 3; }
++    else if (pixfmt == AV_PIX_FMT_YUV420P) { depth = IPL_DEPTH_8U;  channels_nb = 3; }
++    else return;
++
++    tmpimg = cvCreateImageHeader((CvSize){frame->width, frame->height}, depth, channels_nb);
++    *img = *tmpimg;
++    img->imageData = img->imageDataOrigin = (char *) frame->data[0];
++    img->dataOrder = IPL_DATA_ORDER_PIXEL;
++    img->origin    = IPL_ORIGIN_TL;
++    img->widthStep = frame->linesize[0];
++}
++
++// 0 == phash, 1 == colormomentshash 2 == averagehash
++extern "C" double getScore(const AVFrame *frame1, const AVFrame *frame2, enum AVPixelFormat pixfmt, int hash_type) {
++    IplImage ipl1, ipl2;
++    fill_iplimage_from_frame(&ipl1, frame1, pixfmt);
++    fill_iplimage_from_frame(&ipl2, frame2, pixfmt);
++    cv::Mat m1 = cv::cvarrToMat(&ipl1);
++    cv::Mat m2 = cv::cvarrToMat(&ipl2);
++    cv::Mat h1;
++    cv::Mat h2;
++    if (hash_type == 1) {
++        h1 = computeColorMomentHash(m1);
++        h2 = computeColorMomentHash(m2);
++        return compareColorMomentHash(h1, h2);
++    } else if (hash_type == 2) {
++        h1 = computeAverageHash(m1);
++        h2 = computeAverageHash(m2);
++        return compareAverageHash(h1, h2);
++    } else { // Default to PHash
++        h1 = computePHash(m1);
++        h2 = computePHash(m2);
++        return comparePHash(h1, h2);
++    }
++}
++
+diff --git a/libavfilter/img_hash.h b/libavfilter/img_hash.h
+new file mode 100644
+index 0000000..9e48f04
+--- /dev/null
++++ b/libavfilter/img_hash.h
+@@ -0,0 +1,22 @@
++// Christopher Kennedy 2019
++// License: Apache 2.0
++//
++// Tutorial and code from
++// https://qtandopencv.blogspot.com/2016/06/introduction-to-image-hash-module-of.html
++//
++#ifndef AVFILTER_IMG_HASH_H
++#define AVFILTER_IMG_HASH_H
++
++#include "avfilter.h"
++
++#ifdef __cplusplus
++extern "C"
++{
++#endif
++double getScore(const AVFrame *frame1, const AVFrame *frame2, enum AVPixelFormat pixfmt, int hash_type);
++#ifdef __cplusplus
++}
++#endif
++
++
++#endif
+diff --git a/libavfilter/vf_perceptual.c b/libavfilter/vf_perceptual.c
+new file mode 100644
+index 0000000..e779a1b
+--- /dev/null
++++ b/libavfilter/vf_perceptual.c
+@@ -0,0 +1,140 @@
++/*
++ * PERCEPTUAL FILTER: Chris Kennedy (C) 2019
++ *
++ * Perceptual scoring frame matching
++ *
++ * Tags decoded frames with a perceptual score for the x264
++ * encoder to use.
++ *
++ * License: Apache 2.0
++ *
++ */
++
++/**
++ * @file
++ * perceptual: Perceptual Scoring
++ */
++
++#include "libavutil/adler32.h"
++#include "libavutil/avstring.h"
++#include "libavutil/common.h"
++#include "libavutil/file.h"
++#include "libavutil/opt.h"
++#include "libavutil/imgutils.h"
++#include "libavutil/pixdesc.h"
++#include "libavutil/timestamp.h"
++#include "libavfilter/lswsutils.h"
++#include "avfilter.h"
++#include "formats.h"
++#include "internal.h"
++#include "video.h"
++#include "img_hash.h"
++
++typedef struct {
++    const AVClass *class;
++    char *hash_type;
++    uint64_t frame_count; // frame counter/number
++    AVFrame *lastframe;
++
++    void *priv; // private structure for filter, std FFmpeg API
++} PerceptualContext;
++
++// decides color space raw frame format used via standard LibAV API
++static int query_formats(AVFilterContext *ctx)
++{
++    static const enum AVPixelFormat pix_fmts[] = {
++        AV_PIX_FMT_YUV420P, AV_PIX_FMT_BGR24, AV_PIX_FMT_GRAY8, AV_PIX_FMT_NONE
++    };
++    return ff_set_common_formats(ctx, ff_make_format_list(pix_fmts));
++}
++
++static av_cold int init(AVFilterContext *ctx)
++{
++    PerceptualContext *perceptual = ctx->priv;
++
++    if (!(perceptual->priv = av_mallocz(sizeof(PerceptualContext))))
++        return AVERROR(ENOMEM);
++
++    return 0;
++}
++
++static av_cold void uninit(AVFilterContext *ctx)
++{
++    PerceptualContext *perceptual = ctx->priv;
++
++    av_free(perceptual->priv);
++}
++
++static int filter_frame(AVFilterLink *inlink, AVFrame *in)
++{
++    AVFilterContext *ctx = inlink->dst;
++    AVFilterLink *outlink= inlink->dst->outputs[0];
++    PerceptualContext *perceptual = ctx->priv;
++    double score = 0;
++
++    perceptual->frame_count++;
++
++    /* compare last frame with this current frame */
++    if (perceptual->frame_count > 1) {
++        int hash_type = 0;
++        if (perceptual->hash_type) {
++            if (!strcmp(perceptual->hash_type, "phash"))
++                hash_type = 0;
++            else if (!strcmp(perceptual->hash_type, "colormomenthash"))
++                hash_type = 1;
++            else if (!strcmp(perceptual->hash_type, "average"))
++                hash_type = 2;
++        }
++        score = getScore(perceptual->lastframe, in, inlink->format, hash_type);
++        av_log(perceptual, AV_LOG_DEBUG, "Perceptual score of %lf\n", score);
++
++        /* mark frame, normalize to percentage */
++        in->perceptual_score = .01 * (score * 2.0);
++
++        av_frame_free(&perceptual->lastframe);
++    }
++    /* save last frame */
++    perceptual->lastframe = av_frame_clone(in);
++
++    av_log(perceptual, AV_LOG_DEBUG, "Perceptual Score %0.2f\n", in->perceptual_score);
++
++    return ff_filter_frame(outlink, in);
++}
++
++#define OFFSET(x) offsetof(PerceptualContext, x)
++#define FLAGS AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM
++static const AVOption perceptual_options[] = {
++    { "hash_type", "options: phash, colormomenthash, average", OFFSET(hash_type), AV_OPT_TYPE_STRING, {.str = "phash"}, .flags = FLAGS },
++    { NULL }
++};
++
++AVFILTER_DEFINE_CLASS(perceptual);
++
++static const AVFilterPad avfilter_vf_perceptual_inputs[] = {
++    {
++        .name         = "default",
++        .type         = AVMEDIA_TYPE_VIDEO,
++        .filter_frame = filter_frame,
++    },
++    { NULL }
++};
++
++static const AVFilterPad avfilter_vf_perceptual_outputs[] = {
++    {
++        .name = "default",
++        .type = AVMEDIA_TYPE_VIDEO,
++    },
++    { NULL }
++};
++
++AVFilter ff_vf_perceptual = {
++    .name          = "perceptual",
++    .description   = NULL_IF_CONFIG_SMALL("Perceptual Scoring Filter"),
++    .priv_size     = sizeof(PerceptualContext),
++    .priv_class    = &perceptual_class,
++    .query_formats = query_formats,
++    .init          = init,
++    .uninit        = uninit,
++    .inputs        = avfilter_vf_perceptual_inputs,
++    .outputs       = avfilter_vf_perceptual_outputs,
++};
+diff --git a/libavutil/frame.c b/libavutil/frame.c
+index dcf1fc3..d8e79ac 100644
+--- a/libavutil/frame.c
++++ b/libavutil/frame.c
+@@ -163,6 +163,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
+     frame->color_range         = AVCOL_RANGE_UNSPECIFIED;
+     frame->chroma_location     = AVCHROMA_LOC_UNSPECIFIED;
+     frame->flags               = 0;
++    frame->perceptual_score    = -1;
+ }
+ 
+ static void free_side_data(AVFrameSideData **ptr_sd)
+@@ -373,6 +374,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
+     dst->colorspace             = src->colorspace;
+     dst->color_range            = src->color_range;
+     dst->chroma_location        = src->chroma_location;
++    dst->perceptual_score       = src->perceptual_score;
+ 
+     av_dict_copy(&dst->metadata, src->metadata, 0);
+ 
+@@ -453,6 +455,7 @@ int av_frame_ref(AVFrame *dst, const AVFrame *src)
+     dst->channels       = src->channels;
+     dst->channel_layout = src->channel_layout;
+     dst->nb_samples     = src->nb_samples;
++    dst->perceptual_score = src->perceptual_score;
+ 
+     ret = frame_copy_props(dst, src, 0);
+     if (ret < 0)
+diff --git a/libavutil/frame.h b/libavutil/frame.h
+index 5d3231e..39fb941 100644
+--- a/libavutil/frame.h
++++ b/libavutil/frame.h
+@@ -672,6 +672,12 @@ typedef struct AVFrame {
+      * for the target frame's private_ref field.
+      */
+     AVBufferRef *private_ref;
++
++    /**
++     * perceptual score
++     * 0.00 - 1.00 percentage of perceptual match to the previous frame
++     */
++    float perceptual_score;
+ } AVFrame;
+ 
+ #if FF_API_FRAME_GET_SET
