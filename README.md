@@ -1,6 +1,7 @@
 Perceptual Hash Encoder
 
 Use OpenCV img_hash frame comparisons in FFmpeg libavfilter for per title encoding
+Documentation on OpenCV img_hash: https://docs.opencv.org/trunk/d4/d93/group__img__hash.html
 
 This will use perceptual hashes from OpenCV's img_hash module which includes PHash
 and it the main algorithm used. Each video frame is compared to the last video frame
