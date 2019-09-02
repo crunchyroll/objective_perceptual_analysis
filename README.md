@@ -1,4 +1,5 @@
 Perceptual Hash Encoder
+
 Use OpenCV img_hash frame comparisons in FFmpeg libavfilter for per title encoding
 
 This will use perceptual hashes from OpenCV's img_hash module which includes PHash
@@ -9,6 +10,8 @@ or CRF level. Currently only X264 is supported in this implementation.
 
 Everything can be easily setup via setup.sh, it will install what is necessary
 for the most part. Please report back any issues so this can be improved for edge cases.
+
+*Currenty works only on CentOS 7*
 
 Setup everything, setup.sh will install opencv, libx264
 you will need wget, git installed beforehand.

@@ -15,7 +15,7 @@
 set -e
 
 # install cmake
-sudo yum -y -q install cmake3 || echo "all deps installed"
+sudo yum -y -q install cmake3 wget git || echo "all deps installed"
 
 ## get opencv and opencv_contrib
 if [ ! -d "opencv" ]; then
@@ -150,4 +150,8 @@ if [ ! -f FFmpeg/ffmpeg ]; then
 fi
 
 # build tools
-make
+make reference
+
+echo "To install FFmpeg into /usr/bin/ffmpeg type: 'make install'"
+echo "./FFmpeg/ffmpeg can be copied where you want also"
+
