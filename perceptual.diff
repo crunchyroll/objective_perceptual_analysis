@@ -12,18 +12,10 @@ index 08a54a7..0c6de6a 100755
  overlay_opencl_filter_deps="opencl"
  overlay_qsv_filter_deps="libmfx"
 diff --git a/libavcodec/libx264.c b/libavcodec/libx264.c
-index 86e3530..5bd4682 100644
+index 86e3530..a18baed 100644
 --- a/libavcodec/libx264.c
 +++ b/libavcodec/libx264.c
-@@ -184,6 +184,7 @@ static void reconfig_encoder(AVCodecContext *ctx, const AVFrame *frame)
- 
- 
-   if (x4->avcintra_class < 0) {
-+    double score_factor = 2.0;
-     if (x4->params.b_interlaced && x4->params.b_tff != frame->top_field_first) {
- 
-         x4->params.b_tff = frame->top_field_first;
-@@ -195,24 +196,73 @@ static void reconfig_encoder(AVCodecContext *ctx, const AVFrame *frame)
+@@ -195,24 +195,73 @@ static void reconfig_encoder(AVCodecContext *ctx, const AVFrame *frame)
          x264_encoder_reconfig(x4->enc, &x4->params);
      }
  
@@ -51,7 +43,7 @@ index 86e3530..5bd4682 100644
 +            int bitrate = 0;
 +            /* set ABR bitrate value from perceptual score */
 +            /* decrease compression by raising the avg bitrate up to N times */
-+            bitrate = (ctx->bit_rate / 1000) + ((frame->perceptual_score * score_factor) * (ctx->bit_rate / 1000.0));
++            bitrate = (ctx->bit_rate / 1000) + ((frame->perceptual_score * frame->perceptual_score_factor) * (ctx->bit_rate / 1000.0));
 +            x4->params.rc.i_bitrate = bitrate;
 +            x4->params.rc.i_vbv_max_bitrate = bitrate * 1.5;
 +            x4->params.rc.i_vbv_buffer_size = bitrate * 1.5 * 1.5;
@@ -83,12 +75,12 @@ index 86e3530..5bd4682 100644
 +                int bitrate = 0;
 +                /* set crf value from perceptual score */
 +                /* decrease compression by lowering the score by up to N CRF points */
-+                crf_value = x4->crf - ((frame->perceptual_score * 100.0) / (score_factor * 2));
++                crf_value = x4->crf - ((frame->perceptual_score * 100.0) / (frame->perceptual_score_factor * 2));
 +                x4->params.rc.f_rf_constant = crf_value;
 +
 +                /* set ABR bitrate value from perceptual score */
 +                /* decrease compression by raising the avg bitrate up to N times */
-+                bitrate = (ctx->rc_max_rate / 1000) + ((frame->perceptual_score * score_factor) * (ctx->rc_max_rate / 1000.0));
++                bitrate = (ctx->rc_max_rate / 1000) + ((frame->perceptual_score * frame->perceptual_score_factor) * (ctx->rc_max_rate / 1000.0));
 +                x4->params.rc.i_vbv_max_bitrate = bitrate;
 +                x4->params.rc.i_vbv_buffer_size = bitrate * 1.5 * 1.5;
 +            }
@@ -271,10 +263,10 @@ index 0000000..a17b0cb
 +#endif
 diff --git a/libavfilter/vf_perceptual.c b/libavfilter/vf_perceptual.c
 new file mode 100644
-index 0000000..d32af1b
+index 0000000..7bf8037
 --- /dev/null
 +++ b/libavfilter/vf_perceptual.c
-@@ -0,0 +1,156 @@
+@@ -0,0 +1,160 @@
 +/*
 + * PERCEPTUAL FILTER: Chris Kennedy (C) 2019
 + *
@@ -311,6 +303,7 @@ index 0000000..d32af1b
 +    const AVClass *class;
 +    char *hash_type;
 +    double score_multiplier;
++    double score_factor;
 +    int hash_type_i;
 +    uint64_t frame_count; // frame counter/number
 +    AVFrame *lastframe;
@@ -381,6 +374,7 @@ index 0000000..d32af1b
 +
 +        /* mark frame, normalize to percentage */
 +        in->perceptual_score = .01 * FFMIN((score * perceptual->score_multiplier), 100);
++        in->perceptual_score_factor = perceptual->score_factor;
 +
 +        av_frame_free(&perceptual->lastframe);
 +    }
@@ -398,6 +392,8 @@ index 0000000..d32af1b
 +    { "hash_type", "options: phash, colormomenthash, average", OFFSET(hash_type), AV_OPT_TYPE_STRING, {.str = "phash"}, .flags = FLAGS },
 +    { "score_multiplier", "multiply the hamming score result by this value. 2.0 by default", OFFSET(score_multiplier),
 +        AV_OPT_TYPE_DOUBLE, {.dbl = 2.0}, 0, 100, .flags = FLAGS },
++    { "score_factor", "factor to decrease compression, multiplier for bitrate, range for crf. 2.0 default", OFFSET(score_factor),
++        AV_OPT_TYPE_DOUBLE, {.dbl = 2.0}, 0, 1000, .flags = FLAGS },
 +    { NULL }
 +};
 +
@@ -432,38 +428,41 @@ index 0000000..d32af1b
 +    .outputs       = avfilter_vf_perceptual_outputs,
 +};
 diff --git a/libavutil/frame.c b/libavutil/frame.c
-index dcf1fc3..d8e79ac 100644
+index dcf1fc3..94e7644 100644
 --- a/libavutil/frame.c
 +++ b/libavutil/frame.c
-@@ -163,6 +163,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
+@@ -163,6 +163,8 @@ FF_ENABLE_DEPRECATION_WARNINGS
      frame->color_range         = AVCOL_RANGE_UNSPECIFIED;
      frame->chroma_location     = AVCHROMA_LOC_UNSPECIFIED;
      frame->flags               = 0;
 +    frame->perceptual_score    = -1;
++    frame->perceptual_score_factor    = 2.0;
  }
  
  static void free_side_data(AVFrameSideData **ptr_sd)
-@@ -373,6 +374,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
+@@ -373,6 +375,8 @@ FF_ENABLE_DEPRECATION_WARNINGS
      dst->colorspace             = src->colorspace;
      dst->color_range            = src->color_range;
      dst->chroma_location        = src->chroma_location;
 +    dst->perceptual_score       = src->perceptual_score;
++    dst->perceptual_score_factor       = src->perceptual_score_factor;
  
      av_dict_copy(&dst->metadata, src->metadata, 0);
  
-@@ -453,6 +455,7 @@ int av_frame_ref(AVFrame *dst, const AVFrame *src)
+@@ -453,6 +457,8 @@ int av_frame_ref(AVFrame *dst, const AVFrame *src)
      dst->channels       = src->channels;
      dst->channel_layout = src->channel_layout;
      dst->nb_samples     = src->nb_samples;
 +    dst->perceptual_score = src->perceptual_score;
++    dst->perceptual_score_factor = src->perceptual_score_factor;
  
      ret = frame_copy_props(dst, src, 0);
      if (ret < 0)
 diff --git a/libavutil/frame.h b/libavutil/frame.h
-index 5d3231e..39fb941 100644
+index 5d3231e..c9df011 100644
 --- a/libavutil/frame.h
 +++ b/libavutil/frame.h
-@@ -672,6 +672,12 @@ typedef struct AVFrame {
+@@ -672,6 +672,13 @@ typedef struct AVFrame {
       * for the target frame's private_ref field.
       */
      AVBufferRef *private_ref;
@@ -473,6 +472,7 @@ index 5d3231e..39fb941 100644
 +     * 0.00 - 1.00 percentage of perceptual match to the previous frame
 +     */
 +    float perceptual_score;
++    float perceptual_score_factor;
  } AVFrame;
  
  #if FF_API_FRAME_GET_SET
