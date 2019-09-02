@@ -12,7 +12,7 @@ index 08a54a7..0c6de6a 100755
  overlay_opencl_filter_deps="opencl"
  overlay_qsv_filter_deps="libmfx"
 diff --git a/libavcodec/libx264.c b/libavcodec/libx264.c
-index 86e3530..d4119b3 100644
+index 86e3530..5bd4682 100644
 --- a/libavcodec/libx264.c
 +++ b/libavcodec/libx264.c
 @@ -184,6 +184,7 @@ static void reconfig_encoder(AVCodecContext *ctx, const AVFrame *frame)
@@ -32,7 +32,7 @@ index 86e3530..d4119b3 100644
 -        x4->params.rc.i_vbv_buffer_size = ctx->rc_buffer_size / 1000;
 -        x4->params.rc.i_vbv_max_bitrate = ctx->rc_max_rate    / 1000;
 -        x264_encoder_reconfig(x4->enc, &x4->params);
-+    if (frame->perceptual_score <= 0.0) {
++    if (frame->perceptual_score == -1) {
 +        if (x4->params.rc.i_vbv_buffer_size != ctx->rc_buffer_size / 1000 ||
 +            x4->params.rc.i_vbv_max_bitrate != ctx->rc_max_rate    / 1000) {
 +            x4->params.rc.i_vbv_buffer_size = ctx->rc_buffer_size / 1000;
@@ -45,9 +45,9 @@ index 86e3530..d4119b3 100644
 -        x4->params.rc.i_bitrate != ctx->bit_rate / 1000) {
 -        x4->params.rc.i_bitrate = ctx->bit_rate / 1000;
 -        x264_encoder_reconfig(x4->enc, &x4->params);
-+        (frame->perceptual_score > 0.0 ||
++        (frame->perceptual_score > -1 ||
 +         x4->params.rc.i_bitrate != ctx->bit_rate / 1000)) {
-+        if (frame->perceptual_score > 0.0) {
++        if (frame->perceptual_score > -1) {
 +            int bitrate = 0;
 +            /* set ABR bitrate value from perceptual score */
 +            /* decrease compression by raising the avg bitrate up to N times */
@@ -75,9 +75,9 @@ index 86e3530..d4119b3 100644
 -        x4->params.rc.f_rf_constant != x4->crf) {
 -        x4->params.rc.f_rf_constant = x4->crf;
 -        x264_encoder_reconfig(x4->enc, &x4->params);
-+        (frame->perceptual_score > 0.0 ||
++        (frame->perceptual_score > -1 ||
 +         x4->params.rc.f_rf_constant != x4->crf)) {
-+        if (frame->perceptual_score > 0.0) {
++        if (frame->perceptual_score > -1) {
 +            float crf_value = 0.0;
 +            if (ctx->rc_max_rate) {
 +                int bitrate = 0;
@@ -142,14 +142,14 @@ index b675c68..6cc2243 100644
  extern AVFilter ff_vf_overlay_opencl;
 diff --git a/libavfilter/img_hash.cpp b/libavfilter/img_hash.cpp
 new file mode 100644
-index 0000000..d9a99a0
+index 0000000..e6bf32f
 --- /dev/null
 +++ b/libavfilter/img_hash.cpp
-@@ -0,0 +1,128 @@
+@@ -0,0 +1,86 @@
 +// Christopher Kennedy 2019
 +// License: Apache 2.0
 +//
-+// Tutorial and code from
++// Originally inspired by the information from:
 +// https://qtandopencv.blogspot.com/2016/06/introduction-to-image-hash-module-of.html
 +//
 +#include <opencv2/core.hpp>
@@ -170,67 +170,7 @@ index 0000000..d9a99a0
 +using namespace cv::img_hash;
 +using namespace std;
 +
-+static cv::Mat computeColorMomentHash(cv::Mat input)
-+{
-+    cv::Ptr<cv::img_hash::ImgHashBase> algo = cv::img_hash::ColorMomentHash::create();
-+    
-+    cv::Mat inHash; //hash of input image
-+
-+    //compute hash of input
-+    algo->compute(input, inHash);
-+
-+    return inHash;
-+}
-+
-+static cv::Mat computeAverageHash(cv::Mat input)
-+{
-+    cv::Ptr<cv::img_hash::ImgHashBase> algo = cv::img_hash::AverageHash::create();
-+    
-+    cv::Mat inHash; //hash of input image
-+
-+    //compute hash of input
-+    algo->compute(input, inHash);
-+
-+    return inHash;
-+}
-+
-+static cv::Mat computePHash(cv::Mat input)
-+{
-+    cv::Ptr<cv::img_hash::ImgHashBase> algo = cv::img_hash::PHash::create();
-+    
-+    cv::Mat inHash; //hash of input image
-+
-+    //compute hash of input
-+    algo->compute(input, inHash);
-+
-+    return inHash;
-+}
-+
-+static double compareAverageHash(cv::Mat inHash, cv::Mat targetHash)
-+{
-+    cv::Ptr<cv::img_hash::ImgHashBase> algo = cv::img_hash::AverageHash::create();
-+
-+    // compare hashes
-+    return algo->compare(inHash, targetHash);
-+}
-+
-+static double compareColorMomentHash(cv::Mat inHash, cv::Mat targetHash)
-+{
-+    cv::Ptr<cv::img_hash::ImgHashBase> algo = cv::img_hash::ColorMomentHash::create();
-+
-+    // compare hashes
-+    //return (algo->compare(inHash, targetHash) / 1000) * .01;
-+    return algo->compare(inHash, targetHash);
-+}
-+
-+static double comparePHash(cv::Mat inHash, cv::Mat targetHash)
-+{
-+    cv::Ptr<cv::img_hash::ImgHashBase> algo = cv::img_hash::PHash::create();
-+
-+    // compare hashes
-+    return algo->compare(inHash, targetHash);
-+}
-+
++// From the libopencv AVFilter
 +static void fill_iplimage_from_frame(IplImage *img, const AVFrame *frame, enum AVPixelFormat pixfmt)
 +{
 +    IplImage *tmpimg;
@@ -250,36 +190,54 @@ index 0000000..d9a99a0
 +    img->widthStep = frame->linesize[0];
 +}
 +
-+// 0 == phash, 1 == colormomentshash 2 == averagehash
++// Get the score of two Video Frames by comparing the perceptual hashes and deriving a hamming distance
++// showing how similar they are or different. lower the score is better for most algorithms
 +extern "C" double getScore(const AVFrame *frame1, const AVFrame *frame2, enum AVPixelFormat pixfmt, int hash_type) {
++    cv::Ptr<cv::img_hash::ImgHashBase> algo;
 +    IplImage ipl1, ipl2;
-+    fill_iplimage_from_frame(&ipl1, frame1, pixfmt);
-+    fill_iplimage_from_frame(&ipl2, frame2, pixfmt);
-+    cv::Mat m1 = cv::cvarrToMat(&ipl1);
-+    cv::Mat m2 = cv::cvarrToMat(&ipl2);
 +    cv::Mat h1;
 +    cv::Mat h2;
-+    if (hash_type == 1) {
-+        h1 = computeColorMomentHash(m1);
-+        h2 = computeColorMomentHash(m2);
-+        return compareColorMomentHash(h1, h2);
-+    } else if (hash_type == 2) {
-+        h1 = computeAverageHash(m1);
-+        h2 = computeAverageHash(m2);
-+        return compareAverageHash(h1, h2);
++    cv::Mat m1;
++    cv::Mat m2;
++
++    // Take FFmpeg video frame and convert into an IplImage for OpenCV
++    fill_iplimage_from_frame(&ipl1, frame1, pixfmt);
++    fill_iplimage_from_frame(&ipl2, frame2, pixfmt);
++    // Convert an IplImage to an Mat Image for OpenCV (newer format)
++    m1 = cv::cvarrToMat(&ipl1);
++    m2 = cv::cvarrToMat(&ipl2);
++
++    // substantiate the hash type algorithm
++    if (hash_type == COLORMOMENT) {
++        algo = cv::img_hash::ColorMomentHash::create();
++    } else if (hash_type == AVERAGE) {
++        algo = cv::img_hash::AverageHash::create();
++    } else if (hash_type == BLOCKMEAN1) {
++        //BlockMeanHash support mode 0 and mode 1, they associate to 
++        //    //mode 1 and mode 2 of PHash library
++        algo = cv::img_hash::BlockMeanHash::create(0);
++    } else if (hash_type == BLOCKMEAN2) {
++        algo = cv::img_hash::BlockMeanHash::create(1);
++    } else if (hash_type == MARRHILDRETH) {
++        algo = cv::img_hash::MarrHildrethHash::create();
++    } else if (hash_type == RADIALVARIANCE) {
++        algo = cv::img_hash::RadialVarianceHash::create();
 +    } else { // Default to PHash
-+        h1 = computePHash(m1);
-+        h2 = computePHash(m2);
-+        return comparePHash(h1, h2);
++        algo = cv::img_hash::PHash::create();
 +    }
++    // Compute the hash
++    algo->compute(m1, h1);
++    algo->compute(m2, h2);
++    // Compare the hashes and return the hamming distance
++    return algo->compare(h1, h2);
 +}
 +
 diff --git a/libavfilter/img_hash.h b/libavfilter/img_hash.h
 new file mode 100644
-index 0000000..9e48f04
+index 0000000..a17b0cb
 --- /dev/null
 +++ b/libavfilter/img_hash.h
-@@ -0,0 +1,22 @@
+@@ -0,0 +1,31 @@
 +// Christopher Kennedy 2019
 +// License: Apache 2.0
 +//
@@ -295,6 +253,15 @@ index 0000000..9e48f04
 +extern "C"
 +{
 +#endif
++
++#define PHASH 0
++#define COLORMOMENT 1
++#define AVERAGE 2
++#define MARRHILDRETH 2
++#define RADIALVARIANCE 3
++#define BLOCKMEAN1 4
++#define BLOCKMEAN2 5
++
 +double getScore(const AVFrame *frame1, const AVFrame *frame2, enum AVPixelFormat pixfmt, int hash_type);
 +#ifdef __cplusplus
 +}
@@ -304,10 +271,10 @@ index 0000000..9e48f04
 +#endif
 diff --git a/libavfilter/vf_perceptual.c b/libavfilter/vf_perceptual.c
 new file mode 100644
-index 0000000..fc19ece
+index 0000000..d32af1b
 --- /dev/null
 +++ b/libavfilter/vf_perceptual.c
-@@ -0,0 +1,142 @@
+@@ -0,0 +1,156 @@
 +/*
 + * PERCEPTUAL FILTER: Chris Kennedy (C) 2019
 + *
@@ -343,6 +310,8 @@ index 0000000..fc19ece
 +typedef struct {
 +    const AVClass *class;
 +    char *hash_type;
++    double score_multiplier;
++    int hash_type_i;
 +    uint64_t frame_count; // frame counter/number
 +    AVFrame *lastframe;
 +
@@ -365,6 +334,27 @@ index 0000000..fc19ece
 +    if (!(perceptual->priv = av_mallocz(sizeof(PerceptualContext))))
 +        return AVERROR(ENOMEM);
 +
++    if (perceptual->hash_type) {
++        if (!strcmp(perceptual->hash_type, "phash"))
++            perceptual->hash_type_i = PHASH;
++        else if (!strcmp(perceptual->hash_type, "colormoment")) {
++            perceptual->hash_type_i = COLORMOMENT;
++            perceptual->score_multiplier = 1.0;
++        } else if (!strcmp(perceptual->hash_type, "average"))
++            perceptual->hash_type_i = AVERAGE;
++        else if (!strcmp(perceptual->hash_type, "marrhildreth"))
++            perceptual->hash_type_i = MARRHILDRETH;
++        else if (!strcmp(perceptual->hash_type, "radialvariance"))
++            perceptual->hash_type_i = RADIALVARIANCE;
++        else if (!strcmp(perceptual->hash_type, "blockmean1"))
++            perceptual->hash_type_i = BLOCKMEAN1;
++        else if (!strcmp(perceptual->hash_type, "blockmean2"))
++            perceptual->hash_type_i = BLOCKMEAN2;
++        else {
++            av_log(perceptual, AV_LOG_ERROR, "Bad hash_type given %s\n", perceptual->hash_type);
++            return AVERROR(ENOMEM);
++        }
++    }
 +    return 0;
 +}
 +
@@ -386,22 +376,11 @@ index 0000000..fc19ece
 +
 +    /* compare last frame with this current frame */
 +    if (perceptual->frame_count > 1) {
-+        int hash_type = 0;
-+        double score_multiple = 2;
-+        if (perceptual->hash_type) {
-+            if (!strcmp(perceptual->hash_type, "phash"))
-+                hash_type = 0;
-+            else if (!strcmp(perceptual->hash_type, "colormomenthash")) {
-+                hash_type = 1;
-+                score_multiple = 1;
-+            } else if (!strcmp(perceptual->hash_type, "average"))
-+                hash_type = 2;
-+        }
-+        score = getScore(perceptual->lastframe, in, inlink->format, hash_type);
++        score = getScore(perceptual->lastframe, in, inlink->format, perceptual->hash_type_i);
 +        av_log(perceptual, AV_LOG_DEBUG, "Perceptual: %s hamming score %0.1lf\n", perceptual->hash_type, score);
 +
 +        /* mark frame, normalize to percentage */
-+        in->perceptual_score = .01 * FFMIN((score * score_multiple), 100);
++        in->perceptual_score = .01 * FFMIN((score * perceptual->score_multiplier), 100);
 +
 +        av_frame_free(&perceptual->lastframe);
 +    }
@@ -417,6 +396,8 @@ index 0000000..fc19ece
 +#define FLAGS AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM
 +static const AVOption perceptual_options[] = {
 +    { "hash_type", "options: phash, colormomenthash, average", OFFSET(hash_type), AV_OPT_TYPE_STRING, {.str = "phash"}, .flags = FLAGS },
++    { "score_multiplier", "multiply the hamming score result by this value. 2.0 by default", OFFSET(score_multiplier),
++        AV_OPT_TYPE_DOUBLE, {.dbl = 2.0}, 0, 100, .flags = FLAGS },
 +    { NULL }
 +};
 +
