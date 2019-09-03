@@ -1,4 +1,4 @@
-Perceptual Hash Encoder
+Perceptual Hash Per Title Encoder
 
 Use OpenCV img_hash frame comparisons in FFmpeg libavfilter for per title encoding
 
