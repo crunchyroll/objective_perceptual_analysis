@@ -1,0 +1,39 @@
+#!/bin/sh
+
+PATH=$(pwd)/bin:$PATH
+
+ffmpeg="ffmpeg"
+
+if [ -z $1 -o -z $2 ]; then
+    echo "Usage: $0 <video_file> <output_file> [duration] [start_offset]"
+    exit 1
+fi
+fpath="$1"
+dpath="$2"
+max_duration=""
+start_offset=""
+if [ "$3" = "" ]; then
+    max_duration=""
+else
+    max_duration="-t $3"
+fi
+
+if [ "$4" = "" ]; then
+    start_offset=""
+else
+    start_offset="-ss $4"
+fi
+
+# decode entire video to raw video in an avi format
+$ffmpeg -hide_banner -y -nostdin $start_offset \
+        -i "$fpath" -f avi -vcodec rawvideo -pix_fmt yuv420p \
+        -dn -sn -acodec copy \
+        $max_duration \
+            "$dpath"
+
+if [ ! -f "$dpath" ]; then
+    echo "ERROR: $dpath doesn't exist, failed to decode"
+    exit 1
+fi
+
+
