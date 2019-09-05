@@ -13,12 +13,11 @@ Quality Finder:
     - rate scene complexity and machine learn patterns
 
 encode.py:
-    clipping from mezzanine
-        - in/out points
-        - encoder configuration
-        - ffmpeg / nuencoder extract into python
-        - tests configuration format / json from decima?
-        - use ffmpeg encode cmd from decima
+    - wire up for non-msu vmaf/psnr/ssim stats
+    - extract encoding stats / file stats for metrics analysis
+    - output ffmpeg stats while encoding?
+    - global encoder stats
+    - subtitle hardsub tests
 
 results.py:
     obj metrics
