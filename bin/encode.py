@@ -30,25 +30,29 @@ global_args = []
 test_labels = [];
 encoders = [];
 test_args = []
-test_metrics = ['vmaf', 'psnr', 'msssim']
-threads = 12
+test_metrics = []
+threads = 2
 debug = True
+use_msu = False
 
 ap = argparse.ArgumentParser()
-ap.add_argument('-m', '--metrics', dest='metrics', required=True, help="Metric List. Delimited by commas: Options - psnr,vmaf,ssim")
-ap.add_argument('-p', '--threads', dest='threads', required=True, help="threads to use for encoding")
-ap.add_argument('-t', '--tests', dest='tests', required=True, help="Tests to run, Format - Label:EncoderBin:arg:arg:arg,Label:EncoderBin:arg:arg:arg,...")
-ap.add_argument('-a', '--encoder_args', dest='encoder_args', required=False, help="Global args for encoders - EncoderBin:arg:arg,EncoderBin:arg:arg")
+ap.add_argument('-m', '--metrics', dest='metrics', required=False, help="Metric List. Delimited by commas: Options - psnr,vmaf,ssim")
+ap.add_argument('-p', '--threads', dest='threads', required=False, help="threads to use for encoding")
+ap.add_argument('-t', '--tests', dest='tests', required=True, help="Tests to run, Format - Label|EncoderBin|arg|arg,Label|EncoderBin|arg|arg,...")
+ap.add_argument('-a', '--encoder_args', dest='encoder_args', required=False, help="Global args for encoders - EncoderBin|arg|arg,EncoderBin|arg|arg")
 ap.add_argument('-n', '--directory', dest='directory', required=True, help="Name of the tests base directory")
 ap.add_argument('-k', '--keep_raw', dest='keep_raw', required=False, action='store_true', help="keep raw yuv avi video clips in ./videos/")
 ap.add_argument('-d', '--debug', dest='debug', required=False, action='store_true', help="Debug")
+ap.add_argument('-o', '--use_msu', dest='use_msu', required=False, action='store_true', help="Use MSU VQMT tool for obj metrics")
 args = vars(ap.parse_args())
 
 keep_raw = args['keep_raw']
 base_directory = args['directory']
 debug = args['debug']
-threads = int(args['threads'])
+if args['threads'] != None:
+    threads = int(args['threads'])
 encoder_args = args['encoder_args']
+use_msu = args['use_msu']
 
 mezz_dir = "%s/mezzanines" % base_directory
 encode_dir = "%s/encodes" % base_directory
@@ -56,28 +60,30 @@ video_dir = "%s/videos" % base_directory
 result_dir = "%s/results" % base_directory
 cur_dir = getcwd()
 
-"""
-encoder_args_list = args['encoder_args'].split(',')
-for i in encoder_args_list:
-    pass # TODO parse and add to array of encoders w/global args
-"""
+print "encoder_args='%s'" % encoder_args
+if encoder_args != None:
+    encoder_args_list = args['encoder_args'].split(',')
+    for i in encoder_args_list:
+        pass # TODO parse and add to array of encoders w/global args
 
-metric_list = args['metrics'].split(',')
-for i in metric_list:
-    test_metrics.append(i)
+if args['metrics'] != None:
+    metric_list = args['metrics'].split(',')
+    for i in metric_list:
+        test_metrics.append(i)
 
-test_list = args['tests'].split(',')
-for i in test_list:
-    lparts = i.split(':')
-    label = lparts[0]
-    encoder = lparts[1]
-    encoder_args = lparts[2:]
-    if '_' in label:
-        print "Error, Test labels cannot have underscores '_' in them!"
-        sys.exit(1)
-    test_labels.append(label)
-    encoders.append(encoder)
-    test_args.append(encoder_args)
+if args['tests'] != None:
+    test_list = args['tests'].split(',')
+    for i in test_list:
+        lparts = i.split('|')
+        label = lparts[0]
+        encoder = lparts[1]
+        encoder_args = lparts[2:]
+        if '_' in label:
+            print "Error, Test labels cannot have underscores '_' in them!"
+            sys.exit(1)
+        test_labels.append(label)
+        encoders.append(encoder)
+        test_args.append(encoder_args)
 
 print "Running test in %s directory" % base_directory
 
@@ -195,8 +201,14 @@ for m in mezzanines:
             print " - %s" % result_fn
             color_component = "YYUV"
             if not isfile(result_fn) or getsize(result_fn) <= 0:
-                create_result_cmd = [vqmt_bin, '-orig', mezzanine_video_fn, '-in', encode_video_fn,
-                    '-metr', test_metric, color_component, '-resize', 'cubic', 'to', 'orig', '-threads', str(threads), '-terminal', '-json']
+                if use_msu:
+                    create_result_cmd = [vqmt_bin, '-orig', mezzanine_video_fn, '-in', encode_video_fn,
+                        '-metr', test_metric, color_component,
+                        #'-resize', 'cubic', 'to', 'orig',
+                        '-threads', str(threads), '-terminal', '-json']
+                else:
+                    # TODO use FFmpeg here
+                    create_result_cmd = []
                 # run each metric in parallel
                 p = Process(target=get_results, args=(test_metric, result_fn, encode_video_fn, create_result_cmd,))
                 p.start()
