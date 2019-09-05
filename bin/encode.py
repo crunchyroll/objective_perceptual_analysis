@@ -104,7 +104,7 @@ def execute(command, output_file = None):
     if (exitCode == 0):
         return output
     else:
-        raise subprocess.ProcessException(command, exitCode, output)
+        raise Exception(command, exitCode, output)
 
 def get_results(test_metric, result_fn, encode_video_fn, create_result_cmd):
     try:
@@ -151,8 +151,8 @@ for m in mezzanines:
         # Encode mezzanine
         if not isfile(encode_fn) or getsize(encode_fn) <= 0:
             create_encode_cmd = [ffmpeg_bin,
-                '-i', mezzanine_fn] + global_args + test_args[test_label_idx] + ['--output_file', encode_fn,
-                '--threads', str(threads)]
+                '-i', mezzanine_fn] + global_args + test_args[test_label_idx] + [encode_fn,
+                '-threads', str(threads)]
             try:
                 start_time = time.time()
                 for output in execute(create_encode_cmd):
