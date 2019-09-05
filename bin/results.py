@@ -1,5 +1,6 @@
 #!/usr/bin/python2.7
 
+import argparse
 import json
 import subprocess
 from os import listdir
@@ -8,19 +9,28 @@ from os.path import basename
 from os.path import splitext
 from os import environ
 
-mezz_dir = "mezzanines"
-encode_dir = "encodes"
-result_dir = "results"
-
 environ["GDFONTPATH"] = "/usr/share/fonts/msttcorefonts/"
-
-# get list of mezzanines
-mezzanines = [f for f in listdir(mezz_dir)]
 
 # results list
 results = []
 
 debug = True
+base_directory = None
+
+ap = argparse.ArgumentParser()
+ap.add_argument('-n', '--directory', dest='directory', required=True, help="Name of the tests base directory")
+ap.add_argument('-d', '--debug', dest='debug', required=False, action='store_false', help="Debug")
+args = vars(ap.parse_args())
+
+base_directory = args['directory']
+debug = args['debug']
+
+mezz_dir = "%s/mezzanines" % base_directory
+encode_dir = "%s/encodes" % base_directory
+result_dir = "%s/results" % base_directory
+
+# get list of mezzanines
+mezzanines = [f for f in listdir(mezz_dir)]
 
 for m in mezzanines:
     if m[0] == '.':
@@ -138,7 +148,7 @@ for m in mezzanines:
     if float(vmaf) > 0 and float(ssim) > 0 and float(psnr) > 0:
         results.append(result)
 
-with open("stats.json", "w") as f:
+with open("%s/stats.json" % base_directory, "w") as f:
     f.write("%s" % json.dumps(results, sort_keys=True))
 
 results_avg = {}
@@ -212,8 +222,9 @@ for label, data in sorted(results_avg.iteritems()):
     if vmaf > 0 and ssim > 0 and psnr > 0:
         body =  "%s%s\t%0.3f\t%0.3f\t%0.3f\t%d\t%d\n" % (body, label, vmaf, ssim, psnr, bitrate, speed)
 
-with open("stats.dat", "w") as f:
+with open("%s/stats.dat" % base_directory, "w") as f:
     f.write("%s" % body)
 
 if len(results) > 0:
     subprocess.call(['gnuplot', '--persist', "stats.gp"])
+
