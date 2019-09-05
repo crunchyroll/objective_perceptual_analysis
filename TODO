@@ -1,0 +1,29 @@
+PTPHE: TODO
+
+Dockerfile - alpine linux
+    - OpenCV APK
+    - FFmpeg APK + patch
+    - VMAF
+    - LibVPX VP9
+
+Quality Finder:
+    - run low bitrate and high bitrate encodings
+    - find sweet spot where VMAF gain and bitrate are best
+    - per scene based segmentation
+    - rate scene complexity and machine learn patterns
+
+encode.py:
+    clipping from mezzanine
+        - in/out points
+        - encoder configuration
+        - ffmpeg / nuencoder extract into python
+        - tests configuration format / json from decima?
+        - use ffmpeg encode cmd from decima
+
+results.py:
+    obj metrics
+        - vmaf psnr ssim
+        - graphs
+        - CSV / JSON reports
+        - screen shot comparisons
+        - perceptual hash comparisons (create new metrics)
