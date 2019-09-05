@@ -1,5 +1,6 @@
 #!/usr/bin/python2.7
 
+import argparse
 import json
 from multiprocessing import Process
 from os import listdir
@@ -17,39 +18,68 @@ import subprocess
 import sys
 import time
 
-mezz_dir = "mezzanines"
-encode_dir = "encodes"
-video_dir = "videos"
-result_dir = "results"
-cur_dir = getcwd()
+ffmpeg_bin = "./FFmpeg/ffmpeg"
+vqmt_bin = "/usr/local/bin/vqmt"
 
-delete_avi = False
+keep_raw = False
+base_directory = ""
+metrics = ""
 
-# get list of mezzanines
-mezzanines = [f for f in listdir(mezz_dir)]
-
-# label tests from encode.sh for easier human reading
 # do not use underscores '_' in the labels
-test_labels = [
-            'b8000-H264-prod',
-            'b5000-vp9-s2',
-            'b5000-vp9-s1',
-            'b4000-vp9-s2',
-            'b4000-vp9-s1']
 global_args = []
-test_args = [
-          ['-b:v', '8000', '-vcodec', 'libx264'],
-          ['-b:v', '5000', '-speed', '2', '-vcodec', 'libvpx-9'],
-          ['-b:v', '5000', '-speed', '1', '-vcodec', 'libvpx-9'],
-          ['-b:v', '4000', '-speed', '2', '-vcodec', 'libvpx-9'],
-          ['-b:v', '4000', '-speed', '1', '-vcodec', 'libvpx-9']]
+test_labels = [];
+encoders = [];
+test_args = []
 test_metrics = ['vmaf', 'psnr', 'msssim']
 threads = 12
-
 debug = True
 
-ffmpeg_bin = "./bin/ffmpeg"
-vqmt_bin = "/usr/local/bin/vqmt"
+ap = argparse.ArgumentParser()
+ap.add_argument('-m', '--metrics', dest='metrics', required=True, help="Metric List. Delimited by commas: Options - psnr,vmaf,ssim")
+ap.add_argument('-p', '--threads', dest='threads', required=True, help="threads to use for encoding")
+ap.add_argument('-t', '--tests', dest='tests', required=True, help="Tests to run, Format - Label:EncoderBin:arg:arg:arg,Label:EncoderBin:arg:arg:arg,...")
+ap.add_argument('-a', '--encoder_args', dest='encoder_args', required=False, help="Global args for encoders - EncoderBin:arg:arg,EncoderBin:arg:arg")
+ap.add_argument('-n', '--directory', dest='directory', required=True, help="Name of the tests base directory")
+ap.add_argument('-k', '--keep_raw', dest='keep_raw', required=False, action='store_true', help="keep raw yuv avi video clips in ./videos/")
+ap.add_argument('-d', '--debug', dest='debug', required=False, action='store_true', help="Debug")
+args = vars(ap.parse_args())
+
+keep_raw = args['keep_raw']
+base_directory = args['directory']
+debug = args['debug']
+threads = int(args['threads'])
+encoder_args = args['encoder_args']
+
+mezz_dir = "%s/mezzanines" % base_directory
+encode_dir = "%s/encodes" % base_directory
+video_dir = "%s/videos" % base_directory
+result_dir = "%s/results" % base_directory
+cur_dir = getcwd()
+
+"""
+encoder_args_list = args['encoder_args'].split(',')
+for i in encoder_args_list:
+    pass # TODO parse and add to array of encoders w/global args
+"""
+
+metric_list = args['metrics'].split(',')
+for i in metric_list:
+    test_metrics.append(i)
+
+test_list = args['tests'].split(',')
+for i in test_list:
+    lparts = i.split(':')
+    label = lparts[0]
+    encoder = lparts[1]
+    encoder_args = lparts[2:]
+    if '_' in label:
+        print "Error, Test labels cannot have underscores '_' in them!"
+        sys.exit(1)
+    test_labels.append(label)
+    encoders.append(encoder)
+    test_args.append(encoder_args)
+
+print "Running test in %s directory" % base_directory
 
 def execute(command, output_file = None):
     if debug:
@@ -88,6 +118,8 @@ def get_results(test_metric, result_fn, encode_video_fn, create_result_cmd):
             remove(result_fn)
 
 # create directories needed
+if not isdir(base_directory):
+    mkdir(base_directory)
 if not isdir(mezz_dir):
     mkdir(mezz_dir)
 if not isdir(encode_dir):
@@ -96,6 +128,9 @@ if not isdir(video_dir):
     mkdir(video_dir)
 if not isdir(result_dir):
     mkdir(result_dir)
+
+# get list of mezzanines
+mezzanines = [f for f in listdir(mezz_dir)]
 
 for m in mezzanines:
     if m[0] == ".":
@@ -116,8 +151,7 @@ for m in mezzanines:
         # Encode mezzanine
         if not isfile(encode_fn) or getsize(encode_fn) <= 0:
             create_encode_cmd = [ffmpeg_bin,
-                '-i', mezzanine_fn] + global_args + test_args[test_label_idx]
-                + ['--output_file', encode_fn,
+                '-i', mezzanine_fn] + global_args + test_args[test_label_idx] + ['--output_file', encode_fn,
                 '--threads', str(threads)]
             try:
                 start_time = time.time()
@@ -178,13 +212,13 @@ for m in mezzanines:
         p.join()
 
     # clean up AVI files, they are large. unless requested to keep them for subj tests
-    if delete_avi:
+    if keep_raw:
         for en in decoded_encodes:
             if isfile(en):
                 remove(en)
 
     # Mezzanine processing end
     # clean up AVI files, mezzanine after finished with encode stats
-    if delete_avi:
+    if keep_raw:
         if isfile(mezzanine_video_fn):
             remove(mezzanine_video_fn)

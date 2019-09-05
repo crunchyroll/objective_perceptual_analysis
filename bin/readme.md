@@ -6,21 +6,23 @@ bin/decode: produce decoded output for test metrics
 
 General usage:
 - setup FFmpeg for perceptual hash per title encoding
-- copy mezzanines to test into ./mezzanines/ directory
-- execute ./bin/encode.py
-- execute ./bin/results.py
+- copy mezzanines to test into ./[test_dir]/mezzanines/ directory
+- execute ./bin/encode.py -n test_dir ... (-h for arguments)
+- execute ./bin/results.py -n test_dir
 
 Directories:
-* mezzanines/   put video files in this directory to use for analysis and testing.
-* encodes/      contains encoding variants and .json stats files with
-                    encoding parameters.
-* results/      contains metric output (vmaf, msssim, psnr).
+* [test_dir]/mezzanines/   put video files in this directory to use for analysis and testing.
+* [test_dir]/encodes/      contains encoding variants and .json stats files with
+                            encoding parameters.
+* [test_dir]/results/      contains metric output (vmaf, msssim, psnr).
 
 Example steps:
 1. build ffmpeg
-2. copy mezzanines to ./mezzanines/
-3. execute bin/encode.py
-4. execute bin/results.py to get results in JSON
+2. copy mezzanines to ./[test_dir]/mezzanines/
+3. execute bin/encode.py (see bin/encode.py -h  for Help Output)
+    example: 'bin/encode.py -m psnr,vmaf -n test001 -p 4 -t "test1:FFmpeg/ffmpeg:-vcodec:libx264" -d`
+4. execute bin/results.py -n test001 to get results in JSON
 
-Results output is CSV compatible in any converter.
+Results Json output is CSV compatible in any converter.
+Also there is a graph created using gnuplot.
 
