@@ -20,9 +20,14 @@ x264lib:
 	sudo make install && \
 	sudo ldconfig
 
+vmaflib:
+	cd vmaf && \
+        make && \
+        sudo make install
+
 ffmpegbin:
 	cd FFmpeg && \
-	./configure --prefix=/usr --enable-libx264 --enable-gpl --enable-libopencv && \
+	./configure --prefix=/usr --enable-libx264 --enable-gpl --enable-libopencv --enable-version3 --enable-libvmaf && \
 	make clean && \
 	make -j8 
 

@@ -29,6 +29,9 @@ fi
 if [ ! -e /usr/local/bin/x264 ]; then
     brew install x264
 fi
+if [ ! -e /usr/local/lib/libvmaf.a ]; then
+    brew install libvmaf
+fi
 if [ ! -e /usr/local/bin/cmake ]; then
     brew install cmake
 fi

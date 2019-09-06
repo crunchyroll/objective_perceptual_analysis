@@ -55,6 +55,13 @@ if [ ! -f "image006.jpg" ]; then
     wget https://i.ytimg.com/vi/Z0aLjw52ip4/maxresdefault.jpg
 fi
 
+if [ ! -d "vmaf" ]; then
+    git clone https://github.com/Netflix/vmaf.git vmaf
+    cd vmaf
+    git checkout v1.3.14
+    cd ../
+fi
+
 # requirement for x264
 if [ ! -f "nasm-2.14.03rc2.tar.bz2" ]; then
     wget https://www.nasm.us/pub/nasm/releasebuilds/2.14.03rc2/nasm-2.14.03rc2.tar.bz2
@@ -155,6 +162,12 @@ fi
 ## Setup x264
 if [ ! -f /usr/lib/libx264.a ]; then
     make x264lib
+fi
+
+## Setup VMAF
+if [ ! -f /usr/local/lib/libvmaf.a ]; then
+    make vmaflib
+    sudo ln -s /usr/local/lib/pkgconfig/libvmaf.pc /usr/share/pkgconfig/
 fi
 
 ## Setup FFmpeg
