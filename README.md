@@ -31,7 +31,10 @@ frames hash.
 https://github.com/bitbytebit-cr/FFmpeg_perceptual
 
 FFmpeg Command to test:
-- ./ffmpeg -i <intput file> -vcodec libx264 -b:v 4000k -vf perceptual=hash_type=phash -loglevel debug output.mp4
+Perceptual Encoding Optimization:
+    - ./ffmpeg -i <intput file> -vcodec libx264 -b:v 4000k -vf perceptual=hash_type=phash -loglevel debug output.mp4
+Perceptual Hash Quality Metric: (output a stats file with psnr/mse/phqm (perceptual hash quality metric)
+    - ./FFmpeg/ffmpeg -i <encode> -i <refvideo> -filter_complex "[0:v][1:v]img_hash=stats_file=stats.log" -f null -
 
 This is implementing a Patent by Christopher Kennedy @ Ellation / Crunchyroll:
 
