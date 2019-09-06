@@ -170,49 +170,57 @@ for m in mezzanines:
                 print "Failure Encoding: %s" % e
         else:
             print " Encode exists"
-        print " %s" % mezzanine_video_fn
-        if not isfile(mezzanine_video_fn) or getsize(mezzanine_video_fn) <= 0:
-            # Decode mezzanie to raw YUV AVI format for VQMT and Subj PQMT
-            create_mezzanine_video_cmd = [ffmpeg_bin, '-hide_banner', '-y', '-nostdin', '-i', mezzanine_fn,
-                '-f', 'avi', '-vcodec', 'rawvideo', '-pix_fmt', 'yuv420p', '-dn', '-sn', '-an', mezzanine_video_fn]
-            try:
-                for output in execute(create_mezzanine_video_cmd):
-                    print output
-            except Exception, e:
-                print "Failure Decoding: %s" % e
-        else:
-            print " Mezzanine AVI exists"
-        print " %s" % encode_video_fn
-        if not isfile(encode_video_fn) or getsize(encode_video_fn) <= 0:
-            # Decode encode to raw YUV AVI format for VQMT and Subj PQMT
-            create_encode_video_cmd = [ffmpeg_bin, '-hide_banner', '-y', '-nostdin', '-i', encode_fn,
-                '-f', 'avi', '-vcodec', 'rawvideo', '-pix_fmt', 'yuv420p', '-dn', '-sn', '-an', encode_video_fn]
-            try:
-                for output in execute(create_encode_video_cmd):
-                    print output
-            except Exception, e:
-                print "Failure Decoding: %s" % e
-        else:
-            print " Encode AVI exists"
+        if use_msu:
+            print " %s" % mezzanine_video_fn
+            if not isfile(mezzanine_video_fn) or getsize(mezzanine_video_fn) <= 0:
+                # Decode mezzanie to raw YUV AVI format for VQMT and Subj PQMT
+                create_mezzanine_video_cmd = [ffmpeg_bin, '-hide_banner', '-y', '-nostdin', '-i', mezzanine_fn,
+                    '-f', 'avi', '-vcodec', 'rawvideo', '-pix_fmt', 'yuv420p', '-dn', '-sn', '-an', mezzanine_video_fn]
+                try:
+                    for output in execute(create_mezzanine_video_cmd):
+                        print output
+                except Exception, e:
+                    print "Failure Decoding: %s" % e
+            else:
+                print " Mezzanine AVI exists"
+            print " %s" % encode_video_fn
+            if not isfile(encode_video_fn) or getsize(encode_video_fn) <= 0:
+                # Decode encode to raw YUV AVI format for VQMT and Subj PQMT
+                create_encode_video_cmd = [ffmpeg_bin, '-hide_banner', '-y', '-nostdin', '-i', encode_fn,
+                    '-f', 'avi', '-vcodec', 'rawvideo', '-pix_fmt', 'yuv420p', '-dn', '-sn', '-an', encode_video_fn]
+                try:
+                    for output in execute(create_encode_video_cmd):
+                        print output
+                except Exception, e:
+                    print "Failure Decoding: %s" % e
+            else:
+                print " Encode AVI exists"
         # VQMT metrics results
         print " %s" % result_base
-        for test_metric in test_metrics:
-            result_fn = "%s_%s.json" % (result_base, test_metric)
-            print " - %s" % result_fn
-            color_component = "YYUV"
-            if not isfile(result_fn) or getsize(result_fn) <= 0:
-                if use_msu:
+        p = None
+        if use_msu:
+            for test_metric in test_metrics:
+                result_fn = "%s_%s.json" % (result_base, test_metric)
+                print " - %s" % result_fn
+                color_component = "YYUV"
+                if not isfile(result_fn) or getsize(result_fn) <= 0:
                     create_result_cmd = [vqmt_bin, '-orig', mezzanine_video_fn, '-in', encode_video_fn,
                         '-metr', test_metric, color_component,
                         #'-resize', 'cubic', 'to', 'orig',
                         '-threads', str(threads), '-terminal', '-json']
-                else:
-                    # TODO use FFmpeg here
-                    create_result_cmd = []
-                # run each metric in parallel
-                p = Process(target=get_results, args=(test_metric, result_fn, encode_video_fn, create_result_cmd,))
-                p.start()
-                processes.append(p)
+                    p = Process(target=get_results, args=(test_metric, result_fn, encode_video_fn, create_result_cmd,))
+        elif len(test_metrics) > 0:
+            result_fn = "%s_%s.json" % (result_base, 'vmaf')
+            print " - %s" % result_fn
+            if not isfile(result_fn) or getsize(result_fn) <= 0:
+                    create_result_cmd = [ffmpeg_bin, '-i', encode_fn, '-i', mezzanine_fn, '-n_threads', threads,
+                        '-lavfi', 'libvmaf', '-f', 'null', '-log_fmt', 'json', '-psnr', '-ms_ssim', '-log_path', result_fn,'-']
+                    p = Process(target=get_results, args=(test_metric, None, encode_fn, create_result_cmd,))
+        # run each metric in parallel
+        if p != None:
+            p.start()
+            processes.append(p)
+            if use_msu:
                 decoded_encodes.append(encode_video_fn)
 
         test_letter = chr(ord(test_letter) + 1).upper()
