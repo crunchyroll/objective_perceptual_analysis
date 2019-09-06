@@ -267,7 +267,7 @@ index 0000000..a17b0cb
 +#endif
 diff --git a/libavfilter/vf_img_hash.c b/libavfilter/vf_img_hash.c
 new file mode 100644
-index 0000000..23bb374
+index 0000000..0f95393
 --- /dev/null
 +++ b/libavfilter/vf_img_hash.c
 @@ -0,0 +1,453 @@
@@ -342,7 +342,7 @@ index 0000000..23bb374
 +    {"f",          "Set file where to store per-frame difference information", OFFSET(stats_file_str), AV_OPT_TYPE_STRING, {.str=NULL}, 0, 0, FLAGS },
 +    {"stats_version", "Set the format version for the stats file.",               OFFSET(stats_version),  AV_OPT_TYPE_INT,    {.i64=1},    1, 2, FLAGS },
 +    {"output_max",  "Add raw stats (max values) to the output log.",            OFFSET(stats_add_max), AV_OPT_TYPE_BOOL, {.i64=0}, 0, 1, FLAGS},
-+    { "hash_type", "options: phash, colormomenthash, average", OFFSET(hash_type), AV_OPT_TYPE_STRING, {.str = "phash"}, .flags = FLAGS },
++    { "hash_type", "options: phash, colormoment, average", OFFSET(hash_type), AV_OPT_TYPE_STRING, {.str = "phash"}, .flags = FLAGS },
 +    { NULL }
 +};
 +
@@ -726,7 +726,7 @@ index 0000000..23bb374
 +};
 diff --git a/libavfilter/vf_perceptual.c b/libavfilter/vf_perceptual.c
 new file mode 100644
-index 0000000..7bf8037
+index 0000000..be67a48
 --- /dev/null
 +++ b/libavfilter/vf_perceptual.c
 @@ -0,0 +1,160 @@
@@ -852,7 +852,7 @@ index 0000000..7bf8037
 +#define OFFSET(x) offsetof(PerceptualContext, x)
 +#define FLAGS AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM
 +static const AVOption perceptual_options[] = {
-+    { "hash_type", "options: phash, colormomenthash, average", OFFSET(hash_type), AV_OPT_TYPE_STRING, {.str = "phash"}, .flags = FLAGS },
++    { "hash_type", "options: phash, colormoment, average", OFFSET(hash_type), AV_OPT_TYPE_STRING, {.str = "phash"}, .flags = FLAGS },
 +    { "score_multiplier", "multiply the hamming score result by this value. 2.0 by default", OFFSET(score_multiplier),
 +        AV_OPT_TYPE_DOUBLE, {.dbl = 2.0}, 0, 100, .flags = FLAGS },
 +    { "score_factor", "factor to decrease compression, multiplier for bitrate, range for crf. 2.0 default", OFFSET(score_factor),
