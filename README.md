@@ -34,7 +34,7 @@ FFmpeg Commands:
 
 ```
 perceptual AVOptions:
-  hash_type         <string>     ..FV..... options: phash, colormomenthash, average (default "phash")
+  hash_type         <string>     ..FV..... options: phash, colormoment, average (default "phash")
   score_multiplier  <double>     ..FV..... multiply the hamming score result by this value. 2.0 by default (from 0 to 100) (default 2)
   score_factor      <double>     ..FV..... factor to decrease compression, multiplier for bitrate, range for crf. 2.0 default (from 0 to 1000) (default 2)
 ```
@@ -47,11 +47,11 @@ img_hash AVOptions:
   f                 <string>     ..FV..... Set file where to store per-frame difference information
   stats_version     <int>        ..FV..... Set the format version for the stats file. (from 1 to 2) (default 1)
   output_max        <boolean>    ..FV..... Add raw stats (max values) to the output log. (default false)
-  hash_type         <string>     ..FV..... options: phash, colormomenthash, average (default "phash")
+  hash_type         <string>     ..FV..... options: phash, colormoment, average (default "phash")
 
 ```
 Perceptual Hash Quality Metric: (output a stats file with psnr/mse/phqm (perceptual hash quality metric)
-    - ./FFmpeg/ffmpeg -i <encode> -i <refvideo> -filter_complex "[0:v][1:v]img_hash=hash_type=colormoment:stats_file=stats.log" -f null -
+    - ./FFmpeg/ffmpeg -i <encode> -i <refvideo> -filter_complex "[0:v][1:v]img_hash=hash_type=phash:stats_file=stats.log" -f null -
 
 This is implementing a Patent by Christopher Kennedy @ Ellation / Crunchyroll:
 
