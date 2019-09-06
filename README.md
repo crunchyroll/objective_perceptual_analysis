@@ -1,6 +1,6 @@
-Perceptual Hash Per Title Encoder
+Perceptual Hash Per Title Encoder && Quality Metric
 
-Use OpenCV img_hash frame comparisons in FFmpeg libavfilter for per title encoding
+Use OpenCV img_hash frame comparisons in FFmpeg libavfilter for per title encoding / Perceptual Quality comparisons
 
 Documentation on OpenCV img_hash: https://docs.opencv.org/trunk/d4/d93/group__img__hash.html
 
@@ -32,15 +32,20 @@ https://github.com/bitbytebit-cr/FFmpeg_perceptual
 
 FFmpeg Commands:
 
+Perceptual Encoding Optimization:
+
+```./ffmpeg -i <intput file> -vcodec libx264 -b:v 4000k -vf perceptual=hash_type=phash -loglevel debug output.mp4```
+
 ```
 perceptual AVOptions:
   hash_type         <string>     ..FV..... options: phash, colormoment, average (default "phash")
   score_multiplier  <double>     ..FV..... multiply the hamming score result by this value. 2.0 by default (from 0 to 100) (default 2)
   score_factor      <double>     ..FV..... factor to decrease compression, multiplier for bitrate, range for crf. 2.0 default (from 0 to 1000) (default 2)
 ```
-Perceptual Encoding Optimization:
-    - ./ffmpeg -i <intput file> -vcodec libx264 -b:v 4000k -vf perceptual=hash_type=phash -loglevel debug output.mp4
 
+Perceptual Hash Quality Metric: (output a stats file with psnr/mse/phqm (perceptual hash quality metric)
+
+```./FFmpeg/ffmpeg -i <encode> -i <refvideo> -filter_complex "[0:v][1:v]img_hash=hash_type=colormoment:stats_file=stats.log" -f null -```
 ```
 img_hash AVOptions:
   stats_file        <string>     ..FV..... Set file where to store per-frame difference information
@@ -50,8 +55,6 @@ img_hash AVOptions:
   hash_type         <string>     ..FV..... options: phash, colormoment, average (default "phash")
 
 ```
-Perceptual Hash Quality Metric: (output a stats file with psnr/mse/phqm (perceptual hash quality metric)
-    - ./FFmpeg/ffmpeg -i <encode> -i <refvideo> -filter_complex "[0:v][1:v]img_hash=hash_type=phash:stats_file=stats.log" -f null -
 
 This is implementing a Patent by Christopher Kennedy @ Ellation / Crunchyroll:
 
