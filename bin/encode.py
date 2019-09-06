@@ -119,7 +119,7 @@ def get_results(test_metric, result_fn, encode_video_fn, create_result_cmd):
             print "%s" % output
     except Exception, e:
         print "Failure getting VQMT %s metric: %s" % (test_metric, e)
-        if isfile(result_fn):
+        if result_fn and isfile(result_fn):
             # remove results since they are not complete
             remove(result_fn)
 
@@ -213,9 +213,10 @@ for m in mezzanines:
             result_fn = "%s_%s.json" % (result_base, 'vmaf')
             print " - %s" % result_fn
             if not isfile(result_fn) or getsize(result_fn) <= 0:
-                    create_result_cmd = [ffmpeg_bin, '-i', encode_fn, '-i', mezzanine_fn, '-n_threads', threads,
-                        '-lavfi', 'libvmaf', '-f', 'null', '-log_fmt', 'json', '-psnr', '-ms_ssim', '-log_path', result_fn,'-']
-                    p = Process(target=get_results, args=(test_metric, None, encode_fn, create_result_cmd,))
+                    create_result_cmd = [ffmpeg_bin, '-i', encode_fn, '-i', mezzanine_fn, '-threads', str(threads),
+                        '-filter_complex', '[0:v]scale=1920x1080:flags=bicubic[main];[main][1:v]libvmaf[output]',
+                        '-f', 'null', '-psnr', '-ssim', '-']
+                    p = Process(target=get_results, args=('vmaf', result_fn, encode_fn, create_result_cmd,))
         # run each metric in parallel
         if p != None:
             p.start()
