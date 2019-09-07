@@ -1,8 +1,8 @@
 diff --git a/configure b/configure
-index 08a54a7..c1a83b1 100755
+index 34c2adb..3c9a988 100755
 --- a/configure
 +++ b/configure
-@@ -3494,6 +3494,10 @@ nlmeans_opencl_filter_deps="opencl"
+@@ -3487,6 +3487,10 @@ nlmeans_opencl_filter_deps="opencl"
  nnedi_filter_deps="gpl"
  ocr_filter_deps="libtesseract"
  ocv_filter_deps="libopencv"
@@ -14,7 +14,7 @@ index 08a54a7..c1a83b1 100755
  overlay_opencl_filter_deps="opencl"
  overlay_qsv_filter_deps="libmfx"
 diff --git a/libavcodec/libx264.c b/libavcodec/libx264.c
-index 86e3530..a18baed 100644
+index dc4b4b1..cedcdef 100644
 --- a/libavcodec/libx264.c
 +++ b/libavcodec/libx264.c
 @@ -195,24 +195,73 @@ static void reconfig_encoder(AVCodecContext *ctx, const AVFrame *frame)
@@ -103,10 +103,10 @@ index 86e3530..a18baed 100644
  
      if (x4->params.rc.i_rc_method == X264_RC_CQP &&
 diff --git a/libavfilter/Makefile b/libavfilter/Makefile
-index 3ef4191..c59d036 100644
+index 455c809..a51087f 100644
 --- a/libavfilter/Makefile
 +++ b/libavfilter/Makefile
-@@ -309,6 +309,8 @@ OBJS-$(CONFIG_NORMALIZE_FILTER)              += vf_normalize.o
+@@ -307,6 +307,8 @@ OBJS-$(CONFIG_NORMALIZE_FILTER)              += vf_normalize.o
  OBJS-$(CONFIG_NULL_FILTER)                   += vf_null.o
  OBJS-$(CONFIG_OCR_FILTER)                    += vf_ocr.o
  OBJS-$(CONFIG_OCV_FILTER)                    += vf_libopencv.o
@@ -115,7 +115,7 @@ index 3ef4191..c59d036 100644
  OBJS-$(CONFIG_OSCILLOSCOPE_FILTER)           += vf_datascope.o
  OBJS-$(CONFIG_OVERLAY_FILTER)                += vf_overlay.o framesync.o
  OBJS-$(CONFIG_OVERLAY_OPENCL_FILTER)         += vf_overlay_opencl.o opencl.o \
-@@ -492,6 +494,7 @@ OBJS-$(CONFIG_SHARED)                        += log2_tab.o
+@@ -489,6 +491,7 @@ OBJS-$(CONFIG_SHARED)                        += log2_tab.o
  SKIPHEADERS-$(CONFIG_QSVVPP)                 += qsvvpp.h
  SKIPHEADERS-$(CONFIG_OPENCL)                 += opencl.h
  SKIPHEADERS-$(CONFIG_VAAPI)                  += vaapi_vpp.h
@@ -124,10 +124,10 @@ index 3ef4191..c59d036 100644
  TOOLS     = graph2dot
  TESTPROGS = drawutils filtfmts formats integral
 diff --git a/libavfilter/allfilters.c b/libavfilter/allfilters.c
-index b675c68..81d8c86 100644
+index 04a3df7..ab56563 100644
 --- a/libavfilter/allfilters.c
 +++ b/libavfilter/allfilters.c
-@@ -294,6 +294,8 @@ extern AVFilter ff_vf_normalize;
+@@ -292,6 +292,8 @@ extern AVFilter ff_vf_normalize;
  extern AVFilter ff_vf_null;
  extern AVFilter ff_vf_ocr;
  extern AVFilter ff_vf_ocv;

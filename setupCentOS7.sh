@@ -48,6 +48,9 @@ fi
 
 if [ ! -d "FFmpeg" ]; then
     git clone git@github.com:bitbytebit-cr/FFmpeg_perceptual.git FFmpeg
+    cd FFmpeg
+    git checkout perceptual_encoder_4.2-001
+    cd ../
 fi
 
 if [ ! -f "image006.jpg" ]; then
