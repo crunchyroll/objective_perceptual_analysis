@@ -210,12 +210,18 @@ for m in mezzanines:
                         '-threads', str(threads), '-terminal', '-json']
                     p = Process(target=get_results, args=(test_metric, result_fn, encode_video_fn, create_result_cmd,))
         elif len(test_metrics) > 0:
+            result_fn = "%s_%s.json" % (result_base, 'phqm')
+            print " - %s" % result_fn
+            if not isfile(result_fn) or getsize(result_fn) <= 0:
+                create_result_cmd = [ffmpeg_bin, '-i', encode_fn, '-i', mezzanine_fn, '-threads', str(threads),
+                    '-filter_complex', '[0:v][1:v]img_hash=stats_file=%s' % result_fn, '-f', 'null', '-']
+                p = Process(target=get_results, args=('vmaf', None, encode_fn, create_result_cmd,))
             result_fn = "%s_%s.json" % (result_base, 'vmaf')
             print " - %s" % result_fn
             if not isfile(result_fn) or getsize(result_fn) <= 0:
                 create_result_cmd = [ffmpeg_bin, '-i', encode_fn, '-i', mezzanine_fn, '-threads', str(threads),
-                    '-filter_complex', '[0:v][1:v]libvmaf', '-f', 'null', '-psnr', '-ssim', '-']
-                p = Process(target=get_results, args=('vmaf', result_fn, encode_fn, create_result_cmd,))
+                    '-filter_complex', '[0:v][1:v]libvmaf=psnr=1:ms_ssim=1:log_fmt=json:log_path=%s' % result_fn, '-f', 'null', '-']
+                p = Process(target=get_results, args=('vmaf', None, encode_fn, create_result_cmd,))
         # run each metric in parallel
         if p != None:
             p.start()
