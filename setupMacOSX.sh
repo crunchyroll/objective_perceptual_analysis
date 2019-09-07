@@ -38,20 +38,18 @@ fi
 if [ ! -e /usr/local/include/opencv4 ]; then
     brew install opencv@3
 fi
+if [ ! -e /usr/local/bin/gnuplot ]; then
+    brew install gnuplot
+fi
 
 # For some reason OpenCV3 doesn't create this link
-if [ ! -e /usr/local/include/opencv2 ]; then
+if [ ! -e /usr/local/include/opencv2 -a -d /usr/local/include/opencv4 ]; then
     sudo ln -s /usr/local/include/opencv4/opencv2/ /usr/local/include/
 fi
 
 
 if [ ! -d "FFmpeg" ]; then
     git clone git@github.com:bitbytebit-cr/FFmpeg_perceptual.git FFmpeg
-fi
-
-if [ ! -f "image006.jpg" ]; then
-    wget https://kishoresblog.files.wordpress.com/2010/04/image006.jpg
-    wget https://i.ytimg.com/vi/Z0aLjw52ip4/maxresdefault.jpg
 fi
 
 ## Setup FFmpeg

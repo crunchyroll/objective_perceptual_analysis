@@ -16,13 +16,16 @@ set -e
 
 # install deps
 if [ ! -e /usr/bin/wget ]; then
-    yum -y -q install wget
+    sudo yum -y -q install wget
 fi
 if [ ! -e /usr/bin/git ]; then
-    yum -y -q install git
+    sudo yum -y -q install git
 fi
 if [ ! -e /usr/bin/cmake3 ]; then
-    yum -y -q install cmake3
+    sudo yum -y -q install cmake3
+fi
+if [ ! -e /usr/bin/gnuplot ]; then
+    sudo yum -y -q install gnuplot
 fi
 
 ## get opencv and opencv_contrib
@@ -51,11 +54,6 @@ if [ ! -d "FFmpeg" ]; then
     cd FFmpeg
     git checkout perceptual_encoder_4.2-001
     cd ../
-fi
-
-if [ ! -f "image006.jpg" ]; then
-    wget https://kishoresblog.files.wordpress.com/2010/04/image006.jpg
-    wget https://i.ytimg.com/vi/Z0aLjw52ip4/maxresdefault.jpg
 fi
 
 if [ ! -d "vmaf" ]; then
@@ -155,9 +153,11 @@ if [ ! -d "opencv/build" ]; then
     sudo make install
 
     # For some reason OpenCV3 doesn't create this link
-    if [ ! -e /usr/local/include/opencv2 ]; then
-        sudo ln -s /usr/local/include/opencv4/opencv2/ /usr/local/include/
+    if [ ! -e /usr/include/opencv2 -a -d /usr/include/opencv4 ]; then
+        sudo ln -s /usr/include/opencv4/opencv2/ /usr/include/
     fi
+
+    sudo ldconfig
 
     cd ../../
 fi
@@ -165,6 +165,7 @@ fi
 ## Setup x264
 if [ ! -f /usr/lib/libx264.a ]; then
     make x264lib
+    sudo ldconfig
 fi
 
 ## Setup VMAF

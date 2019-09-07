@@ -6,7 +6,9 @@
 
 UNAME_S := $(shell uname -s)
 
-all: reference
+all: setup reference
+
+setup:
 	./setup.sh
 
 reference:
