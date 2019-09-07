@@ -230,7 +230,7 @@ index 0000000..e6bf32f
 +
 diff --git a/libavfilter/img_hash.h b/libavfilter/img_hash.h
 new file mode 100644
-index 0000000..a17b0cb
+index 0000000..c916766
 --- /dev/null
 +++ b/libavfilter/img_hash.h
 @@ -0,0 +1,31 @@
@@ -253,10 +253,10 @@ index 0000000..a17b0cb
 +#define PHASH 0
 +#define COLORMOMENT 1
 +#define AVERAGE 2
-+#define MARRHILDRETH 2
-+#define RADIALVARIANCE 3
-+#define BLOCKMEAN1 4
-+#define BLOCKMEAN2 5
++#define MARRHILDRETH 3
++#define RADIALVARIANCE 4
++#define BLOCKMEAN1 5
++#define BLOCKMEAN2 6
 +
 +double getScore(const AVFrame *frame1, const AVFrame *frame2, enum AVPixelFormat pixfmt, int hash_type);
 +#ifdef __cplusplus
