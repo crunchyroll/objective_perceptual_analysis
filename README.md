@@ -35,7 +35,7 @@ FFmpeg Commands:
 
 Perceptual Encoding Optimization:
 
-```./ffmpeg -i <intput file> -vcodec libx264 -b:v 4000k -vf perceptual=hash_type=phash -loglevel debug output.mp4```
+```./FFmpeg/ffmpeg -i <intput file> -vcodec libx264 -b:v 4000k -vf perceptual=hash_type=phash -loglevel debug output.mp4```
 
 ```
 perceptual AVOptions:
