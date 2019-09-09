@@ -6,6 +6,7 @@ set style line 3  lc rgb 'orange' lt 1 lw 1 #
 set style line 4  lc rgb 'black' lt 1 lw 1 #
 set style line 5  lc rgb 'green' lt 1 lw 3 #
 set style line 6  lc rgb 'blue' lt 1 lw 3 #
+set style line 7  lc rgb 'brown' lt 1 lw 2 #
 #set style data histogram
 set style data line
 set key opaque
@@ -21,4 +22,4 @@ set xtics 0
 set ytics 1
 
 set title "test"
-plot "stats.dat" using 2:xtic(1) title "vmaf" ls 2, "stats.dat" using (100*$3) title "ssim" ls 3, "stats.dat" using ($4) title "psnr" ls 4, "stats.dat" using ($5/100) title "bitrate" ls 5, "stats.dat" using ($6/100) title "speed" ls 6
+plot "stats.dat" using 3:xtic(1) title "vmaf" ls 2, "stats.dat" using (100*$4) title "ssim" ls 3, "stats.dat" using ($5) title "psnr" ls 4, "stats.dat" using ($6/100) title "bitrate" ls 5, "stats.dat" using ($7/100) title "speed" ls 6, "stats.dat" using ($2*20) title "phqm" ls 7
