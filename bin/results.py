@@ -137,9 +137,9 @@ for m in mezzanines:
         result[result_key]['ssim'] = "%0.3f" % ssim
         result[result_key]['psnr'] = "%0.3f" % psnr
 
-        # append result to total results for all mezzanines
-        if float(vmaf) > 0 and float(ssim) > 0 and float(psnr) > 0 and float(phqm) >= 0:
-            results.append(result)
+    # append result to total results for all mezzanines
+    if float(vmaf) > 0 and float(ssim) > 0 and float(psnr) > 0 and float(phqm) >= 0:
+        results.append(result)
 
 with open("%s/stats.json" % base_directory, "w") as f:
     f.write("%s" % json.dumps(results, sort_keys=True))
