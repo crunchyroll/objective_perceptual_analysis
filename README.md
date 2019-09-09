@@ -15,14 +15,14 @@ for the most part. Please report back any issues so this can be improved for edg
 
 *Currenty works on CentOS 7 and Mac OS X*
 
-Setup everything, setup.sh will install opencv, libx264
-you will need wget, git installed beforehand.
+Makefile will run the proper setup scriopt and install opencv, libx264, libvmaf, nasm
+git, wget... Everything should be done for you, although if not report it as a bug.
 
 type: ```make```
 
 Testing: reference program will test that opencv img_hash is working correctly.
 
-./reference <ref image> <target image>
+```./reference <ref image> <target image>```
 
 This uses an FFmpeg with an extra video filter which uses OpenCV to
 compute hamming distance values from each frames hash vs. the previous
