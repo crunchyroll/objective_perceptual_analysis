@@ -239,25 +239,30 @@ for m in mezzanines:
                         processes.append(p)
                         decoded_encodes.append(encode_video_fn)
         elif len(test_metrics) > 0:
-            result_fn = "%s_%s.json" % (result_base, 'phqm')
+            result_fn = "%s_%s.data" % (result_base, 'phqm')
+            result_fn_stdout = "%s_%s.stdout" % (result_base, 'phqm')
             print " - %s" % result_fn
+            # get psnr and perceptual difference metrics
             if not isfile(result_fn) or getsize(result_fn) <= 0:
-                create_result_cmd = [ffmpeg_bin, '-i', encode_fn, '-i', mezzanine_fn, '-threads', str(threads),
+                create_result_cmd = [ffmpeg_bin, '-i', encode_fn, '-i', mezzanine_fn, '-nostats', '-nostdin', '-threads', str(threads),
                     '-filter_complex', '[0:v][1:v]img_hash=stats_file=%s' % result_fn, '-f', 'null', '-']
-                p = Process(target=get_results, args=('vmaf', None, encode_fn, create_result_cmd,))
+                p = Process(target=get_results, args=('vmaf', result_fn_stdout, encode_fn, create_result_cmd,))
                 # run each metric in parallel
                 if p != None:
                     p.start()
                     processes.append(p)
-            result_fn = "%s_%s.json" % (result_base, 'vmaf')
-            print " - %s" % result_fn
-            if not isfile(result_fn) or getsize(result_fn) <= 0:
-                create_result_cmd = [ffmpeg_bin, '-i', encode_fn, '-i', mezzanine_fn, '-threads', str(threads),
-                    '-filter_complex', '[0:v][1:v]libvmaf=psnr=1:ms_ssim=1:log_fmt=json:log_path=%s' % result_fn, '-f', 'null', '-']
-                p = Process(target=get_results, args=('vmaf', None, encode_fn, create_result_cmd,))
-                if p != None:
-                    p.start()
-                    processes.append(p)
+            # only do vmaf if ssim or it has been requested
+            if 'ssim' in test_metrics or 'vmaf' in test_metrics:
+                result_fn = "%s_%s.data" % (result_base, 'vmaf')
+                result_fn_stdout = "%s_%s.stdout" % (result_base, 'vmaf')
+                print " - %s" % result_fn
+                if not isfile(result_fn) or getsize(result_fn) <= 0:
+                    create_result_cmd = [ffmpeg_bin, '-i', encode_fn, '-i', mezzanine_fn, '-nostats', '-nostdin', '-threads', str(threads),
+                        '-filter_complex', '[0:v][1:v]libvmaf=psnr=1:ms_ssim=1:log_fmt=json:log_path=%s' % result_fn, '-f', 'null', '-']
+                    p = Process(target=get_results, args=('vmaf', result_fn_stdout, encode_fn, create_result_cmd,))
+                    if p != None:
+                        p.start()
+                        processes.append(p)
 
         test_letter = chr(ord(test_letter) + 1).upper()
         test_label_idx += 1
