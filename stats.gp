@@ -18,7 +18,7 @@ set xtics format ""
 set xtics rotate
 set grid ytics
 set grid xtics
-set xtics 0
+set xtics 1
 set ytics 1
 
 set title "test"
