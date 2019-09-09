@@ -54,6 +54,7 @@ fi
 
 ## Setup FFmpeg
 if [ ! -f FFmpeg/ffmpeg ]; then
+    export PKG_CONFIG_PATH="/usr/local/opt/opencv@3/lib/pkgconfig"
     make ffmpegbin
 fi
 
