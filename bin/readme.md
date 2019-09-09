@@ -17,13 +17,13 @@ Directories:
 * [test_dir]/results/      contains metric output (vmaf, msssim, psnr).
 
 Example steps:
-1. build ffmpeg
+1. build ffmpeg following instructions in base readme file
 2. copy mezzanines to ./[test_dir]/mezzanines/
 3. execute bin/encode.py (see bin/encode.py -h  for Help Output)
     example: (multiple tests can be separated by commas)
     'bin/encode.py -m psnr,vmaf -n test001 -p 4 \
         -t "test1|FFmpeg/ffmpeg|-vcodec|libx264|-vf|perceptual|-b:v|4000k|-maxrate:v|4000k|-bufsize|6000k" -d -o' 
-4. execute bin/results.py -n test001 to get results in JSON
+4. execute bin/results.py -n test001 to get results
 
 Results Json output is CSV compatible in any converter.
 Also there is a graph created using gnuplot.

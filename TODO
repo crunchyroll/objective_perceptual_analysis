@@ -14,7 +14,6 @@ Quality Finder:
 
 encode.py:
     - wire up for non-msu vmaf/psnr/ssim stats
-    - extract encoding stats / file stats for metrics analysis
     - output ffmpeg stats while encoding?
     - global encoder stats
     - subtitle hardsub tests
