@@ -222,6 +222,7 @@ for m in mezzanines:
         # VQMT metrics results
         print " %s" % result_base
         p = None
+        mdata_files = []
         if use_msu:
             for test_metric in test_metrics:
                 result_fn = "%s_%s.json" % (result_base, test_metric)
@@ -239,6 +240,7 @@ for m in mezzanines:
                         processes.append(p)
                         decoded_encodes.append(encode_video_fn)
         elif len(test_metrics) > 0:
+            result_fn_json = "%s_%s.json" % (result_base, 'phqm')
             result_fn = "%s_%s.data" % (result_base, 'phqm')
             result_fn_stdout = "%s_%s.stdout" % (result_base, 'phqm')
             print " - %s" % result_fn
@@ -251,8 +253,11 @@ for m in mezzanines:
                 if p != None:
                     p.start()
                     processes.append(p)
+            if not isfile(result_fn_json):
+                mdata_files.append("%s:%s:%s" % (result_fn, result_fn_stdout, 'psnr'))
             # only do vmaf if ssim or it has been requested
             if 'ssim' in test_metrics or 'vmaf' in test_metrics:
+                result_fn_json = "%s_%s.json" % (result_base, 'vmaf')
                 result_fn = "%s_%s.data" % (result_base, 'vmaf')
                 result_fn_stdout = "%s_%s.stdout" % (result_base, 'vmaf')
                 print " - %s" % result_fn
@@ -263,6 +268,8 @@ for m in mezzanines:
                     if p != None:
                         p.start()
                         processes.append(p)
+                if not isfile(result_fn_json):
+                    mdata_files.append("%s:%s:%s" % (result_fn, result_fn_stdout, 'vmaf'))
 
         test_letter = chr(ord(test_letter) + 1).upper()
         test_label_idx += 1
@@ -271,6 +278,85 @@ for m in mezzanines:
     # wait for metrics processes to finish
     for p in processes:
         p.join()
+
+    # parse any non-json data metric files from ffmpeg
+    for d in mdata_files:
+        print "Data file: %s" % d
+        files = d.split(':')
+        result_fn = files[0]
+        result_fn_stdout = files[1]
+        file_type = files[2]
+        if file_type == "vmaf":
+            result_fn_vmaf = "%s_%s.json" % (result_base, 'vmaf')
+            result_fn_msssim = "%s_%s.json" % (result_base, 'msssim')
+            result_fn_psnr = "%s_%s.json" % (result_base, 'psnr')
+            psnr_data = {"avg":[]}
+            msssim_data = {"avg":[]}
+            vmaf_data = {"avg":[]}
+            """
+            Exec FPS: 2.300914
+            VMAF score = 54.891245
+            PSNR score = 31.984645
+            MS-SSIM score = 0.918881
+            """
+            dline = []
+            with open(result_fn_stdout, "r") as f:
+                data = f.readlines()
+            for i, line in enumerate(data):
+                if "VMAF score = " in line:
+                    dline.append(line)
+                    vmaf_avg = float(line.split('=')[1])
+                    print "VMAF AVG: %0.3f" % (vmaf_avg)
+                    vmaf_data["avg"].append(vmaf_avg)
+                elif "PSNR score = " in line:
+                    dline.append(line)
+                    psnr_avg = float(line.split('=')[1])
+                    print "PSNR AVG: %0.3f" % (psnr_avg)
+                    psnr_data["avg"].append(psnr_avg)
+                elif "MS-SSIM score = " in line:
+                    dline.append(line)
+                    msssim_avg = float(line.split('=')[1])
+                    print "MS-SSIM AVG: %0.3f" % (msssim_avg)
+                    msssim_data["avg"].append(msssim_avg)
+                if len(dline) >= 3:
+                    break
+
+            if len(msssim_data["avg"]) > 0:
+                with open(result_fn_msssim, "w") as f:
+                    f.write(json.dumps(msssim_data))
+            if len(vmaf_data["avg"]) > 0:
+                with open(result_fn_vmaf, "w") as f:
+                    f.write(json.dumps(vmaf_data))
+        elif file_type == "psnr":
+            result_fn_psnr = "%s_%s.json" % (result_base, 'psnr')
+            result_fn_phqm = "%s_%s.json" % (result_base, 'phqm')
+            psnr_data = {"avg":[]}
+            phqm_data = {"avg":[]}
+            """
+            [Parsed_img_hash_0 @ 0x7fb73b609ac0] PHQM average:1.933974 PSNR y:29.030691
+                u:36.543688 v:36.685639 average:30.428417 min:20.791527 max:49.168489
+            """
+            dline = None
+            with open(result_fn_stdout, "r") as f:
+                data = f.readlines()
+            for i, line in enumerate(data):
+                if "PHQM average:" in line:
+                    dline = line
+                    break
+            if dline is not None:
+                parts = dline.split(' ')
+                phqm_avg = float(parts[4].split(':')[1])
+                psnr_avg = float(parts[9].split(':')[1])
+                print "PHQM AVG: %0.3f PSNR AVG: %0.3f" % (phqm_avg, psnr_avg)
+                phqm_data["avg"].append(phqm_avg)
+                psnr_data["avg"].append(psnr_avg)
+
+            if len(phqm_data["avg"]) > 0:
+                with open(result_fn_phqm, "w") as f:
+                    f.write(json.dumps(phqm_data))
+            if len(psnr_data["avg"]) > 0:
+                with open(result_fn_psnr, "w") as f:
+                    f.write(json.dumps(psnr_data))
 
     # clean up AVI files, they are large. unless requested to keep them for subj tests
     if keep_raw:
