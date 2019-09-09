@@ -214,6 +214,13 @@ for label, data in sorted(results_avg.iteritems()):
 with open("%s/stats.dat" % base_directory, "w") as f:
     f.write("%s" % body)
 
+# copy gnuplot config template into the test base directory
+gpdata = ""
+with open("stats.gp", "r") as f:
+    gpdata = f.read()
+with open("%s/stats.gp" % base_directory, "w") as f:
+    f.write("%s" % gpdata)
+
 if len(results) > 0:
-    subprocess.call(['gnuplot', '--persist', "stats.gp"])
+    subprocess.call(['gnuplot', '--persist', "stats.gp"], cwd="%s" % base_directory)
 

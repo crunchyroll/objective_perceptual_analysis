@@ -22,4 +22,3 @@ set ytics 1
 
 set title "test"
 plot "stats.dat" using 2:xtic(1) title "vmaf" ls 2, "stats.dat" using (100*$3) title "ssim" ls 3, "stats.dat" using ($4) title "psnr" ls 4, "stats.dat" using ($5/100) title "bitrate" ls 5, "stats.dat" using ($6/100) title "speed" ls 6
-
