@@ -64,7 +64,7 @@ print "encoder_args='%s'" % encoder_args
 if encoder_args != None:
     encoder_args_list = args['encoder_args'].split(',')
     for i in encoder_args_list:
-        pass # TODO parse and add to array of encoders w/global args
+        encoders.append(i)
 
 if args['metrics'] != None:
     metric_list = args['metrics'].split(',')
@@ -157,7 +157,7 @@ for m in mezzanines:
         print " %s" % encode_fn
         # Encode mezzanine
         if not isfile(encode_fn) or getsize(encode_fn) <= 0:
-            create_encode_cmd = [ffmpeg_bin,
+            create_encode_cmd = [encoders[test_label_idx], '-hide_banner', '-nostats', '-nostdin',
                 '-i', mezzanine_fn] + global_args + test_args[test_label_idx] + [encode_fn,
                 '-threads', str(threads)]
             try:
@@ -192,12 +192,12 @@ for m in mezzanines:
             with open(encode_data_fn, "w") as f:
                 f.write(json.dumps(data))
 
-        # get metrics
+        # decode raw yuv versions of encodes if we are using MSU tools
         if use_msu:
             print " %s" % mezzanine_video_fn
             if not isfile(mezzanine_video_fn) or getsize(mezzanine_video_fn) <= 0:
                 # Decode mezzanie to raw YUV AVI format for VQMT and Subj PQMT
-                create_mezzanine_video_cmd = [ffmpeg_bin, '-hide_banner', '-y', '-nostdin', '-i', mezzanine_fn,
+                create_mezzanine_video_cmd = [ffmpeg_bin, '-hide_banner', '-y', '-nostats', '-nostdin', '-i', mezzanine_fn,
                     '-f', 'avi', '-vcodec', 'rawvideo', '-pix_fmt', 'yuv420p', '-dn', '-sn', '-an', mezzanine_video_fn]
                 try:
                     for output in execute(create_mezzanine_video_cmd):
@@ -209,7 +209,7 @@ for m in mezzanines:
             print " %s" % encode_video_fn
             if not isfile(encode_video_fn) or getsize(encode_video_fn) <= 0:
                 # Decode encode to raw YUV AVI format for VQMT and Subj PQMT
-                create_encode_video_cmd = [ffmpeg_bin, '-hide_banner', '-y', '-nostdin', '-i', encode_fn,
+                create_encode_video_cmd = [ffmpeg_bin, '-hide_banner', '-y', '-nostats', '-nostdin', '-i', encode_fn,
                     '-f', 'avi', '-vcodec', 'rawvideo', '-pix_fmt', 'yuv420p', '-dn', '-sn', '-an', encode_video_fn]
                 try:
                     for output in execute(create_encode_video_cmd):
