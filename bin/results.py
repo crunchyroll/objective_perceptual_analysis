@@ -63,8 +63,6 @@ for m in mezzanines:
         bitrate = 0
         filesize = 0
         duration = 0.0
-        framerate = 0.0
-        vcodec = ""
         with open("%s/%s" % (encode_dir, es)) as encode_stats_json:
             try:
                 ed = json.load(encode_stats_json)
@@ -77,9 +75,6 @@ for m in mezzanines:
                     filesize = int(ed['filesize'])
                 if 'duration' in ed:
                     duration = float(ed['duration'])
-                if 'vcodec' in ed:
-                    vcodec = ed['vcodec']
-                framerate = float(ed['normalized_framerate'])
             except Exception, e:
                 if debug:
                     print "error: %s %s" % (es, e)
@@ -123,15 +118,12 @@ for m in mezzanines:
         if debug: 
             print " %s:" % result_key
             print "  Encode [%s]:" % elabel
-            print "    Stats: {vcodec: %s bitrate: %d, filesize: %d, duration: %0.2f, fps: %0.2f}" % (vcodec,
-                                                                            bitrate, filesize, duration, framerate)
+            print "    Stats: {bitrate: %d, filesize: %d, duration: %0.2f}" % (bitrate, filesize, duration)
         # pick out specific codec values we are testing
         result[result_key]['bitrate'] = bitrate
         result[result_key]['filesize'] = filesize
-        result[result_key]['framerate'] = framerate
         result[result_key]['duration'] =  duration
         result[result_key]['mezzanine'] = fkey
-        result[result_key]['vcodec'] = vcodec
         result[result_key]['label'] = hlabel
 
         if debug:

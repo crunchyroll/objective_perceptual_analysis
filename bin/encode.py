@@ -148,6 +148,7 @@ for m in mezzanines:
     for test_label in test_labels:
         mezzanine_fn = "%s/%s/%s" % (cur_dir, mezz_dir, m)
         encode_fn = "%s/%s/%s_%s_%s.mp4" % (cur_dir, encode_dir, m.split('.')[0], test_label, test_letter)
+        encode_data_fn = "%s/%s/%s_%s_%s.mp4_data.json" % (cur_dir, encode_dir, m.split('.')[0], test_label, test_letter)
         mezzanine_video_fn = "%s/%s/%s.avi" % (cur_dir, video_dir, m.split('.')[0])
         encode_video_fn = "%s/%s/%s_%s_%s.avi" % (cur_dir, video_dir, m.split('.')[0], test_label, test_letter)
         result_base = "%s/%s/%s_%s_%s" % (cur_dir, result_dir, m.split('.')[0], test_label, test_letter)
@@ -170,6 +171,28 @@ for m in mezzanines:
                 print "Failure Encoding: %s" % e
         else:
             print " Encode exists"
+
+        # get encode information
+        if not isfile(encode_data_fn) or getsize(encode_data_fn) <=0:
+            # create data file in json with encode stats
+            # get filesize, bitrate, framerate, duration, vcodec
+            filesize = getsize(encode_fn)
+            params = "--Inform=General;%Duration%,%OverallBitRate%"
+            cmd = ['mediainfo', params, encode_fn]
+            stdout = subprocess.check_output(cmd)
+            data_string = "".join([line for line in stdout if
+                            ((ord(line) >= 32 and ord(line) < 128) or ord(line) == 10 or ord(line) == 13)]).strip()
+            duration = "%0.3f" % float(data_string.split(',')[0])
+            bitrate = "%s" % data_string.split(',')[1].strip()
+            data = {}
+            data['video'] = {}
+            data['video']['filesize'] = filesize
+            data['video']['duration'] = float(duration) / 1000.0
+            data['video']['vbitrate'] = int(bitrate) / 1000
+            with open(encode_data_fn, "w") as f:
+                f.write(json.dumps(data))
+
+        # get metrics
         if use_msu:
             print " %s" % mezzanine_video_fn
             if not isfile(mezzanine_video_fn) or getsize(mezzanine_video_fn) <= 0:
@@ -195,6 +218,7 @@ for m in mezzanines:
                     print "Failure Decoding: %s" % e
             else:
                 print " Encode AVI exists"
+
         # VQMT metrics results
         print " %s" % result_base
         p = None
