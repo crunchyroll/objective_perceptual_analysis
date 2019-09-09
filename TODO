@@ -13,15 +13,12 @@ Quality Finder:
     - rate scene complexity and machine learn patterns
 
 encode.py:
-    - wire up for non-msu vmaf/psnr/ssim stats
-    - output ffmpeg stats while encoding?
     - global encoder stats
     - subtitle hardsub tests
+    - add vp9 libvpx encoding
 
 results.py:
     obj metrics
-        - vmaf psnr ssim
         - graphs
-        - CSV / JSON reports
         - screen shot comparisons
         - perceptual hash comparisons (create new metrics)
