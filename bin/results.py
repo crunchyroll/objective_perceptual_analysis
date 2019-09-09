@@ -81,6 +81,7 @@ for m in mezzanines:
 
         # grab MSU results list for this mezzanine
         msu_stats = [f for f in listdir(result_dir) if f.startswith(ebase) if f.endswith(".json")]
+        phqm = 0.0
         vmaf = 0.0
         psnr = 0.0
         ssim = 0.0
@@ -106,6 +107,8 @@ for m in mezzanines:
                     continue # skip this, probably truncated in progress writing
             # save score as type
             if score:
+                if label == 'phqm':
+                    phqm = float(score)
                 if label == 'vmaf':
                     vmaf = float(score)
                 elif label == 'msssim':
@@ -127,14 +130,15 @@ for m in mezzanines:
         result[result_key]['label'] = hlabel
 
         if debug:
-            print "   Metrics: {speed: %0.2f, vmaf: %0.2f, ssim: %0.2f, psnr: %0.2f}" % (speed, vmaf, ssim, psnr)
+            print "   Metrics: {speed: %0.2f, phqm: %0.2f vmaf: %0.2f, ssim: %0.2f, psnr: %0.2f}" % (speed, phqm, vmaf, ssim, psnr)
         result[result_key]['speed'] =  speed
+        result[result_key]['phqm'] = "%0.3f" % phqm
         result[result_key]['vmaf'] = "%0.3f" % vmaf
         result[result_key]['ssim'] = "%0.3f" % ssim
         result[result_key]['psnr'] = "%0.3f" % psnr
 
         # append result to total results for all mezzanines
-        if float(vmaf) > 0 and float(ssim) > 0 and float(psnr) > 0:
+        if float(vmaf) > 0 and float(ssim) > 0 and float(psnr) > 0 and float(phqm) >= 0:
             results.append(result)
 
 with open("%s/stats.json" % base_directory, "w") as f:
@@ -144,6 +148,7 @@ results_avg = {}
 for result in sorted(results):
     for label, data in sorted(result.iteritems()):
         bitrate = 0
+        phqm = 0.0
         vmaf = 0.0
         ssim = 0.0
         psnr = 0.0
@@ -152,6 +157,8 @@ for result in sorted(results):
         for key, value in data.iteritems():
             if key == "bitrate":
                 bitrate = value
+            elif key == "phqm":
+                phqm = float(value)
             elif key == "vmaf":
                 vmaf = float(value)
             elif key == "psnr":
@@ -167,6 +174,7 @@ for result in sorted(results):
         if not test_label in results_avg:
             results_avg[test_label] = {}
             results_avg[test_label]['psnr'] = []
+            results_avg[test_label]['phqm'] = []
             results_avg[test_label]['vmaf'] = []
             results_avg[test_label]['ssim'] = []
             results_avg[test_label]['bitrate'] = []
@@ -174,16 +182,18 @@ for result in sorted(results):
 
         # collect values into lists
         results_avg[test_label]['psnr'].append(psnr)
+        results_avg[test_label]['phqm'].append(phqm)
         results_avg[test_label]['vmaf'].append(vmaf)
         results_avg[test_label]['ssim'].append(ssim)
         results_avg[test_label]['bitrate'].append(bitrate)
         results_avg[test_label]['speed'].append(speed)
 
 # create dat file for CSV or GNUPlot
-body = "# test\tvmaf\tssim\tpsnr\tbitrate\tspeed\n"
+body = "# test\tphqm\tvmaf\tssim\tpsnr\tbitrate\tspeed\n"
 for label, data in sorted(results_avg.iteritems()):
     bitrate = 0
     vmaf = 0.0
+    phqm = 0.0
     ssim = 0.0
     psnr = 0.0
     speed = 0
@@ -196,6 +206,10 @@ for label, data in sorted(results_avg.iteritems()):
             for b in value:
                 speed += int(b)
             speed = int(speed / len(value))
+        elif key == "phqm":
+            for b in value:
+                phqm += float(b)
+            phqm = float(phqm/ len(value))
         elif key == "vmaf":
             for b in value:
                 vmaf += float(b)
@@ -208,8 +222,8 @@ for label, data in sorted(results_avg.iteritems()):
             for b in value:
                 ssim += float(b)
             ssim = float(ssim / len(value))
-    if vmaf > 0 and ssim > 0 and psnr > 0:
-        body =  "%s%s\t%0.3f\t%0.3f\t%0.3f\t%d\t%d\n" % (body, label, vmaf, ssim, psnr, bitrate, speed)
+    if vmaf > 0 and ssim > 0 and psnr > 0 and phqm >= 0:
+        body =  "%s%s\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%d\t%d\n" % (body, label, phqm, vmaf, ssim, psnr, bitrate, speed)
 
 with open("%s/stats.dat" % base_directory, "w") as f:
     f.write("%s" % body)
