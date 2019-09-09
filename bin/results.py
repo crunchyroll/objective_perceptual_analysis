@@ -65,7 +65,6 @@ for m in mezzanines:
         duration = 0.0
         framerate = 0.0
         vcodec = ""
-        codec_settings = []
         with open("%s/%s" % (encode_dir, es)) as encode_stats_json:
             try:
                 ed = json.load(encode_stats_json)
@@ -78,8 +77,6 @@ for m in mezzanines:
                     filesize = int(ed['filesize'])
                 if 'duration' in ed:
                     duration = float(ed['duration'])
-                if 'codec_settings' in ed:
-                    codec_settings = ed['codec_settings']
                 if 'vcodec' in ed:
                     vcodec = ed['vcodec']
                 framerate = float(ed['normalized_framerate'])
@@ -115,11 +112,11 @@ for m in mezzanines:
             # save score as type
             if score:
                 if label == 'vmaf':
-                    vmaf = score
+                    vmaf = float(score)
                 elif label == 'msssim':
-                    ssim = score
+                    ssim = float(score)
                 elif label == 'psnr':
-                    psnr = score
+                    psnr = float(score)
         result_key = "%s-%s_%s" % (fkey[:32], str("%0.3f" % vmaf).replace('.','-'), elabel[1:])
         result[result_key] = {}
 
@@ -140,13 +137,13 @@ for m in mezzanines:
         if debug:
             print "   Metrics: {speed: %0.2f, vmaf: %0.2f, ssim: %0.2f, psnr: %0.2f}" % (speed, vmaf, ssim, psnr)
         result[result_key]['speed'] =  speed
-        result[result_key]['vmaf'] = "%0.3f" % float(vmaf)
-        result[result_key]['ssim'] = "%0.3f" % float(ssim)
-        result[result_key]['psnr'] = "%0.3f" % float(psnr)
+        result[result_key]['vmaf'] = "%0.3f" % vmaf
+        result[result_key]['ssim'] = "%0.3f" % ssim
+        result[result_key]['psnr'] = "%0.3f" % psnr
 
-    # append result to total results for all mezzanines
-    if float(vmaf) > 0 and float(ssim) > 0 and float(psnr) > 0:
-        results.append(result)
+        # append result to total results for all mezzanines
+        if float(vmaf) > 0 and float(ssim) > 0 and float(psnr) > 0:
+            results.append(result)
 
 with open("%s/stats.json" % base_directory, "w") as f:
     f.write("%s" % json.dumps(results, sort_keys=True))
