@@ -13,22 +13,23 @@ or CRF level. Currently only X264 is supported in this implementation.
 Everything can be easily setup via setup.sh, it will install what is necessary
 for the most part. Please report back any issues so this can be improved for edge cases.
 
-*Currenty works only on CentOS 7*
+*Currenty works on CentOS 7 and Mac OS X*
 
 Setup everything, setup.sh will install opencv, libx264
 you will need wget, git installed beforehand.
 
-./setup.sh
+type: ```make```
 
 Testing: reference program will test that opencv img_hash is working correctly.
 
-./reference
+./reference <ref image> <target image>
 
 This uses an FFmpeg with an extra video filter which uses OpenCV to
 compute hamming distance values from each frames hash vs. the previous
 frames hash. 
 
 https://github.com/bitbytebit-cr/FFmpeg_perceptual
+FFmpeg Git Branch: perceptual_encoder_4.2-001
 
 FFmpeg Commands:
 
