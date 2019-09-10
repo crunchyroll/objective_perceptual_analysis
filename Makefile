@@ -22,16 +22,22 @@ x264lib:
 	sudo make install && \
 	sudo ldconfig
 
+vpxlib:
+	cd libvpx/build/ && \
+	../configure --prefix=/usr && \
+	make -j8 && \
+	sudo make install
+
 vmaflib:
 	cd vmaf && \
-        make && \
+        make -j8 && \
         sudo make install
 
 ffmpegbin:
 	cd FFmpeg && \
-	./configure --prefix=/usr --enable-libx264 --enable-gpl --enable-libopencv --enable-version3 --enable-libvmaf && \
+	./configure --prefix=/usr --enable-libx264 --enable-libvpx --enable-gpl --enable-libopencv --enable-version3 --enable-libvmaf && \
 	make clean && \
-	make -j8 
+	make -j8
 
 install:
 	cd FFmpeg && \

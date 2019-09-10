@@ -52,6 +52,13 @@ if [ ! -d "x264" ]; then
     cd ../
 fi
 
+if [ ! -d "libvpx" ]; then
+    git clone https://github.com/webmproject/libvpx.git libvpx
+    cd libvpx
+    git checkout v1.8.1
+    cd ../
+fi
+
 if [ ! -d "FFmpeg" ]; then
     git clone https://git.ffmpeg.org/ffmpeg.git FFmpeg
     cd FFmpeg
@@ -176,6 +183,11 @@ fi
 if [ ! -f /usr/local/lib/libvmaf.a ]; then
     make vmaflib
     sudo ln -s /usr/local/lib/pkgconfig/libvmaf.pc /usr/share/pkgconfig/
+fi
+
+if [ ! -f /usr/lib/libvpx.a ]; then
+    make vpxlib
+    sudo ldconfig
 fi
 
 ## Setup FFmpeg
