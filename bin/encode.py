@@ -39,7 +39,7 @@ use_msu = False
 ap = argparse.ArgumentParser()
 ap.add_argument('-m', '--metrics', dest='metrics', required=False, help="Metric List. Delimited by commas: Options - psnr,vmaf,ssim")
 ap.add_argument('-p', '--threads', dest='threads', required=False, help="threads to use for encoding")
-ap.add_argument('-t', '--tests', dest='tests', required=True, help="Tests to run, Format - Label|FFmpegBin|RateControl|arg|arg,Label|FFmpegBin|RC|arg|arg,...")
+ap.add_argument('-t', '--tests', dest='tests', required=True, help="Tests to run, Format - Label|FFmpegBin|RateControl|arg|arg;Label|FFmpegBin|RC|arg|arg;...")
 ap.add_argument('-a', '--encoder_args', dest='encoder_args', required=False, help="Global args for encoders - FFmpegBin|arg|arg,FFmpegBin|arg|arg")
 ap.add_argument('-n', '--directory', dest='directory', required=True, help="Name of the tests base directory")
 ap.add_argument('-k', '--keep_raw', dest='keep_raw', required=False, action='store_true', help="keep raw yuv avi video clips in ./videos/")
@@ -61,7 +61,6 @@ video_dir = "%s/videos" % base_directory
 result_dir = "%s/results" % base_directory
 cur_dir = getcwd()
 
-print "encoder_args='%s'" % encoder_args
 if encoder_args != None:
     encoder_args_list = args['encoder_args'].split(',')
     for i in encoder_args_list:
@@ -73,9 +72,10 @@ if args['metrics'] != None:
         test_metrics.append(i)
 
 if args['tests'] != None:
-    test_list = args['tests'].split(',')
+    test_list = args['tests'].split(';')
     for i in test_list:
         lparts = i.split('|')
+        print "Got: %r" % lparts
         label = lparts[0]
         encoder = lparts[1]
         rate_control = lparts[2]
@@ -170,7 +170,7 @@ for m in mezzanines:
                     create_encode_cmd = [encoders[test_label_idx], '-hide_banner', '-nostats', '-nostdin',
                         '-i', mezzanine_fn] + global_args + test_args[test_label_idx] + ['-pass', '1',
                         '-an', '-passlogfile', pass_log_fn,
-                        '-threads', str(threads), encode_fn]
+                        '-threads', str(threads), '-y', '/dev/null']
 
                     for output in execute(create_encode_cmd):
                         print output
