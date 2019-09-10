@@ -42,8 +42,8 @@ Example steps:
     - perceptual_abr
     - abr
     
-4. execute bin/results.py -n test001 to get results
+4. execute ```bin/results.py -n test001``` to get results
 
-Results Json output is CSV compatible in any converter.
-Also there is a graph created using gnuplot.
+Results Json ```stats.json``` output is CSV compatible in any converter.
+Also there is a graph ```stats.jpg``` created using gnuplot and ```stats.dat```.
 
