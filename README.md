@@ -33,9 +33,10 @@ FFmpeg Git Branch: perceptual_encoder_4.2-001
 
 FFmpeg Commands:
 
-Perceptual Encoding Optimization:
+Perceptual Encoding Optimization: (bitrate mode or crf mode)
 
-```./FFmpeg/ffmpeg -i <intput file> -vcodec libx264 -b:v 4000k -vf perceptual=hash_type=phash -loglevel debug output.mp4```
+```./FFmpeg/ffmpeg -i <input file> -vcodec libx264 -b:v 4000k -maxrate:v 4000k -bufsize 4000k -vf perceptual=hash_type=phash -loglevel debug output.mp4```
+```./FFmpeg/ffmpeg -i <input file> -vcodec libx264 -b:v 0 -maxrate:v 4000k -bufsize 4000k -crf 29 -vf perceptual=hash_type=phash -loglevel debug output.mp4```
 
 ```
 perceptual AVOptions:
