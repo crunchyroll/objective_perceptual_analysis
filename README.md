@@ -15,7 +15,7 @@ for the most part. Please report back any issues so this can be improved for edg
 
 *Currenty works on CentOS 7 and Mac OS X*
 
-Makefile will run the proper setup scriopt and install opencv, libx264, libvmaf, nasm
+Makefile will run the proper setup scriopt and install mediainfo, opencv, libx264, libvmaf, nasm
 git, wget... Everything should be done for you, although if not report it as a bug.
 
 type: ```make```

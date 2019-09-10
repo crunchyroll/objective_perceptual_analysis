@@ -20,6 +20,9 @@
 set -e
 
 # install deps
+if [ ! -e /usr/local/bin/mediainfo ]; then
+    brew install mediainfo
+fi
 if [ ! -e /usr/local/bin/wget ]; then
     brew install wget
 fi

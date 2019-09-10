@@ -27,6 +27,9 @@ fi
 if [ ! -e /usr/bin/gnuplot ]; then
     sudo yum -y -q install gnuplot
 fi
+if [ ! -e /usr/bin/mediainfo]; then
+    sudo yum -y -q install mediainfo
+fi
 
 ## get opencv and opencv_contrib
 if [ ! -d "opencv" ]; then
