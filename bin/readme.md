@@ -22,7 +22,15 @@ Example steps:
 3. execute bin/encode.py (see bin/encode.py -h  for Help Output)
     example: (multiple tests can be separated by commas)
     'bin/encode.py -m psnr,vmaf -n test001 -p 4 \
-        -t "test1|FFmpeg/ffmpeg|-vcodec|libx264|-vf|perceptual|-b:v|4000k|-maxrate:v|4000k|-bufsize|6000k" -d -o' 
+        -t "test1|FFmpeg/ffmpeg|twopass|-vcodec|libx264|-vf|perceptual|-b:v|4000k|-maxrate:v|4000k|-bufsize|6000k" -d -o' 
+    Format - Label|FFmpegBin|RateControl|arg|arg,Label|FFmpegBin|RC|arg|arg,...
+    ratecontrol options:
+    - twopass (implemented)
+    (below are not implemented, add them to the cmdline for ffmpeg)
+    - crf_NN
+    - perceptual_crf_NN
+    - perceptual_abr
+    - abr
 4. execute bin/results.py -n test001 to get results
 
 Results Json output is CSV compatible in any converter.

@@ -29,6 +29,7 @@ metrics = ""
 global_args = []
 test_labels = [];
 encoders = [];
+rate_controls = [];
 test_args = []
 test_metrics = []
 threads = 2
@@ -38,8 +39,8 @@ use_msu = False
 ap = argparse.ArgumentParser()
 ap.add_argument('-m', '--metrics', dest='metrics', required=False, help="Metric List. Delimited by commas: Options - psnr,vmaf,ssim")
 ap.add_argument('-p', '--threads', dest='threads', required=False, help="threads to use for encoding")
-ap.add_argument('-t', '--tests', dest='tests', required=True, help="Tests to run, Format - Label|EncoderBin|arg|arg,Label|EncoderBin|arg|arg,...")
-ap.add_argument('-a', '--encoder_args', dest='encoder_args', required=False, help="Global args for encoders - EncoderBin|arg|arg,EncoderBin|arg|arg")
+ap.add_argument('-t', '--tests', dest='tests', required=True, help="Tests to run, Format - Label|FFmpegBin|RateControl|arg|arg,Label|FFmpegBin|RC|arg|arg,...")
+ap.add_argument('-a', '--encoder_args', dest='encoder_args', required=False, help="Global args for encoders - FFmpegBin|arg|arg,FFmpegBin|arg|arg")
 ap.add_argument('-n', '--directory', dest='directory', required=True, help="Name of the tests base directory")
 ap.add_argument('-k', '--keep_raw', dest='keep_raw', required=False, action='store_true', help="keep raw yuv avi video clips in ./videos/")
 ap.add_argument('-d', '--debug', dest='debug', required=False, action='store_true', help="Debug")
@@ -64,7 +65,7 @@ print "encoder_args='%s'" % encoder_args
 if encoder_args != None:
     encoder_args_list = args['encoder_args'].split(',')
     for i in encoder_args_list:
-        encoders.append(i)
+        pass # TODO handle global args
 
 if args['metrics'] != None:
     metric_list = args['metrics'].split(',')
@@ -77,12 +78,14 @@ if args['tests'] != None:
         lparts = i.split('|')
         label = lparts[0]
         encoder = lparts[1]
-        encoder_args = lparts[2:]
+        rate_control = lparts[2]
+        encoder_args = lparts[3:]
         if '_' in label:
             print "Error, Test labels cannot have underscores '_' in them!"
             sys.exit(1)
         test_labels.append(label)
         encoders.append(encoder)
+        rate_controls.append(rate_control)
         test_args.append(encoder_args)
 
 print "Running test in %s directory" % base_directory
@@ -149,6 +152,7 @@ for m in mezzanines:
         mezzanine_fn = "%s/%s/%s" % (cur_dir, mezz_dir, m)
         encode_fn = "%s/%s/%s_%s_%s.mp4" % (cur_dir, encode_dir, m.split('.')[0], test_label, test_letter)
         encode_data_fn = "%s/%s/%s_%s_%s.mp4_data.json" % (cur_dir, encode_dir, m.split('.')[0], test_label, test_letter)
+        pass_log_fn = "%s/%s/%s_%s_%s.mp4_pass.log" % (cur_dir, encode_dir, m.split('.')[0], test_label, test_letter)
         mezzanine_video_fn = "%s/%s/%s.avi" % (cur_dir, video_dir, m.split('.')[0])
         encode_video_fn = "%s/%s/%s_%s_%s.avi" % (cur_dir, video_dir, m.split('.')[0], test_label, test_letter)
         result_base = "%s/%s/%s_%s_%s" % (cur_dir, result_dir, m.split('.')[0], test_label, test_letter)
@@ -157,13 +161,35 @@ for m in mezzanines:
         print " %s" % encode_fn
         # Encode mezzanine
         if not isfile(encode_fn) or getsize(encode_fn) <= 0:
-            create_encode_cmd = [encoders[test_label_idx], '-hide_banner', '-nostats', '-nostdin',
-                '-i', mezzanine_fn] + global_args + test_args[test_label_idx] + [encode_fn,
-                '-threads', str(threads)]
             try:
                 start_time = time.time()
-                for output in execute(create_encode_cmd):
-                    print output
+                rate_control = rate_controls[test_label_idx]
+
+                if rate_control == "twopass":
+                    # pass 1
+                    create_encode_cmd = [encoders[test_label_idx], '-hide_banner', '-nostats', '-nostdin',
+                        '-i', mezzanine_fn] + global_args + test_args[test_label_idx] + ['-pass', '1',
+                        '-an', '-passlogfile', pass_log_fn,
+                        '-threads', str(threads), encode_fn]
+
+                    for output in execute(create_encode_cmd):
+                        print output
+                    # pass 2
+                    create_encode_cmd = [encoders[test_label_idx], '-hide_banner', '-nostats', '-nostdin',
+                        '-i', mezzanine_fn] + global_args + test_args[test_label_idx] + ['-pass', '2',
+                        '-passlog', pass_log_fn,
+                        '-threads', str(threads), encode_fn]
+
+                    for output in execute(create_encode_cmd):
+                        print output
+                else:
+                    create_encode_cmd = [encoders[test_label_idx], '-hide_banner', '-nostats', '-nostdin',
+                        '-i', mezzanine_fn] + global_args + test_args[test_label_idx] + ['-threads', str(threads),
+                        encode_fn]
+
+                    for output in execute(create_encode_cmd):
+                        print output
+
                 end_time = time.time()
                 with open(speed_result, "w") as f:
                     f.write("{\"file\":\"%s\",\"speed\":\"%d\"}" % (encode_fn, int(end_time - start_time)))
