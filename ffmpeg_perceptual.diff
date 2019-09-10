@@ -1,5 +1,5 @@
 diff --git a/configure b/configure
-index 34c2adb..3c9a988 100755
+index 34c2adb4a4..3c9a98867a 100755
 --- a/configure
 +++ b/configure
 @@ -3487,6 +3487,10 @@ nlmeans_opencl_filter_deps="opencl"
@@ -14,7 +14,7 @@ index 34c2adb..3c9a988 100755
  overlay_opencl_filter_deps="opencl"
  overlay_qsv_filter_deps="libmfx"
 diff --git a/libavcodec/libx264.c b/libavcodec/libx264.c
-index dc4b4b1..cedcdef 100644
+index dc4b4b100d..cedcdef67b 100644
 --- a/libavcodec/libx264.c
 +++ b/libavcodec/libx264.c
 @@ -195,24 +195,73 @@ static void reconfig_encoder(AVCodecContext *ctx, const AVFrame *frame)
@@ -103,7 +103,7 @@ index dc4b4b1..cedcdef 100644
  
      if (x4->params.rc.i_rc_method == X264_RC_CQP &&
 diff --git a/libavfilter/Makefile b/libavfilter/Makefile
-index 455c809..a51087f 100644
+index 455c809b15..a51087f28f 100644
 --- a/libavfilter/Makefile
 +++ b/libavfilter/Makefile
 @@ -307,6 +307,8 @@ OBJS-$(CONFIG_NORMALIZE_FILTER)              += vf_normalize.o
@@ -124,7 +124,7 @@ index 455c809..a51087f 100644
  TOOLS     = graph2dot
  TESTPROGS = drawutils filtfmts formats integral
 diff --git a/libavfilter/allfilters.c b/libavfilter/allfilters.c
-index 04a3df7..ab56563 100644
+index 04a3df7d56..ab565634e4 100644
 --- a/libavfilter/allfilters.c
 +++ b/libavfilter/allfilters.c
 @@ -292,6 +292,8 @@ extern AVFilter ff_vf_normalize;
@@ -138,7 +138,7 @@ index 04a3df7..ab56563 100644
  extern AVFilter ff_vf_overlay_opencl;
 diff --git a/libavfilter/img_hash.cpp b/libavfilter/img_hash.cpp
 new file mode 100644
-index 0000000..e6bf32f
+index 0000000000..e6bf32f982
 --- /dev/null
 +++ b/libavfilter/img_hash.cpp
 @@ -0,0 +1,86 @@
@@ -230,7 +230,7 @@ index 0000000..e6bf32f
 +
 diff --git a/libavfilter/img_hash.h b/libavfilter/img_hash.h
 new file mode 100644
-index 0000000..c916766
+index 0000000000..c916766647
 --- /dev/null
 +++ b/libavfilter/img_hash.h
 @@ -0,0 +1,31 @@
@@ -267,7 +267,7 @@ index 0000000..c916766
 +#endif
 diff --git a/libavfilter/vf_img_hash.c b/libavfilter/vf_img_hash.c
 new file mode 100644
-index 0000000..0f95393
+index 0000000000..0f95393f74
 --- /dev/null
 +++ b/libavfilter/vf_img_hash.c
 @@ -0,0 +1,453 @@
@@ -726,7 +726,7 @@ index 0000000..0f95393
 +};
 diff --git a/libavfilter/vf_perceptual.c b/libavfilter/vf_perceptual.c
 new file mode 100644
-index 0000000..be67a48
+index 0000000000..be67a48b7b
 --- /dev/null
 +++ b/libavfilter/vf_perceptual.c
 @@ -0,0 +1,160 @@
@@ -891,7 +891,7 @@ index 0000000..be67a48
 +    .outputs       = avfilter_vf_perceptual_outputs,
 +};
 diff --git a/libavutil/frame.c b/libavutil/frame.c
-index dcf1fc3..94e7644 100644
+index dcf1fc3d17..94e7644d1f 100644
 --- a/libavutil/frame.c
 +++ b/libavutil/frame.c
 @@ -163,6 +163,8 @@ FF_ENABLE_DEPRECATION_WARNINGS
@@ -922,7 +922,7 @@ index dcf1fc3..94e7644 100644
      ret = frame_copy_props(dst, src, 0);
      if (ret < 0)
 diff --git a/libavutil/frame.h b/libavutil/frame.h
-index 5d3231e..c9df011 100644
+index 5d3231e7bb..c9df011aaa 100644
 --- a/libavutil/frame.h
 +++ b/libavutil/frame.h
 @@ -672,6 +672,13 @@ typedef struct AVFrame {

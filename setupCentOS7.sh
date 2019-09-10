@@ -50,9 +50,10 @@ if [ ! -d "x264" ]; then
 fi
 
 if [ ! -d "FFmpeg" ]; then
-    git clone git@github.com:bitbytebit-cr/FFmpeg_perceptual.git FFmpeg
+    git clone https://git.ffmpeg.org/ffmpeg.git FFmpeg
     cd FFmpeg
-    git checkout perceptual_encoder_4.2-001
+    git checkout remotes/origin/release/4.2
+    cat ../ffmpeg_perceptual.diff | patch -p1
     cd ../
 fi
 
