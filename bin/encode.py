@@ -177,7 +177,7 @@ for m in mezzanines:
                     # pass 2
                     create_encode_cmd = [encoders[test_label_idx], '-hide_banner', '-nostats', '-nostdin',
                         '-i', mezzanine_fn] + global_args + test_args[test_label_idx] + ['-pass', '2',
-                        '-passloglog', pass_log_fn,
+                        '-passlogfile', pass_log_fn,
                         '-threads', str(threads), encode_fn]
 
                     for output in execute(create_encode_cmd):
