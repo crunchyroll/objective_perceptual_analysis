@@ -144,7 +144,9 @@ mezzanines = [f for f in listdir(mezz_dir)]
 for m in mezzanines:
     if m[0] == ".":
         continue
-    test_letter = 'A'
+    test_letter1 = 'A'
+    test_letter2 = 'A'
+    test_letter = test_letter1
     test_label_idx = 0
     processes = []
     decoded_encodes = []
@@ -297,7 +299,12 @@ for m in mezzanines:
                 if not isfile(result_fn_json):
                     mdata_files.append("%s:%s:%s" % (result_fn, result_fn_stdout, 'vmaf'))
 
-        test_letter = chr(ord(test_letter) + 1).upper()
+        if test_letter1 == 'Z':
+            test_letter = test_letter1 + test_letter2
+            test_letter2 = chr(ord(test_letter2) + 1).upper()
+        else:
+            test_letter1 = chr(ord(test_letter1) + 1).upper()
+            test_letter = test_letter1
         test_label_idx += 1
         # Encode processing end
 
