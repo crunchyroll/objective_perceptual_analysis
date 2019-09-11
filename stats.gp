@@ -22,4 +22,4 @@ set xtics 1
 set ytics 1
 
 set title "test"
-plot "stats.dat" using 3:xtic(1) title "vmaf" ls 2, "stats.dat" using (100*$4) title "ssim" ls 3, "stats.dat" using ($5) title "psnr" ls 4, "stats.dat" using ($6/100) title "bitrate" ls 5, "stats.dat" using ($7/100) title "speed" ls 6, "stats.dat" using ($2*20) title "phqm" ls 7
+plot "stats.dat" using 3:xtic(1) title "vmaf" ls 2, "stats.dat" using (100*$4) title "ssim" ls 3, "stats.dat" using ($5) title "psnr" ls 4, "stats.dat" using ($6/100) title "bitrate" ls 5, "stats.dat" using ($7/100) title "speed" ls 6, "stats.dat" using (100-($2*20)) title "phqm" ls 7
