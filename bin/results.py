@@ -14,7 +14,7 @@ environ["GDFONTPATH"] = "/usr/share/fonts/msttcorefonts/"
 # results list
 results = []
 
-debug = True
+debug = False
 base_directory = None
 
 ap = argparse.ArgumentParser()
@@ -144,6 +144,8 @@ for m in mezzanines:
     # append result to total results for all mezzanines
     if float(vmaf) > 0 and float(ssim) > 0 and float(psnr) > 0 and float(phqm) >= 0:
         results.append(result)
+    elif debug:
+        print "Skipping: %s" % m
 
 with open("%s/stats.json" % base_directory, "w") as f:
     f.write("%s" % json.dumps(results, sort_keys=True))
