@@ -49,7 +49,7 @@ for m in mezzanines:
 
     # grab encode stats list for this mezzanine
     encode_stats = [f for f in listdir(encode_dir) if f.startswith(mbase) if f.endswith(".json")]
-    for es in encode_stats:
+    for es in sorted(encode_stats):
         # remove extensions, both .json and _data
         ebase = "%s" % splitext(splitext(es)[0])[0]
         elabel = ebase[len(mbase):]
