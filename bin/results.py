@@ -55,7 +55,11 @@ for m in mezzanines:
         elabel = ebase[len(mbase):]
         n, l = elabel[1:].split('_')
         # turn alphabet character into an index number for human readable label
-        hindex = (ord(l.lower()) - 96) - 1
+        if len(l) > 1:
+            hindex = (ord(l[0].lower()) - 96) - 1
+            hindex += (ord(l[1].lower()) - 96) - 1
+        else:
+            hindex = (ord(l.lower()) - 96) - 1
         # test label as setup in encode.py
         hlabel = n
 
