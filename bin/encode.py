@@ -146,6 +146,7 @@ for m in mezzanines:
         continue
     test_letter1 = 'A'
     test_letter2 = 'A'
+    test_letter3 = 'A'
     test_letter = test_letter1
     test_label_idx = 0
     processes = []
@@ -299,7 +300,10 @@ for m in mezzanines:
                 if not isfile(result_fn_json):
                     mdata_files.append("%s:%s:%s" % (result_fn, result_fn_stdout, 'vmaf'))
 
-        if test_letter1 == 'Z':
+        if test_letter2 == 'Z':
+            test_letter = test_letter1 + test_letter2 + test_letter3
+            test_letter3 = chr(ord(test_letter3) + 1).upper()
+        elif test_letter1 == 'Z':
             test_letter = test_letter1 + test_letter2
             test_letter2 = chr(ord(test_letter2) + 1).upper()
         else:
