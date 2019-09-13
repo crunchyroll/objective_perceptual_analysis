@@ -62,7 +62,7 @@ for m in mezzanines:
         elif len(l) == 2:
             hindex = (ord(l[0].lower()) - 96) - 1
             hindex += (ord(l[1].lower()) - 96) - 1
-        elif len(1) == 1:
+        elif len(l) == 1:
             hindex = (ord(l.lower()) - 96) - 1
         else:
             print "ERROR: Invalid index letter %s" % l
