@@ -70,8 +70,9 @@ img_hash AVOptions:
 PHQM Scene Detection, frame ranges for each segmented scene with an avg hamming distance score per scene.
 
 ```
-  # (./FFmpeg/ffmpeg -loglevel warning -i /mob/www/perceptual_hash_encoder/test005/encodes/Bastard_Magic_Instructor_102-ProRes-1920x1080_04000H264_O.mp4 -i /mob/www/perceptual_hash_encoder/test005/mezzanines/Bastard_Magic_Instructor_102-ProRes-1920x1080.mov -nostats -nostdin -threads 12 -filter_complex [0:v][1:v]img_hash=stats_file=/mob/www/perceptual_hash_encoder/test005/results/Bastard_Magic_Instructor_102-ProRes-1920x1080_04000H264_O_phqm.data -f null -)
-  # (./FFmpeg/ffmpeg -loglevel warning -i /mob/www/perceptual_hash_encoder/test005/encodes/Bastard_Magic_Instructor_102-ProRes-1920x1080_04000H264_O.mp4 -i /mob/www/perceptual_hash_encoder/test005/mezzanines/Bastard_Magic_Instructor_102-ProRes-1920x1080.mov -nostats -nostdin -threads 12 -filter_complex [0:v][1:v]libvmaf=psnr=1:ms_ssim=1:log_fmt=json:log_path=/mob/www/perceptual_hash_encoder/test005/results/Bastard_Magic_Instructor_102-ProRes-1920x1080_04000H264_O_vmaf.data -f null -)
+  # (./FFmpeg/ffmpeg -loglevel warning -i encode.mp4 -i reference.mov -nostats -nostdin \
+     -threads 12 -filter_complex [0:v][1:v]img_hash=stats_file=phqm.data -f null -)
+
 [img_hash @ 0x4397900] ImgHashScene: n:1-155 hd_avg:0.3 scd:0.5
 [img_hash @ 0x4397900] ImgHashScene: n:156-167 hd_avg:0.0 scd:0.4
 [img_hash @ 0x4397900] ImgHashScene: n:168-185 hd_avg:0.2 scd:0.7
