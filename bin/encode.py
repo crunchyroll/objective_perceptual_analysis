@@ -361,17 +361,14 @@ for m in mezzanines:
                     if "VMAF score = " in line:
                         dline.append(line)
                         vmaf_avg = float(line.split('=')[1])
-                        print "VMAF AVG: %0.3f" % (vmaf_avg)
                         vmaf_data["avg"].append(vmaf_avg)
                     elif "PSNR score = " in line:
                         dline.append(line)
                         psnr_avg = float(line.split('=')[1])
-                        print "PSNR AVG: %0.3f" % (psnr_avg)
                         psnr_data["avg"].append(psnr_avg)
                     elif "MS-SSIM score = " in line:
                         dline.append(line)
                         msssim_avg = float(line.split('=')[1])
-                        print "MS-SSIM AVG: %0.3f" % (msssim_avg)
                         msssim_data["avg"].append(msssim_avg)
                     if len(dline) >= 3:
                         break

@@ -67,6 +67,58 @@ img_hash AVOptions:
 
 ```
 
+PHQM Scene Detection, frame ranges for each segmented scene with an avg hamming distance score per scene.
+
+```
+  # (./FFmpeg/ffmpeg -loglevel warning -i /mob/www/perceptual_hash_encoder/test005/encodes/Bastard_Magic_Instructor_102-ProRes-1920x1080_04000H264_O.mp4 -i /mob/www/perceptual_hash_encoder/test005/mezzanines/Bastard_Magic_Instructor_102-ProRes-1920x1080.mov -nostats -nostdin -threads 12 -filter_complex [0:v][1:v]img_hash=stats_file=/mob/www/perceptual_hash_encoder/test005/results/Bastard_Magic_Instructor_102-ProRes-1920x1080_04000H264_O_phqm.data -f null -)
+  # (./FFmpeg/ffmpeg -loglevel warning -i /mob/www/perceptual_hash_encoder/test005/encodes/Bastard_Magic_Instructor_102-ProRes-1920x1080_04000H264_O.mp4 -i /mob/www/perceptual_hash_encoder/test005/mezzanines/Bastard_Magic_Instructor_102-ProRes-1920x1080.mov -nostats -nostdin -threads 12 -filter_complex [0:v][1:v]libvmaf=psnr=1:ms_ssim=1:log_fmt=json:log_path=/mob/www/perceptual_hash_encoder/test005/results/Bastard_Magic_Instructor_102-ProRes-1920x1080_04000H264_O_vmaf.data -f null -)
+[img_hash @ 0x4397900] ImgHashScene: n:1-155 hd_avg:0.3 scd:0.5
+[img_hash @ 0x4397900] ImgHashScene: n:156-167 hd_avg:0.0 scd:0.4
+[img_hash @ 0x4397900] ImgHashScene: n:168-185 hd_avg:0.2 scd:0.7
+[img_hash @ 0x4397900] ImgHashScene: n:186-249 hd_avg:0.2 scd:0.5
+[img_hash @ 0x4397900] ImgHashScene: n:250-257 hd_avg:0.2 scd:0.5
+[img_hash @ 0x4397900] ImgHashScene: n:258-340 hd_avg:0.1 scd:0.6
+[img_hash @ 0x4397900] ImgHashScene: n:341-362 hd_avg:0.4 scd:0.6
+[img_hash @ 0x4397900] ImgHashScene: n:363-429 hd_avg:0.5 scd:0.6
+[img_hash @ 0x4397900] ImgHashScene: n:430-530 hd_avg:0.1 scd:0.6
+[img_hash @ 0x4397900] ImgHashScene: n:531-544 hd_avg:0.1 scd:1.0
+[img_hash @ 0x4397900] ImgHashScene: n:545-546 hd_avg:0.0 scd:0.4
+[img_hash @ 0x4397900] ImgHashScene: n:547-590 hd_avg:0.3 scd:0.6
+[img_hash @ 0x4397900] ImgHashScene: n:591-592 hd_avg:0.5 scd:0.5
+[img_hash @ 0x4397900] ImgHashScene: n:593-606 hd_avg:0.1 scd:0.4
+[img_hash @ 0x4397900] ImgHashScene: n:607-608 hd_avg:0.0 scd:0.6
+[img_hash @ 0x4397900] ImgHashScene: n:609-610 hd_avg:0.0 scd:0.7
+[img_hash @ 0x4397900] ImgHashScene: n:611-638 hd_avg:0.2 scd:0.5
+[img_hash @ 0x4397900] ImgHashScene: n:639-658 hd_avg:0.4 scd:0.5
+[img_hash @ 0x4397900] ImgHashScene: n:659-666 hd_avg:0.1 scd:0.4
+[img_hash @ 0x4397900] ImgHashScene: n:667-672 hd_avg:0.3 scd:0.6
+[img_hash @ 0x4397900] ImgHashScene: n:673-674 hd_avg:0.5 scd:0.7
+[img_hash @ 0x4397900] ImgHashScene: n:675-676 hd_avg:0.0 scd:0.6
+[img_hash @ 0x4397900] ImgHashScene: n:677-678 hd_avg:0.0 scd:0.8
+[img_hash @ 0x4397900] ImgHashScene: n:679-680 hd_avg:0.0 scd:0.7
+[img_hash @ 0x4397900] ImgHashScene: n:681-688 hd_avg:0.1 scd:0.4
+[img_hash @ 0x4397900] ImgHashScene: n:689-694 hd_avg:0.0 scd:0.8
+[img_hash @ 0x4397900] ImgHashScene: n:695-696 hd_avg:0.0 scd:0.9
+[img_hash @ 0x4397900] ImgHashScene: n:697-706 hd_avg:0.4 scd:0.4
+[img_hash @ 0x4397900] ImgHashScene: n:707-708 hd_avg:0.5 scd:0.6
+[img_hash @ 0x4397900] ImgHashScene: n:709-714 hd_avg:0.7 scd:0.6
+[img_hash @ 0x4397900] ImgHashScene: n:715-716 hd_avg:0.0 scd:0.7
+[img_hash @ 0x4397900] ImgHashScene: n:717-748 hd_avg:0.2 scd:0.5
+[img_hash @ 0x4397900] ImgHashScene: n:749-809 hd_avg:0.3 scd:1.0
+[img_hash @ 0x4397900] ImgHashScene: n:810-819 hd_avg:0.4 scd:0.7
+[img_hash @ 0x4397900] ImgHashScene: n:820-821 hd_avg:0.5 scd:0.7
+[img_hash @ 0x4397900] ImgHashScene: n:822-823 hd_avg:0.0 scd:0.6
+[img_hash @ 0x4397900] ImgHashScene: n:824-825 hd_avg:0.5 scd:1.0
+[img_hash @ 0x4397900] ImgHashScene: n:826-827 hd_avg:0.0 scd:0.5
+[img_hash @ 0x4397900] ImgHashScene: n:828-833 hd_avg:0.0 scd:1.0
+[img_hash @ 0x4397900] ImgHashScene: n:834-838 hd_avg:0.4 scd:0.4
+[img_hash @ 0x4397900] ImgHashScene: n:839-839 hd_avg:0.0 scd:0.4
+[img_hash @ 0x4397900] ImgHashScene: n:840-871 hd_avg:0.3 scd:1.0
+[img_hash @ 0x4397900] ImgHashScene: n:872-916 hd_avg:2.6 scd:1.0
+[img_hash @ 0x4397900] ImgHashScene: n:917-962 hd_avg:0.2 scd:0.6
+[Parsed_img_hash_0 @ 0x43995c0] PHQM average:0.337688 PSNR y:47.905592 u:50.652101 v:50.989231 average:48.677526 min:42.160245 max:59.821908
+```
+
 This is implementing a Patent by Christopher Kennedy @ Ellation / Crunchyroll:
 
 Patent for https://patents.justia.com/patent/10244234
