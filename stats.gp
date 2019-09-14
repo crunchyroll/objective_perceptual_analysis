@@ -5,8 +5,8 @@ set style line 2  lc rgb 'red' lt 1 lw 1 #
 set style line 3  lc rgb 'brown' lt 1 lw 1 #
 set style line 4  lc rgb 'black' lt 1 lw 1 #
 set style line 5  lc rgb 'green' lt 1 lw 3 #
-set style line 6  lc rgb 'blue' lt 1 lw 3 #
-set style line 7  lc rgb 'orange' lt 1 lw 2 #
+set style line 6  lc rgb 'blue' lt 1 lw 2 #
+set style line 7  lc rgb 'orange' lt 1 lw 1 #
 #set style data histogram
 set style data line
 set key opaque
