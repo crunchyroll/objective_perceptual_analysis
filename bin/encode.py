@@ -171,13 +171,13 @@ for m in mezzanines:
 
                 if rate_control == "twopass":
                     # pass 1
-                    fp_args = test_args[:]
-                    for i, a in enumerate(fp_args[test_label_idx]):
+                    fp_args = list(test_args[test_label_idx])
+                    for i, a in enumerate(fp_args):
                         # for vp9 adjust speed on first pass to 4 as recommended
                         if a == "-speed":
-                            fp_args[test_label_idx][i+1] = "4"
+                            fp_args[i+1] = "4"
                     create_encode_cmd = [encoders[test_label_idx], '-loglevel', 'error', '-hide_banner',
-                        '-nostats', '-nostdin', '-i', mezzanine_fn] + global_args + fp_args[test_label_idx] + ['-pass', '1',
+                        '-nostats', '-nostdin', '-i', mezzanine_fn] + global_args + fp_args + ['-pass', '1',
                         '-an', '-passlogfile', pass_log_fn,
                         '-threads', str(threads), '-y', '/dev/null']
 
