@@ -33,7 +33,7 @@ rate_controls = [];
 test_args = []
 test_metrics = []
 threads = 2
-debug = True
+debug = False
 use_msu = False
 
 ap = argparse.ArgumentParser()
@@ -75,7 +75,8 @@ if args['tests'] != None:
     test_list = args['tests'].split(';')
     for i in test_list:
         lparts = i.split('|')
-        print "Got: %r" % lparts
+        if debug:
+            print "Got: %r" % lparts
         label = lparts[0]
         encoder = lparts[1]
         rate_control = lparts[2]
@@ -170,23 +171,31 @@ for m in mezzanines:
 
                 if rate_control == "twopass":
                     # pass 1
-                    create_encode_cmd = [encoders[test_label_idx], '-hide_banner', '-nostats', '-nostdin',
-                        '-i', mezzanine_fn] + global_args + test_args[test_label_idx] + ['-pass', '1',
+                    fp_args = test_args[:]
+                    for i, a in enumerate(fp_args[test_label_idx]):
+                        # for vp9 adjust speed on first pass to 4 as recommended
+                        if a == "-speed":
+                            fp_args[test_label_idx][i+1] = "4"
+                    create_encode_cmd = [encoders[test_label_idx], '-loglevel', 'error', '-hide_banner',
+                        '-nostats', '-nostdin', '-i', mezzanine_fn] + global_args + fp_args[test_label_idx] + ['-pass', '1',
                         '-an', '-passlogfile', pass_log_fn,
                         '-threads', str(threads), '-y', '/dev/null']
 
+                    print " - encoding first pass..."
                     for output in execute(create_encode_cmd):
                         print output
                     # pass 2
-                    create_encode_cmd = [encoders[test_label_idx], '-hide_banner', '-nostats', '-nostdin',
-                        '-i', mezzanine_fn] + global_args + test_args[test_label_idx] + ['-pass', '2',
+                    create_encode_cmd = [encoders[test_label_idx], '-loglevel', 'warning', '-hide_banner',
+                        '-nostats', '-nostdin', '-i', mezzanine_fn] + global_args + test_args[test_label_idx] + ['-pass', '2',
                         '-passlogfile', pass_log_fn,
                         '-threads', str(threads), encode_fn]
 
+                    print " - encoding second pass..."
                     for output in execute(create_encode_cmd):
                         print output
                 else:
-                    create_encode_cmd = [encoders[test_label_idx], '-hide_banner', '-nostats', '-nostdin',
+                    print " - encoding in one pass..."
+                    create_encode_cmd = [encoders[test_label_idx], '-loglevel', 'warning', '-hide_banner', '-nostats', '-nostdin',
                         '-i', mezzanine_fn] + global_args + test_args[test_label_idx] + ['-threads', str(threads),
                         encode_fn]
 
@@ -208,6 +217,7 @@ for m in mezzanines:
             filesize = getsize(encode_fn)
             params = "--Inform=General;%Duration%,%OverallBitRate%"
             cmd = ['mediainfo', params, encode_fn]
+            print " - extracting metadata from encoding..."
             stdout = subprocess.check_output(cmd)
             data_string = "".join([line for line in stdout if
                             ((ord(line) >= 32 and ord(line) < 128) or ord(line) == 10 or ord(line) == 13)]).strip()
@@ -226,9 +236,10 @@ for m in mezzanines:
             print " %s" % mezzanine_video_fn
             if not isfile(mezzanine_video_fn) or getsize(mezzanine_video_fn) <= 0:
                 # Decode mezzanie to raw YUV AVI format for VQMT and Subj PQMT
-                create_mezzanine_video_cmd = [ffmpeg_bin, '-hide_banner', '-y', '-nostats', '-nostdin', '-i', mezzanine_fn,
+                create_mezzanine_video_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-hide_banner', '-y', '-nostats', '-nostdin', '-i', mezzanine_fn,
                     '-f', 'avi', '-vcodec', 'rawvideo', '-pix_fmt', 'yuv420p', '-dn', '-sn', '-an', mezzanine_video_fn]
                 try:
+                    print " - decoding mezzanine to raw YUV..."
                     for output in execute(create_mezzanine_video_cmd):
                         print output
                 except Exception, e:
@@ -238,9 +249,10 @@ for m in mezzanines:
             print " %s" % encode_video_fn
             if not isfile(encode_video_fn) or getsize(encode_video_fn) <= 0:
                 # Decode encode to raw YUV AVI format for VQMT and Subj PQMT
-                create_encode_video_cmd = [ffmpeg_bin, '-hide_banner', '-y', '-nostats', '-nostdin', '-i', encode_fn,
+                create_encode_video_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-hide_banner', '-y', '-nostats', '-nostdin', '-i', encode_fn,
                     '-f', 'avi', '-vcodec', 'rawvideo', '-pix_fmt', 'yuv420p', '-dn', '-sn', '-an', encode_video_fn]
                 try:
+                    print " - decoding encoding to raw YUV..."
                     for output in execute(create_encode_video_cmd):
                         print output
                 except Exception, e:
@@ -262,6 +274,7 @@ for m in mezzanines:
                         '-metr', test_metric, color_component,
                         #'-resize', 'cubic', 'to', 'orig',
                         '-threads', str(threads), '-terminal', '-json']
+                    print " - calculating the %s score for encoding..." % test_metric
                     p = Process(target=get_results, args=(test_metric, result_fn, encode_video_fn, create_result_cmd,))
                     # run each metric in parallel
                     if p != None:
@@ -275,8 +288,10 @@ for m in mezzanines:
             print " - %s" % result_fn
             # get psnr and perceptual difference metrics
             if not isfile(result_fn) or getsize(result_fn) <= 0:
-                create_result_cmd = [ffmpeg_bin, '-i', encode_fn, '-i', mezzanine_fn, '-nostats', '-nostdin', '-threads', str(threads),
+                create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-i', encode_fn,
+                    '-i', mezzanine_fn, '-nostats', '-nostdin', '-threads', str(threads),
                     '-filter_complex', '[0:v][1:v]img_hash=stats_file=%s' % result_fn, '-f', 'null', '-']
+                print " - calculating the %s score for encoding..." % "phqm"
                 p = Process(target=get_results, args=('vmaf', result_fn_stdout, encode_fn, create_result_cmd,))
                 # run each metric in parallel
                 if p != None:
@@ -291,8 +306,10 @@ for m in mezzanines:
                 result_fn_stdout = "%s_%s.stdout" % (result_base, 'vmaf')
                 print " - %s" % result_fn
                 if not isfile(result_fn) or getsize(result_fn) <= 0:
-                    create_result_cmd = [ffmpeg_bin, '-i', encode_fn, '-i', mezzanine_fn, '-nostats', '-nostdin', '-threads', str(threads),
+                    create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-i', encode_fn, '-i', mezzanine_fn,
+                        '-nostats', '-nostdin', '-threads', str(threads),
                         '-filter_complex', '[0:v][1:v]libvmaf=psnr=1:ms_ssim=1:log_fmt=json:log_path=%s' % result_fn, '-f', 'null', '-']
+                    print " - calculating the %s score for encoding..." % "vmaf"
                     p = Process(target=get_results, args=('vmaf', result_fn_stdout, encode_fn, create_result_cmd,))
                     if p != None:
                         p.start()
@@ -318,7 +335,8 @@ for m in mezzanines:
 
         # parse any non-json data metric files from ffmpeg
         for d in mdata_files:
-            print "Data file: %s" % d
+            if debug:
+                print "Data file: %s" % d
             files = d.split(':')
             result_fn = files[0]
             result_fn_stdout = files[1]
@@ -343,20 +361,17 @@ for m in mezzanines:
                     if "VMAF score = " in line:
                         dline.append(line)
                         vmaf_avg = float(line.split('=')[1])
-                        if debug:
-                            print "VMAF AVG: %0.3f" % (vmaf_avg)
+                        print "VMAF AVG: %0.3f" % (vmaf_avg)
                         vmaf_data["avg"].append(vmaf_avg)
                     elif "PSNR score = " in line:
                         dline.append(line)
                         psnr_avg = float(line.split('=')[1])
-                        if debug:
-                            print "PSNR AVG: %0.3f" % (psnr_avg)
+                        print "PSNR AVG: %0.3f" % (psnr_avg)
                         psnr_data["avg"].append(psnr_avg)
                     elif "MS-SSIM score = " in line:
                         dline.append(line)
                         msssim_avg = float(line.split('=')[1])
-                        if debug:
-                            print "MS-SSIM AVG: %0.3f" % (msssim_avg)
+                        print "MS-SSIM AVG: %0.3f" % (msssim_avg)
                         msssim_data["avg"].append(msssim_avg)
                     if len(dline) >= 3:
                         break
