@@ -267,10 +267,10 @@ index 0000000..c916766
 +#endif
 diff --git a/libavfilter/vf_img_hash.c b/libavfilter/vf_img_hash.c
 new file mode 100644
-index 0000000..f2e8d2f
+index 0000000..21ed99f
 --- /dev/null
 +++ b/libavfilter/vf_img_hash.c
-@@ -0,0 +1,453 @@
+@@ -0,0 +1,502 @@
 +/*
 + * Copyright (c) 2019 Christopher Kennedy
 + *
@@ -310,11 +310,13 @@ index 0000000..f2e8d2f
 +#include "video.h"
 +
 +#include "img_hash.h"
++#include "scene_sad.h"
 +
 +typedef struct ImgHashContext {
 +    const AVClass *class;
 +    FFFrameSync fs;
-+    double hd, mse, min_mse, max_mse, mse_comp[4];
++    double shd, hd, mse, min_mse, max_mse, mse_comp[4];
++    uint64_t nb_shd;
 +    uint64_t nb_frames;
 +    FILE *stats_file;
 +    char *stats_file_str;
@@ -332,6 +334,11 @@ index 0000000..f2e8d2f
 +    int planeheight[4];
 +    double planeweight[4];
 +    PSNRDSPContext dsp;
++    ff_scene_sad_fn sad;            ///< Sum of the absolute difference function (scene detect only)
++    double prev_mafd;               ///< previous MAFD                           (scene detect only)
++    AVFrame *prev_picref;           ///< previous frame                          (scene detect only)
++    double scd_thresh;
++    double scene_score;
 +} ImgHashContext;
 +
 +#define OFFSET(x) offsetof(ImgHashContext, x)
@@ -341,6 +348,7 @@ index 0000000..f2e8d2f
 +    {"stats_file", "Set file where to store per-frame difference information", OFFSET(stats_file_str), AV_OPT_TYPE_STRING, {.str=NULL}, 0, 0, FLAGS },
 +    {"f",          "Set file where to store per-frame difference information", OFFSET(stats_file_str), AV_OPT_TYPE_STRING, {.str=NULL}, 0, 0, FLAGS },
 +    {"stats_version", "Set the format version for the stats file.",               OFFSET(stats_version),  AV_OPT_TYPE_INT,    {.i64=1},    1, 2, FLAGS },
++    {"scd_thresh", "Scene Change Detection Threshold. 0.4 default, 0.0-1.0",    OFFSET(scd_thresh),  AV_OPT_TYPE_DOUBLE,    {.dbl=0.4},    0, 1, FLAGS },
 +    {"output_max",  "Add raw stats (max values) to the output log.",            OFFSET(stats_add_max), AV_OPT_TYPE_BOOL, {.i64=0}, 0, 1, FLAGS},
 +    { "hash_type", "options: phash, colormoment, average", OFFSET(hash_type), AV_OPT_TYPE_STRING, {.str = "phash"}, .flags = FLAGS },
 +    { NULL }
@@ -420,6 +428,30 @@ index 0000000..f2e8d2f
 +    }
 +}
 +
++static double get_scene_score(AVFilterContext *ctx, AVFrame *frame)
++{
++    double ret = 0;
++    ImgHashContext *s = ctx->priv;
++    AVFrame *prev_picref = s->prev_picref;
++
++    if (prev_picref &&
++        frame->height == prev_picref->height &&
++        frame->width  == prev_picref->width) {
++        uint64_t sad;
++        double mafd, diff;
++
++        s->sad(prev_picref->data[0], prev_picref->linesize[0], frame->data[0], frame->linesize[0], frame->width * 3, frame->height, &sad);
++        emms_c();
++        mafd = (double)sad / (frame->width * 3 * frame->height);
++        diff = fabs(mafd - s->prev_mafd);
++        ret  = av_clipf(FFMIN(mafd, diff) / 100., 0, 1);
++        s->prev_mafd = mafd;
++        av_frame_free(&prev_picref);
++    }
++    s->prev_picref = av_frame_clone(frame);
++    return ret;
++}
++
 +static int do_psnr(FFFrameSync *fs)
 +{
 +    AVFilterContext *ctx = fs->parent;
@@ -459,9 +491,21 @@ index 0000000..f2e8d2f
 +    set_meta(metadata, "lavfi.psnr.mse_avg", 0, mse);
 +    set_meta(metadata, "lavfi.psnr.psnr_avg", 0, get_psnr(mse, 1, s->average_max));
 +
++    /* scene change detection score */
++    s->scene_score = get_scene_score(ctx, ref);
++    if (s->scene_score >= s->scd_thresh) { // TODO make an input var
++        av_log(s, AV_LOG_WARNING, "ImgHashScene: n:%"PRId64"-%"PRId64" hd_avg:%0.1lf scd:%0.1lf\n",
++               (s->nb_frames - s->nb_shd), s->nb_frames - 1, (s->shd / s->nb_shd), s->scene_score);
++        s->shd = 0;
++        s->nb_shd = 0;
++    }
++
 +    /* get ref / enc perceptual hashes and calc hamming distance difference value */
 +    s->hd += hd = getScore(ref, master, ref->format, s->hash_type_i);
-+    av_log(s, AV_LOG_DEBUG, "ImgHash: %s hamming distance %0.1lf\n", s->hash_type, hd);
++    /* scene hamming distance avg */
++    s->shd += hd;
++    s->nb_shd++;
++    av_log(s, AV_LOG_DEBUG, "ImgHashFrame: hd:%0.1lf scd:%0.1lf\n", hd, s->scene_score);
 +
 +    if (s->stats_file) {
 +        if (s->stats_version == 2 && !s->stats_header_written) {
@@ -483,7 +527,7 @@ index 0000000..f2e8d2f
 +            fprintf(s->stats_file, "\n");
 +            s->stats_header_written = 1;
 +        }
-+        fprintf(s->stats_file, "n:%"PRId64" phqm_avg:%0.2f mse_avg:%0.2f ", s->nb_frames, hd, mse);
++        fprintf(s->stats_file, "n:%"PRId64" phqm_avg:%0.2f scd:%0.2f mse_avg:%0.2f ", s->nb_frames, hd, s->scene_score, mse);
 +        for (j = 0; j < s->nb_components; j++) {
 +            c = s->is_rgb ? s->rgba_map[j] : j;
 +            fprintf(s->stats_file, "mse_%c:%0.2f ", s->comps[j], comp_mse[c]);
@@ -552,9 +596,13 @@ index 0000000..f2e8d2f
 +            s->hash_type_i = BLOCKMEAN2;
 +        else {
 +            av_log(s, AV_LOG_ERROR, "Bad hash_type given %s\n", s->hash_type);
-+            return AVERROR(ENOMEM);
++            return AVERROR(EINVAL);
 +        }
 +    }
++
++    s->sad = ff_scene_sad_get_fn(8);
++    if (!s->sad)
++        return AVERROR(EINVAL);
 +
 +    s->fs.on_event = do_psnr;
 +    return 0;
@@ -688,6 +736,7 @@ index 0000000..f2e8d2f
 +
 +    if (s->stats_file && s->stats_file != stdout)
 +        fclose(s->stats_file);
++    av_frame_free(&s->prev_picref);
 +}
 +
 +static const AVFilterPad img_hash_inputs[] = {
