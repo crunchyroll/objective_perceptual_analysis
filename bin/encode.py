@@ -335,8 +335,6 @@ for m in mezzanines:
 
         # parse any non-json data metric files from ffmpeg
         for d in mdata_files:
-            if debug:
-                print "Data file: %s" % d
             files = d.split(':')
             result_fn = files[0]
             result_fn_stdout = files[1]
