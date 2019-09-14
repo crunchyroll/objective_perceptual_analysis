@@ -64,6 +64,7 @@ img_hash AVOptions:
   stats_version     <int>        ..FV..... Set the format version for the stats file. (from 1 to 2) (default 1)
   output_max        <boolean>    ..FV..... Add raw stats (max values) to the output log. (default false)
   hash_type         <string>     ..FV..... options: phash, colormoment, average (default "phash")
+  scd_thresh        <double>     ..FV..... Scene Change Detection Threshold. 0.4 default, 0.0-1.0 (from 0 to 1) (default 0.4)
 
 ```
 
