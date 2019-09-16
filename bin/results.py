@@ -90,6 +90,54 @@ for m in mezzanines:
                 if debug:
                     print "error: %s %s" % (es, e)
 
+        # Combine PHQM segment scores with VMAF
+        result_base = result_dir + '/' + ebase
+        phqm_stdout = result_base + "_phqm.stdout"
+        vmaf_data = result_base + "_vmaf.data"
+        phqm_scd = result_base + "_phqm.scd"
+        if not isfile(phqm_scd) and isfile(phqm_stdout) and isfile(vmaf_data):
+            sections = []
+            try:
+                # scene change segments avg score calc
+                vd = {}
+                with open(vmaf_data) as vmaf_json:
+                    # get vmaf data
+                    vd = json.load(vmaf_json)
+                with open(phqm_stdout) as phqm_data:
+                    for i, line in enumerate(phqm_data):
+                        if "ImgHashScene:" in line:
+                            parts = line.split(' ')
+                            start_frame, end_frame = parts[4].split(':')[1].split('-')
+                            start_frame = int(start_frame)
+                            end_frame = int(end_frame)
+                            phqm_avg = float(parts[5].split(':')[1])
+                            vmaf_total = 0.0
+                            for n, frame in enumerate(vd["frames"][start_frame-1:end_frame-1]):
+                                vmaf_total += float(frame["metrics"]["vmaf"])
+                            #print "VMAF end_frame: %d start_frame: %d" % (start_frame, end_frame)
+                            vmaf_avg = vmaf_total
+                            if end_frame > start_frame:
+                                # if last frame was a scene change we may have only 1 frame in a section
+                                vmaf_avg = vmaf_total / (end_frame - start_frame)
+                            section = {}
+                            section["start_frame"] = start_frame
+                            section["end_frame"] = end_frame
+                            section["phqm_avg"] = phqm_avg
+                            section["vmaf_avg"] = vmaf_avg
+                            sections.append(section)
+                    # write combined metrics to a json file for scd
+                    with open(phqm_scd, "w") as f:
+                        f.write("%s" % json.dumps(sections, sort_keys=True))
+            except Exception, e:
+                print "Error opening %s: %s" % (vmaf_data, e)
+
+        # read scd file if it was created
+        if isfile(phqm_scd):
+            with open(phqm_scd, "r") as scd_data:
+                sections = json.load(scd_data)
+                for i, s in enumerate(sections):
+                    print "%03d). %06d-%06d phqm:%0.2f vmaf:%0.2f" % (i, s["start_frame"], s["end_frame"], s["phqm_avg"], s["vmaf_avg"])
+
         # grab MSU results list for this mezzanine
         metrics = [f for f in listdir(result_dir) if f.startswith(ebase) if f.endswith(".json")]
         phqm = 0.0
