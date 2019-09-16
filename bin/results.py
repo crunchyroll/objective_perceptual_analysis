@@ -91,13 +91,13 @@ for m in mezzanines:
                     print "error: %s %s" % (es, e)
 
         # grab MSU results list for this mezzanine
-        msu_stats = [f for f in listdir(result_dir) if f.startswith(ebase) if f.endswith(".json")]
+        metrics = [f for f in listdir(result_dir) if f.startswith(ebase) if f.endswith(".json")]
         phqm = 0.0
         vmaf = 0.0
         psnr = 0.0
         ssim = 0.0
         speed = 0.0
-        for ms in msu_stats:
+        for ms in metrics:
             # base filename per metric type
             rbase = "%s" % splitext(ms)[0]
             # metric label for type of score
