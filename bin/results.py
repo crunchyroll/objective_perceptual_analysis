@@ -112,18 +112,28 @@ for m in mezzanines:
                             end_frame = int(end_frame)
                             phqm_avg = float(parts[5].split(':')[1])
                             vmaf_total = 0.0
+                            psnr_total = 0.0
+                            ms_ssim_total = 0.0
                             for n, frame in enumerate(vd["frames"][start_frame-1:end_frame-1]):
                                 vmaf_total += float(frame["metrics"]["vmaf"])
+                                psnr_total += float(frame["metrics"]["psnr"])
+                                ms_ssim_total += float(frame["metrics"]["ms_ssim"])
                             #print "VMAF end_frame: %d start_frame: %d" % (start_frame, end_frame)
                             vmaf_avg = vmaf_total
+                            psnr_avg = psnr_total
+                            ms_ssim_avg = ms_ssim_total
                             if end_frame > start_frame:
                                 # if last frame was a scene change we may have only 1 frame in a section
                                 vmaf_avg = vmaf_total / (end_frame - start_frame)
+                                psnr_avg = psnr_total / (end_frame - start_frame)
+                                ms_ssim_avg = ms_ssim_total / (end_frame - start_frame)
                             section = {}
                             section["start_frame"] = start_frame
                             section["end_frame"] = end_frame
                             section["phqm_avg"] = phqm_avg
                             section["vmaf_avg"] = vmaf_avg
+                            section["ssim_avg"] = ms_ssim_avg
+                            section["psnr_avg"] = psnr_avg
                             sections.append(section)
                     # write combined metrics to a json file for scd
                     with open(phqm_scd, "w") as f:
@@ -136,7 +146,9 @@ for m in mezzanines:
             with open(phqm_scd, "r") as scd_data:
                 sections = json.load(scd_data)
                 for i, s in enumerate(sections):
-                    print "%03d). %06d-%06d phqm:%0.2f vmaf:%0.2f" % (i, s["start_frame"], s["end_frame"], s["phqm_avg"], s["vmaf_avg"])
+                    print "%03d). %06d-%06d phqm:%0.2f vmaf:%0.2f psnr:%0.2f ssim:%0.2f" % (i,
+                            s["start_frame"], s["end_frame"],
+                            s["phqm_avg"], s["vmaf_avg"], s["psnr_avg"], s["ssim_avg"])
 
         # grab MSU results list for this mezzanine
         metrics = [f for f in listdir(result_dir) if f.startswith(ebase) if f.endswith(".json")]
