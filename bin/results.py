@@ -111,6 +111,11 @@ for m in mezzanines:
                             start_frame = int(start_frame)
                             end_frame = int(end_frame)
                             phqm_avg = float(parts[5].split(':')[1])
+                            phqm_min = 0.0
+                            phqm_max = 0.0
+                            if len(parts) >= 9:
+                                phqm_min = float(parts[6].split(':')[1])
+                                phqm_max = float(parts[7].split(':')[1])
                             vmaf_total = 0.0
                             psnr_total = 0.0
                             ms_ssim_total = 0.0
@@ -133,6 +138,8 @@ for m in mezzanines:
                             section["start_frame"] = start_frame
                             section["end_frame"] = end_frame
                             section["hamm_avg"] = phqm_avg
+                            section["hamm_min"] = phqm_min
+                            section["hamm_max"] = phqm_max
                             section["phqm_avg"] = min(100.0, 100.0 - (20.0 * min(phqm_avg, 5.0)))
                             section["vmaf_avg"] = vmaf_avg
                             section["ssim_avg"] = ms_ssim_avg
@@ -149,9 +156,9 @@ for m in mezzanines:
             with open(phqm_scd, "r") as scd_data:
                 sections = json.load(scd_data)
                 for i, s in enumerate(sections):
-                    print "%03d). %06d-%06d phqm:%0.2f vmaf:%0.2f psnr:%0.2f ssim:%0.2f" % (i,
+                    print "%03d). %06d-%06d hamm:%0.3f min:%0.2f max:%0.2f phqm:%0.2f vmaf:%0.2f psnr:%0.2f ssim:%0.2f" % (i,
                             s["start_frame"], s["end_frame"],
-                            s["phqm_avg"], s["vmaf_avg"], s["psnr_avg"], s["ssim_avg"])
+                            s["hamm_avg"], s["hamm_min"], s["hamm_max"], s["phqm_avg"], s["vmaf_avg"], s["psnr_avg"], s["ssim_avg"])
 
         # grab MSU results list for this mezzanine
         metrics = [f for f in listdir(result_dir) if f.startswith(ebase) if f.endswith(".json")]
