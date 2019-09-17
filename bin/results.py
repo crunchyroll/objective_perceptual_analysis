@@ -128,9 +128,12 @@ for m in mezzanines:
                                 psnr_avg = psnr_total / (end_frame - start_frame)
                                 ms_ssim_avg = ms_ssim_total / (end_frame - start_frame)
                             section = {}
+                            section["number"] = i
+                            section["nframes"] = end_frame - start_frame
                             section["start_frame"] = start_frame
                             section["end_frame"] = end_frame
-                            section["phqm_avg"] = phqm_avg
+                            section["hamm_avg"] = phqm_avg
+                            section["phqm_avg"] = min(100.0, 100.0 - (20.0 * min(phqm_avg, 5.0)))
                             section["vmaf_avg"] = vmaf_avg
                             section["ssim_avg"] = ms_ssim_avg
                             section["psnr_avg"] = psnr_avg
