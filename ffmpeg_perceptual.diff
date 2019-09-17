@@ -267,10 +267,10 @@ index 0000000..c916766
 +#endif
 diff --git a/libavfilter/vf_img_hash.c b/libavfilter/vf_img_hash.c
 new file mode 100644
-index 0000000..21ed99f
+index 0000000..2ea8d60
 --- /dev/null
 +++ b/libavfilter/vf_img_hash.c
-@@ -0,0 +1,502 @@
+@@ -0,0 +1,511 @@
 +/*
 + * Copyright (c) 2019 Christopher Kennedy
 + *
@@ -315,7 +315,7 @@ index 0000000..21ed99f
 +typedef struct ImgHashContext {
 +    const AVClass *class;
 +    FFFrameSync fs;
-+    double shd, hd, mse, min_mse, max_mse, mse_comp[4];
++    double shd, hd, min_hd, max_hd, smin_hd, smax_hd, mse, min_mse, max_mse, mse_comp[4];
 +    uint64_t nb_shd;
 +    uint64_t nb_frames;
 +    FILE *stats_file;
@@ -452,7 +452,7 @@ index 0000000..21ed99f
 +    return ret;
 +}
 +
-+static int do_psnr(FFFrameSync *fs)
++static int do_phqm(FFFrameSync *fs)
 +{
 +    AVFilterContext *ctx = fs->parent;
 +    ImgHashContext *s = ctx->priv;
@@ -493,11 +493,13 @@ index 0000000..21ed99f
 +
 +    /* scene change detection score */
 +    s->scene_score = get_scene_score(ctx, ref);
-+    if (s->scene_score >= s->scd_thresh) { // TODO make an input var
-+        av_log(s, AV_LOG_WARNING, "ImgHashScene: n:%"PRId64"-%"PRId64" hd_avg:%0.1lf scd:%0.1lf\n",
-+               (s->nb_frames - s->nb_shd), s->nb_frames - 1, (s->shd / s->nb_shd), s->scene_score);
++    if (s->scene_score >= s->scd_thresh) {
++        av_log(s, AV_LOG_WARNING, "ImgHashScene: n:%"PRId64"-%"PRId64" hd_avg:%0.3lf hd_min:%0.3lf hd_max:%0.3lf scd:%0.2lf\n",
++               (s->nb_frames - s->nb_shd), s->nb_frames - 1, (s->shd / s->nb_shd), s->smin_hd, s->smax_hd, s->scene_score);
 +        s->shd = 0;
 +        s->nb_shd = 0;
++        s->smin_hd = 0;
++        s->smax_hd = 0;
 +    }
 +
 +    /* get ref / enc perceptual hashes and calc hamming distance difference value */
@@ -505,7 +507,12 @@ index 0000000..21ed99f
 +    /* scene hamming distance avg */
 +    s->shd += hd;
 +    s->nb_shd++;
-+    av_log(s, AV_LOG_DEBUG, "ImgHashFrame: hd:%0.1lf scd:%0.1lf\n", hd, s->scene_score);
++    av_log(s, AV_LOG_DEBUG, "ImgHashFrame: hd:%0.3lf scd:%0.2lf\n", hd, s->scene_score);
++
++    s->min_hd = FFMIN(s->min_hd, hd);
++    s->max_hd = FFMAX(s->max_hd, hd);
++    s->smin_hd = FFMIN(s->smin_hd, hd);
++    s->smax_hd = FFMAX(s->smax_hd, hd);
 +
 +    if (s->stats_file) {
 +        if (s->stats_version == 2 && !s->stats_header_written) {
@@ -527,7 +534,9 @@ index 0000000..21ed99f
 +            fprintf(s->stats_file, "\n");
 +            s->stats_header_written = 1;
 +        }
-+        fprintf(s->stats_file, "n:%"PRId64" phqm_avg:%0.2f scd:%0.2f mse_avg:%0.2f ", s->nb_frames, hd, s->scene_score, mse);
++        fprintf(s->stats_file,
++                "n:%"PRId64" phqm_avg:%0.3f phqm_min:%0.3f phqm_max:%0.3f scd:%0.2f mse_avg:%0.2f ",
++                s->nb_frames, hd, s->min_hd, s->max_hd, s->scene_score, mse);
 +        for (j = 0; j < s->nb_components; j++) {
 +            c = s->is_rgb ? s->rgba_map[j] : j;
 +            fprintf(s->stats_file, "mse_%c:%0.2f ", s->comps[j], comp_mse[c]);
@@ -604,7 +613,7 @@ index 0000000..21ed99f
 +    if (!s->sad)
 +        return AVERROR(EINVAL);
 +
-+    s->fs.on_event = do_psnr;
++    s->fs.on_event = do_phqm;
 +    return 0;
 +}
 +
