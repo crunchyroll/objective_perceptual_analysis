@@ -210,11 +210,13 @@ for m in mezzanines:
         result[result_key]['mezzanine'] = fkey
         result[result_key]['label'] = hlabel
 
+        phqm_normalized = min(100, (100 - (min(phqm, 5) * 20.0)))
         if debug:
             print "   Metrics: {speed: %0.2f, hamm: %0.2f phqm: %0.2f vmaf: %0.2f, ssim: %0.2f, psnr: %0.2f}" % (speed,
-                                phqm, min(100, (100 - (min(phqm, 5) * 20.0))), vmaf, ssim, psnr)
+                                phqm, phqm_normalized, vmaf, ssim, psnr)
         result[result_key]['speed'] =  speed
-        result[result_key]['phqm'] = "%0.3f" % phqm
+        result[result_key]['phqm'] = "%0.3f" % phqm_normalized
+        result[result_key]['hamm'] = "%0.3f" % phqm
         result[result_key]['vmaf'] = "%0.3f" % vmaf
         result[result_key]['ssim'] = "%0.3f" % ssim
         result[result_key]['psnr'] = "%0.3f" % psnr
