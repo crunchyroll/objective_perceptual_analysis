@@ -267,10 +267,10 @@ index 0000000..c916766
 +#endif
 diff --git a/libavfilter/vf_img_hash.c b/libavfilter/vf_img_hash.c
 new file mode 100644
-index 0000000..2ea8d60
+index 0000000..0959b3b
 --- /dev/null
 +++ b/libavfilter/vf_img_hash.c
-@@ -0,0 +1,511 @@
+@@ -0,0 +1,528 @@
 +/*
 + * Copyright (c) 2019 Christopher Kennedy
 + *
@@ -348,7 +348,7 @@ index 0000000..2ea8d60
 +    {"stats_file", "Set file where to store per-frame difference information", OFFSET(stats_file_str), AV_OPT_TYPE_STRING, {.str=NULL}, 0, 0, FLAGS },
 +    {"f",          "Set file where to store per-frame difference information", OFFSET(stats_file_str), AV_OPT_TYPE_STRING, {.str=NULL}, 0, 0, FLAGS },
 +    {"stats_version", "Set the format version for the stats file.",               OFFSET(stats_version),  AV_OPT_TYPE_INT,    {.i64=1},    1, 2, FLAGS },
-+    {"scd_thresh", "Scene Change Detection Threshold. 0.4 default, 0.0-1.0",    OFFSET(scd_thresh),  AV_OPT_TYPE_DOUBLE,    {.dbl=0.4},    0, 1, FLAGS },
++    {"scd_thresh", "Scene Change Detection Threshold. 0.5 default, 0.0-1.0",    OFFSET(scd_thresh),  AV_OPT_TYPE_DOUBLE,    {.dbl=0.5},    0, 1, FLAGS },
 +    {"output_max",  "Add raw stats (max values) to the output log.",            OFFSET(stats_add_max), AV_OPT_TYPE_BOOL, {.i64=0}, 0, 1, FLAGS},
 +    { "hash_type", "options: phash, colormoment, average", OFFSET(hash_type), AV_OPT_TYPE_STRING, {.str = "phash"}, .flags = FLAGS },
 +    { NULL }
@@ -459,6 +459,7 @@ index 0000000..2ea8d60
 +    AVFrame *master, *ref;
 +    double comp_mse[4], mse = 0, hd = 0;
 +    int ret, j, c;
++    double hd_limit = 1000000;
 +    AVDictionary **metadata;
 +
 +    ret = ff_framesync_dualinput_get(fs, &master, &ref);
@@ -493,7 +494,7 @@ index 0000000..2ea8d60
 +
 +    /* scene change detection score */
 +    s->scene_score = get_scene_score(ctx, ref);
-+    if (s->scene_score >= s->scd_thresh) {
++    if (s->scene_score >= s->scd_thresh && s->nb_shd >= 48) {
 +        av_log(s, AV_LOG_WARNING, "ImgHashScene: n:%"PRId64"-%"PRId64" hd_avg:%0.3lf hd_min:%0.3lf hd_max:%0.3lf scd:%0.2lf\n",
 +               (s->nb_frames - s->nb_shd), s->nb_frames - 1, (s->shd / s->nb_shd), s->smin_hd, s->smax_hd, s->scene_score);
 +        s->shd = 0;
@@ -502,10 +503,26 @@ index 0000000..2ea8d60
 +        s->smax_hd = 0;
 +    }
 +
++    /* limit the highest value so we cut off at perceptual difference match */
++    if (s->hash_type_i == PHASH || s->hash_type_i == AVERAGE)
++        hd_limit = 5;
++    else if (s->hash_type_i == MARRHILDRETH)
++        hd_limit = 30;
++    else if (s->hash_type_i == RADIALVARIANCE)
++        hd_limit = 0.9;
++    else if (s->hash_type_i == BLOCKMEAN1)
++        hd_limit = 12;
++    else if (s->hash_type_i == BLOCKMEAN2)
++        hd_limit = 48;
++    else if (s->hash_type_i == COLORMOMENT)
++        hd_limit = 8;
++
 +    /* get ref / enc perceptual hashes and calc hamming distance difference value */
-+    s->hd += hd = getScore(ref, master, ref->format, s->hash_type_i);
++    hd = getScore(ref, master, ref->format, s->hash_type_i);
++    s->hd += FFMIN(hd, hd_limit);
++
 +    /* scene hamming distance avg */
-+    s->shd += hd;
++    s->shd += FFMIN(hd, hd_limit);
 +    s->nb_shd++;
 +    av_log(s, AV_LOG_DEBUG, "ImgHashFrame: hd:%0.3lf scd:%0.2lf\n", hd, s->scene_score);
 +

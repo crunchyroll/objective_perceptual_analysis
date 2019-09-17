@@ -211,7 +211,8 @@ for m in mezzanines:
         result[result_key]['label'] = hlabel
 
         if debug:
-            print "   Metrics: {speed: %0.2f, phqm: %0.2f vmaf: %0.2f, ssim: %0.2f, psnr: %0.2f}" % (speed, phqm, vmaf, ssim, psnr)
+            print "   Metrics: {speed: %0.2f, hamm: %0.2f phqm: %0.2f vmaf: %0.2f, ssim: %0.2f, psnr: %0.2f}" % (speed,
+                                phqm, min(100, (100 - (min(phqm, 5) * 20.0))), vmaf, ssim, psnr)
         result[result_key]['speed'] =  speed
         result[result_key]['phqm'] = "%0.3f" % phqm
         result[result_key]['vmaf'] = "%0.3f" % vmaf
