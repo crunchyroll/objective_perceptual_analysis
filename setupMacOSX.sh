@@ -38,6 +38,9 @@ fi
 if [ ! -e /usr/local/lib/libvmaf.a ]; then
     brew install libvmaf
 fi
+if [ ! -e /usr/local/lib/libass.a ]; then
+    brew install libass
+fi
 if [ ! -e /usr/local/bin/cmake ]; then
     brew install cmake
 fi

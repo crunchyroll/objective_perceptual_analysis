@@ -33,6 +33,9 @@ fi
 if [ ! -e /usr/include/freetype2] then
     sudo yum -y -q install freetype-devel
 fi
+if [ ! -e /usr/lib/libass.a] then
+    sudo yum -y -q install libass-devel
+fi
 if [ ! -e /usr/include/fontconfig] then
     sudo yum -y -q install fontconfig-devel
 fi
