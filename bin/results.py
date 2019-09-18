@@ -155,9 +155,9 @@ for m in mezzanines:
                             end_seconds = (1.0/float(framerate)) * (float(frame) + .9)
                             start_time = secs2time(start_seconds)
                             end_time = secs2time(end_seconds)
-                            vmaf = float(vd["frames"][frame]["metrics"]["vmaf"])
-                            msssim = float(vd["frames"][frame]["metrics"]["ms_ssim"])
-                            psnr = float(vd["frames"][frame]["metrics"]["psnr"])
+                            vmaf = float(vd["frames"][frame-1]["metrics"]["vmaf"])
+                            msssim = float(vd["frames"][frame-1]["metrics"]["ms_ssim"])
+                            psnr = float(vd["frames"][frame-1]["metrics"]["psnr"])
                             srt_line = "%08d\n%s --> %s\nTIMECODE[%s] SCD[%0.1f] PHQM[%0.3f] VMAF[%0.1f] PSNR[%0.1f] SSIM[%0.3f]\n\n" % (frame,
                                     start_time, end_time, start_time, scd, phqm_avg, vmaf, psnr, msssim)
                             f.write(srt_line)
