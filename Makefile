@@ -35,7 +35,7 @@ vmaflib:
 
 ffmpegbin:
 	cd FFmpeg && \
-	./configure --prefix=/usr --enable-libx264 --enable-libvpx --enable-gpl --enable-libopencv --enable-version3 --enable-libvmaf && \
+	./configure --prefix=/usr --enable-libx264 --enable-libvpx --enable-gpl --enable-libopencv --enable-version3 --enable-libvmaf --enable-libfreetype --enable-fontconfig && \
 	make clean && \
 	make -j8
 

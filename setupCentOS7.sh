@@ -30,6 +30,12 @@ fi
 if [ ! -e /usr/bin/mediainfo]; then
     sudo yum -y -q install mediainfo
 fi
+if [ ! -e /usr/include/freetype2] then
+    sudo yum -y -q install freetype-devel
+fi
+if [ ! -e /usr/include/fontconfig] then
+    sudo yum -y -q install fontconfig-devel
+fi
 
 ## get opencv and opencv_contrib
 if [ ! -d "opencv" ]; then

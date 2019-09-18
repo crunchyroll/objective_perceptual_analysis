@@ -4,7 +4,8 @@ import argparse
 import json
 import subprocess
 from os import listdir
-from os.path import isfile, join
+from os import mkdir
+from os.path import isfile, isdir, join
 from os.path import basename
 from os.path import splitext
 from os import environ
@@ -95,6 +96,7 @@ for m in mezzanines:
         phqm_stdout = result_base + "_phqm.stdout"
         vmaf_data = result_base + "_vmaf.data"
         phqm_scd = result_base + "_phqm.scd"
+
         if not isfile(phqm_scd) and isfile(phqm_stdout) and isfile(vmaf_data):
             sections = []
             try:
@@ -156,9 +158,29 @@ for m in mezzanines:
             with open(phqm_scd, "r") as scd_data:
                 sections = json.load(scd_data)
                 for i, s in enumerate(sections):
-                    print "%03d). %06d-%06d hamm:%0.3f min:%0.2f max:%0.2f phqm:%0.2f vmaf:%0.2f psnr:%0.2f ssim:%0.2f" % (i,
+                    mdetail = "%03d). %06d-%06d hamm:%0.3f min:%0.2f max:%0.2f phqm:%0.2f vmaf:%0.2f psnr:%0.2f ssim:%0.2f" % (i,
                             s["start_frame"], s["end_frame"],
                             s["hamm_avg"], s["hamm_min"], s["hamm_max"], s["phqm_avg"], s["vmaf_avg"], s["psnr_avg"], s["ssim_avg"])
+                    print mdetail
+                    image_dir_period = result_dir + "/" + ebase + "_" + "%06d-%06d" % (s["start_frame"], s["end_frame"])
+
+                    # create a directory for the images in the frame range
+                    if not isdir(image_dir_period):
+                        mkdir(image_dir_period)
+
+                        # ffmpeg -i mezzanine -vf select='between(n\,%d\,%d),setpts=PTS-STARTPTS' image_dir_period/%08d.jpg
+                        # drawtext=text='Test Text':fontcolor=white:fontsize=75:x=1002:y=100:
+                        # box=1:boxcolor=black@0.7
+                        subprocess.call(['FFmpeg/ffmpeg', '-hide_banner', '-y', '-nostdin', '-nostats', '-loglevel', 'error',
+                                '-i', "%s/%s" % (mezz_dir, m), '-vf',
+                                "select='between(n\,%d\,%d)',setpts=PTS-STARTPTS,drawtext=text='%s':fontcolor=white:box=1:boxcolor=black@0.7:fontsize=28:x=5:y=5" % (s["start_frame"], s["end_frame"], mdetail.replace(':', ' ').replace(')', '')),
+                                '-pix_fmt', 'yuv420p',
+                                "%s/%%08d.jpg" % image_dir_period])
+                        subprocess.call(['FFmpeg/ffmpeg', '-hide_banner', '-y', '-nostdin', '-nostats', '-loglevel', 'error',
+                                '-i', "%s/%s" % (mezz_dir, m), '-vf',
+                                "select='between(n\,%d\,%d)',setpts=PTS-STARTPTS,drawtext=text='%s':fontcolor=white:box=1:boxcolor=black@0.7:fontsize=28:x=5:y=5" % (s["start_frame"], s["end_frame"], mdetail.replace(':', ' ').replace(')', '')),
+                                '-pix_fmt', 'yuv420p', '-an',
+                                "%s.mp4" % image_dir_period])
 
         # grab MSU results list for this mezzanine
         metrics = [f for f in listdir(result_dir) if f.startswith(ebase) if f.endswith(".json")]

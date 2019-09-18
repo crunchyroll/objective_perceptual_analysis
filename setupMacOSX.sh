@@ -47,6 +47,12 @@ fi
 if [ ! -e /usr/local/bin/gnuplot ]; then
     brew install gnuplot
 fi
+if [ ! -e /usr/local/include/freetype2]; then
+    brew install freetype2
+fi
+if [ ! -e /usr/local/include/fontconfig]; then
+    brew install fontconfig
+fi
 
 # For some reason OpenCV3 doesn't create this link
 if [ ! -e /usr/local/include/opencv2 -a -d /usr/local/include/opencv4 ]; then
