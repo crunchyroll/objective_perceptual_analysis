@@ -31,6 +31,25 @@ encode_dir = "%s/encodes" % base_directory
 result_dir = "%s/results" % base_directory
 preview_dir = "%s/preview" % base_directory
 
+# return video timecode from seconds value
+def secs2time(s):
+    ms = int((s - int(s)) * 1000000)
+    s = int(s)
+    # Get rid of this line if s will never exceed 86400
+    while s >= 24*60*60: s -= 24*60*60
+    h = s / (60*60)
+    s -= h*60*60
+    m = s / 60
+    s -= m*60
+    timecode_microseconds = datetime.time(h, m, s, ms).isoformat()
+    if '.' in timecode_microseconds:
+        base_time, microseconds  = timecode_microseconds.split('.')
+    else:
+        base_time = timecode_microseconds
+        microseconds = 0
+    return "%s,%03d" % (base_time, int(microseconds) / 1000)
+
+
 # get list of mezzanines
 mezzanines = [f for f in listdir(mezz_dir)]
 
@@ -97,6 +116,7 @@ for m in mezzanines:
         phqm_stdout = result_base + "_phqm.stdout"
         vmaf_data = result_base + "_vmaf.data"
         phqm_scd = result_base + "_phqm.scd"
+        preview_srt = result_base + "_preview.srt"
 
         if not isfile(phqm_scd) and isfile(phqm_stdout) and isfile(vmaf_data):
             sections = []
