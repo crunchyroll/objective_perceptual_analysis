@@ -20,7 +20,7 @@ base_directory = None
 
 ap = argparse.ArgumentParser()
 ap.add_argument('-n', '--directory', dest='directory', required=True, help="Name of the tests base directory")
-ap.add_argument('-d', '--debug', dest='debug', required=False, action='store_false', help="Debug")
+ap.add_argument('-d', '--debug', dest='debug', required=False, action='store_true', help="Debug")
 args = vars(ap.parse_args())
 
 base_directory = args['directory']
@@ -29,6 +29,7 @@ debug = args['debug']
 mezz_dir = "%s/mezzanines" % base_directory
 encode_dir = "%s/encodes" % base_directory
 result_dir = "%s/results" % base_directory
+preview_dir = "%s/preview" % base_directory
 
 # get list of mezzanines
 mezzanines = [f for f in listdir(mezz_dir)]
@@ -157,12 +158,23 @@ for m in mezzanines:
         if isfile(phqm_scd):
             with open(phqm_scd, "r") as scd_data:
                 sections = json.load(scd_data)
+                video_files = []
                 for i, s in enumerate(sections):
                     mdetail = "%03d). %06d-%06d hamm:%0.3f min:%0.2f max:%0.2f phqm:%0.2f vmaf:%0.2f psnr:%0.2f ssim:%0.2f" % (i,
                             s["start_frame"], s["end_frame"],
                             s["hamm_avg"], s["hamm_min"], s["hamm_max"], s["phqm_avg"], s["vmaf_avg"], s["psnr_avg"], s["ssim_avg"])
                     print mdetail
-                    image_dir_period = result_dir + "/" + ebase + "_" + "%06d-%06d" % (s["start_frame"], s["end_frame"])
+                    image_dir_base = preview_dir + "/" + ebase + "_" + "%06d-%06d" % (s["start_frame"], s["end_frame"])
+                    image_dir_period = image_dir_base + "/" + "images"
+                    video_dir_base = preview_dir + "/" + ebase + "/" + "videos"
+                    video_dir_period = video_dir_base + "/" + "%03d_%06d-%06d" % (i+1, s["start_frame"], s["end_frame"])
+                    if not isdir(preview_dir):
+                        mkdir(preview_dir)
+                    if not isdir(image_dir_base):
+                        mkdir(image_dir_base)
+                    if not isdir("%s/%s" % (preview_dir, ebase)):
+                        mkdir("%s/%s" % (preview_dir, ebase))
+                        mkdir("%s/%s/videos" % (preview_dir, ebase))
 
                     # create a directory for the images in the frame range
                     if not isdir(image_dir_period):
@@ -176,11 +188,43 @@ for m in mezzanines:
                                 "select='between(n\,%d\,%d)',setpts=PTS-STARTPTS,drawtext=text='%s':fontcolor=white:box=1:boxcolor=black@0.7:fontsize=28:x=5:y=5" % (s["start_frame"], s["end_frame"], mdetail.replace(':', ' ').replace(')', '')),
                                 '-pix_fmt', 'yuv420p',
                                 "%s/%%08d.jpg" % image_dir_period])
+                    # create video segment with stats burned in
+                    if not isfile("%s.mp4" % video_dir_period):
                         subprocess.call(['FFmpeg/ffmpeg', '-hide_banner', '-y', '-nostdin', '-nostats', '-loglevel', 'error',
                                 '-i', "%s/%s" % (mezz_dir, m), '-vf',
                                 "select='between(n\,%d\,%d)',setpts=PTS-STARTPTS,drawtext=text='%s':fontcolor=white:box=1:boxcolor=black@0.7:fontsize=28:x=5:y=5" % (s["start_frame"], s["end_frame"], mdetail.replace(':', ' ').replace(')', '')),
                                 '-pix_fmt', 'yuv420p', '-an',
-                                "%s.mp4" % image_dir_period])
+                                "%s.mp4" % video_dir_period])
+
+                    # save video segment for concatenation later
+                    video_files.append("%s.mp4" % video_dir_period)
+
+                    if i == (len(sections)-1):
+                        video_concat = preview_dir + "/" + ebase + ".mp4"
+                        # last segment, concatenate them all
+                        #
+                        # ffmpeg -i segment[0] -i segment[1] -i segment[2] -filter_complex \
+                        #      '[0:0] [1:0] [2:0] concat=n=3:v=1:a=0 [v]' \
+                        #            -map '[v]' output.mp4
+                        cmd = ['FFmpeg/ffmpeg', '-hide_banner', '-y', '-nostdin', '-nostats', '-loglevel', 'error']
+                        for sfile in video_files:
+                            # input files
+                            cmd.append('-i')
+                            cmd.append(sfile)
+                        cmd.append('-filter_complex')
+                        filter_str = ""
+                        for order, sfile in enumerate(video_files):
+                            # input streams per file
+                            filter_str = filter_str + "[%d:0] " % (order)
+                        filter_str = filter_str + "concat=n=%d:v=1:a=0 [v]" % len(sections)
+                        cmd.append(filter_str)
+                        cmd.append('-map')
+                        cmd.append('[v]')
+                        cmd.append(video_concat)
+
+                        if debug:
+                            print "Running cmd: %r" % cmd
+                        subprocess.call(cmd)
 
         # grab MSU results list for this mezzanine
         metrics = [f for f in listdir(result_dir) if f.startswith(ebase) if f.endswith(".json")]
