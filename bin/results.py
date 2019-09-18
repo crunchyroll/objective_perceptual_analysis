@@ -1,11 +1,12 @@
 #!/usr/bin/python2.7
 
 import argparse
+import datetime
 import json
 import subprocess
 from os import listdir
 from os import mkdir
-from os.path import isfile, isdir, join
+from os.path import isfile, isdir, join, getsize
 from os.path import basename
 from os.path import splitext
 from os import environ
@@ -95,6 +96,9 @@ for m in mezzanines:
         bitrate = 0
         filesize = 0
         duration = 0.0
+        height = 0
+        width = 0
+        framerate = 0.0
         with open("%s/%s" % (encode_dir, es)) as encode_stats_json:
             try:
                 ed = json.load(encode_stats_json)
@@ -107,72 +111,106 @@ for m in mezzanines:
                     filesize = int(ed['filesize'])
                 if 'duration' in ed:
                     duration = float(ed['duration'])
+                if 'framerate' in ed:
+                    framerate= float(ed['framerate'])
+                if 'height' in ed:
+                    height = float(ed['height'])
+                if 'width' in ed:
+                    width = float(ed['width'])
             except Exception, e:
                 if debug:
                     print "error: %s %s" % (es, e)
 
         # Combine PHQM segment scores with VMAF
         result_base = result_dir + '/' + ebase
+        phqm_stats = result_base + "_phqm.data"
         phqm_stdout = result_base + "_phqm.stdout"
         vmaf_data = result_base + "_vmaf.data"
         phqm_scd = result_base + "_phqm.scd"
         preview_srt = result_base + "_preview.srt"
 
-        if not isfile(phqm_scd) and isfile(phqm_stdout) and isfile(vmaf_data):
-            sections = []
-            try:
-                # scene change segments avg score calc
-                vd = {}
+        sections = []
+        try:
+            # scene change segments avg score calc
+            vd = {}
+            if isfile(vmaf_data):
                 with open(vmaf_data) as vmaf_json:
                     # get vmaf data
                     vd = json.load(vmaf_json)
-                with open(phqm_stdout) as phqm_data:
-                    for i, line in enumerate(phqm_data):
-                        if "ImgHashScene:" in line:
-                            parts = line.split(' ')
-                            start_frame, end_frame = parts[4].split(':')[1].split('-')
-                            start_frame = int(start_frame)
-                            end_frame = int(end_frame)
-                            phqm_avg = float(parts[5].split(':')[1])
-                            phqm_min = 0.0
-                            phqm_max = 0.0
-                            if len(parts) >= 9:
-                                phqm_min = float(parts[6].split(':')[1])
-                                phqm_max = float(parts[7].split(':')[1])
-                            vmaf_total = 0.0
-                            psnr_total = 0.0
-                            ms_ssim_total = 0.0
-                            for n, frame in enumerate(vd["frames"][start_frame-1:end_frame-1]):
-                                vmaf_total += float(frame["metrics"]["vmaf"])
-                                psnr_total += float(frame["metrics"]["psnr"])
-                                ms_ssim_total += float(frame["metrics"]["ms_ssim"])
-                            #print "VMAF end_frame: %d start_frame: %d" % (start_frame, end_frame)
-                            vmaf_avg = vmaf_total
-                            psnr_avg = psnr_total
-                            ms_ssim_avg = ms_ssim_total
-                            if end_frame > start_frame:
-                                # if last frame was a scene change we may have only 1 frame in a section
-                                vmaf_avg = vmaf_total / (end_frame - start_frame)
-                                psnr_avg = psnr_total / (end_frame - start_frame)
-                                ms_ssim_avg = ms_ssim_total / (end_frame - start_frame)
-                            section = {}
-                            section["number"] = i
-                            section["nframes"] = end_frame - start_frame
-                            section["start_frame"] = start_frame
-                            section["end_frame"] = end_frame
-                            section["hamm_avg"] = phqm_avg
-                            section["hamm_min"] = phqm_min
-                            section["hamm_max"] = phqm_max
-                            section["phqm_avg"] = min(100.0, 100.0 - (20.0 * min(phqm_avg, 5.0)))
-                            section["vmaf_avg"] = vmaf_avg
-                            section["ssim_avg"] = ms_ssim_avg
-                            section["psnr_avg"] = psnr_avg
-                            sections.append(section)
-                    # write combined metrics to a json file for scd
-                    with open(phqm_scd, "w") as f:
-                        f.write("%s" % json.dumps(sections, sort_keys=True))
-            except Exception, e:
-                print "Error opening %s: %s" % (vmaf_data, e)
+
+                # create srt file for metrics OSD
+                if isfile(phqm_stats) and (not isfile(preview_srt) or getsize(preview_srt) < 0):
+                    psnr_metrics = None
+                    with open(phqm_stats, "r") as f:
+                        psnr_metrics = f.readlines()
+                    psnr_metrics = [x.strip() for x in psnr_metrics]
+                    with open(preview_srt, "w") as f:
+                        for l in psnr_metrics:
+                            parts = l.split(' ')
+                            frame = int(parts[0].split(':')[1])
+                            phqm_avg = float(parts[1].split(':')[1])
+                            scd = float(parts[3].split(':')[1])
+                            psnr_avg = parts[9].split(':')[1]
+                            start_seconds = (1.0/float(framerate)) * float(frame)
+                            end_seconds = (1.0/float(framerate)) * (float(frame) + .9)
+                            start_time = secs2time(start_seconds)
+                            end_time = secs2time(end_seconds)
+                            vmaf = float(vd["frames"][frame]["metrics"]["vmaf"])
+                            msssim = float(vd["frames"][frame]["metrics"]["ms_ssim"])
+                            psnr = float(vd["frames"][frame]["metrics"]["psnr"])
+                            srt_line = "%08d\n%s --> %s\nTIMECODE[%s] SCD[%0.1f] PHQM[%0.3f] VMAF[%0.1f] PSNR[%0.1f] SSIM[%0.3f]\n\n" % (frame,
+                                    start_time, end_time, start_time, scd, phqm_avg, vmaf, psnr, msssim)
+                            f.write(srt_line)
+
+                if not isfile(phqm_scd) and isfile(phqm_stdout):
+                    # read stdout with scenes segmented into frame ranges
+                    with open(phqm_stdout) as phqm_data:
+                        for i, line in enumerate(phqm_data):
+                            if "ImgHashScene:" in line:
+                                parts = line.split(' ')
+                                start_frame, end_frame = parts[4].split(':')[1].split('-')
+                                start_frame = int(start_frame)
+                                end_frame = int(end_frame)
+                                phqm_avg = float(parts[5].split(':')[1])
+                                phqm_min = 0.0
+                                phqm_max = 0.0
+                                if len(parts) >= 9:
+                                    phqm_min = float(parts[6].split(':')[1])
+                                    phqm_max = float(parts[7].split(':')[1])
+                                vmaf_total = 0.0
+                                psnr_total = 0.0
+                                ms_ssim_total = 0.0
+                                for n, frame in enumerate(vd["frames"][start_frame-1:end_frame-1]):
+                                    vmaf_total += float(frame["metrics"]["vmaf"])
+                                    psnr_total += float(frame["metrics"]["psnr"])
+                                    ms_ssim_total += float(frame["metrics"]["ms_ssim"])
+                                #print "VMAF end_frame: %d start_frame: %d" % (start_frame, end_frame)
+                                vmaf_avg = vmaf_total
+                                psnr_avg = psnr_total
+                                ms_ssim_avg = ms_ssim_total
+                                if end_frame > start_frame:
+                                    # if last frame was a scene change we may have only 1 frame in a section
+                                    vmaf_avg = vmaf_total / (end_frame - start_frame)
+                                    psnr_avg = psnr_total / (end_frame - start_frame)
+                                    ms_ssim_avg = ms_ssim_total / (end_frame - start_frame)
+                                section = {}
+                                section["number"] = i
+                                section["nframes"] = end_frame - start_frame
+                                section["start_frame"] = start_frame
+                                section["end_frame"] = end_frame
+                                section["hamm_avg"] = phqm_avg
+                                section["hamm_min"] = phqm_min
+                                section["hamm_max"] = phqm_max
+                                section["phqm_avg"] = min(100.0, 100.0 - (20.0 * min(phqm_avg, 5.0)))
+                                section["vmaf_avg"] = vmaf_avg
+                                section["ssim_avg"] = ms_ssim_avg
+                                section["psnr_avg"] = psnr_avg
+                                sections.append(section)
+                        # write combined metrics to a json file for scd
+                        with open(phqm_scd, "w") as f:
+                            f.write("%s" % json.dumps(sections, sort_keys=True))
+        except Exception, e:
+            print "Error opening %s: %s" % (vmaf_data, e)
 
         # read scd file if it was created
         if isfile(phqm_scd):
@@ -226,7 +264,8 @@ for m in mezzanines:
                         # ffmpeg -i segment[0] -i segment[1] -i segment[2] -filter_complex \
                         #      '[0:0] [1:0] [2:0] concat=n=3:v=1:a=0 [v]' \
                         #            -map '[v]' output.mp4
-                        cmd = ['FFmpeg/ffmpeg', '-hide_banner', '-y', '-nostdin', '-nostats', '-loglevel', 'error']
+                        cmd = ['FFmpeg/ffmpeg', '-hide_banner', '-y', '-nostdin', '-nostats',
+                                    '-loglevel', 'error']
                         for sfile in video_files:
                             # input files
                             cmd.append('-i')
@@ -236,7 +275,7 @@ for m in mezzanines:
                         for order, sfile in enumerate(video_files):
                             # input streams per file
                             filter_str = filter_str + "[%d:0] " % (order)
-                        filter_str = filter_str + "concat=n=%d:v=1:a=0 [v]" % len(sections)
+                        filter_str = filter_str + "concat=n=%d:v=1:a=0,subtitles=%s [v]" % (len(sections), preview_srt)
                         cmd.append(filter_str)
                         cmd.append('-map')
                         cmd.append('[v]')
