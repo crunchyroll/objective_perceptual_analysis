@@ -50,10 +50,10 @@ fi
 if [ ! -e /usr/local/bin/gnuplot ]; then
     brew install gnuplot
 fi
-if [ ! -e /usr/local/include/freetype2]; then
+if [ ! -e /usr/local/include/freetype2 ]; then
     brew install freetype2
 fi
-if [ ! -e /usr/local/include/fontconfig]; then
+if [ ! -e /usr/local/include/fontconfig ]; then
     brew install fontconfig
 fi
 
