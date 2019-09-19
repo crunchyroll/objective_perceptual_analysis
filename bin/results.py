@@ -257,8 +257,8 @@ for m in mezzanines:
                     # save video segment for concatenation later
                     video_files.append("%s.mp4" % video_dir_period)
 
-                    if i == (len(sections)-1):
-                        video_concat = preview_dir + "/" + ebase + ".mp4"
+                    video_concat = preview_dir + "/" + ebase + ".mp4"
+                    if not isfile(video_concat) and i == (len(sections)-1):
                         # last segment, concatenate them all
                         #
                         # ffmpeg -i segment[0] -i segment[1] -i segment[2] -filter_complex \
