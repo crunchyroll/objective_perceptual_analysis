@@ -149,7 +149,7 @@ for m in mezzanines:
                             parts = l.split(' ')
                             frame = int(parts[0].split(':')[1])
                             phqm_avg = float(parts[1].split(':')[1])
-                            scd = float(parts[3].split(':')[1])
+                            scd = float(parts[4].split(':')[1])
                             psnr_avg = parts[9].split(':')[1]
                             start_seconds = (1.0/float(framerate)) * float(frame)
                             end_seconds = (1.0/float(framerate)) * (float(frame) + .9)
