@@ -35,6 +35,12 @@ fi
 if [ ! -e /usr/local/lib/libvpx.a ]; then
     brew install libvpx
 fi
+if [ ! -e /usr/local/include/aom/aom.h ]; then
+    brew install aom
+fi
+if [ ! -e /usr/local/lib/libaom.a ]; then
+    brew install aom
+fi
 if [ ! -e /usr/local/lib/libvmaf.a ]; then
     brew install libvmaf
 fi

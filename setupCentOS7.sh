@@ -68,6 +68,20 @@ if [ ! -d "libvpx" ]; then
     cd ../
 fi
 
+if [ ! -d "aom" ]; then
+    git clone git clone https://aomedia.googlesource.com/aom/
+    cd aom
+    # TODO find stable version
+    cd ../
+fi
+
+if [ ! -d "dav1d" ]; then
+    git clone https://code.videolan.org/videolan/dav1d.git
+    cd dav1d
+    # TODO find stable version
+    cd ../
+fi
+
 if [ ! -d "FFmpeg" ]; then
     git clone https://git.ffmpeg.org/ffmpeg.git FFmpeg
     cd FFmpeg
@@ -194,8 +208,16 @@ if [ ! -f /usr/local/lib/libvmaf.a ]; then
     sudo ln -s /usr/local/lib/pkgconfig/libvmaf.pc /usr/share/pkgconfig/
 fi
 
+## Setup VPX
 if [ ! -f /usr/lib/libvpx.a ]; then
     make vpxlib
+    sudo ldconfig
+fi
+
+## Setup AV1
+if [ ! -f /usr/lib/libaom.so ]; then
+    make aomlib
+    sudo ln -s /usr/lib/pkgconfig/aom.pc /usr/share/pkgconfig/
     sudo ldconfig
 fi
 

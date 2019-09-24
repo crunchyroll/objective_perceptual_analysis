@@ -28,6 +28,18 @@ vpxlib:
 	make -j8 && \
 	sudo make install
 
+aomlib:
+	rm -rf aom/aombuild && \
+	mkdir aom/aombuild && \
+	cd aom/aombuild/ && \
+	cmake3 \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DBUILD_SHARED_LIBS=True \
+		-DCMAKE_BUILD_TYPE=Release ../ && \
+	make -j8 && \
+	sudo make install
+
 vmaflib:
 	cd vmaf && \
         make -j8 && \
@@ -35,7 +47,7 @@ vmaflib:
 
 ffmpegbin:
 	cd FFmpeg && \
-	./configure --prefix=/usr --enable-libx264 --enable-libvpx --enable-gpl --enable-libopencv --enable-version3 --enable-libvmaf --enable-libfreetype --enable-fontconfig --enable-libass && \
+	./configure --prefix=/usr --enable-libx264 --enable-libvpx --enable-gpl --enable-libopencv --enable-version3 --enable-libvmaf --enable-libfreetype --enable-fontconfig --enable-libass --enable-libaom && \
 	make clean && \
 	make -j8
 
