@@ -21,6 +21,15 @@ fi
 if [ ! -e /usr/bin/git ]; then
     sudo yum -y -q install git
 fi
+if [ ! -e /usr/bin/clang ]; then
+    sudo yum -y -q install clang
+fi
+if [ ! -e /usr/bin/cargo ]; then
+    sudo yum -y -q install cargo
+fi
+if [ ! -e /usr/bin/rustc ]; then
+    sudo yum -y -q install rust
+fi
 if [ ! -e /usr/bin/cmake3 ]; then
     sudo yum -y -q install cmake3
 fi
@@ -78,6 +87,13 @@ fi
 if [ ! -d "dav1d" ]; then
     git clone https://code.videolan.org/videolan/dav1d.git
     cd dav1d
+    # TODO find stable version
+    cd ../
+fi
+
+if [ ! -d "rav1e" ]; then
+    git clone https://github.com/xiph/rav1e.git
+    cd rav1e
     # TODO find stable version
     cd ../
 fi
