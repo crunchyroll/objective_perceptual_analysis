@@ -230,10 +230,19 @@ if [ ! -f /usr/lib/libvpx.a ]; then
     sudo ldconfig
 fi
 
-## Setup AV1
+## Setup AOM AV1
 if [ ! -f /usr/lib/libaom.so ]; then
     make aomlib
     sudo ln -s /usr/lib/pkgconfig/aom.pc /usr/share/pkgconfig/
+    sudo ldconfig
+fi
+
+## Setup rav1e AV1
+if [ ! -f /usr/local/lib/librav1e.a ]; then
+    make rav1elib
+    sudo ln -s /usr/local/lib/pkgconfig/rav1e.pc /usr/share/pkgconfig/
+    # CentOS doesn't include /usr/local/lib by default
+    echo "/usr/local/lib" >> /etc/ld.so.conf.d/local.conf
     sudo ldconfig
 fi
 

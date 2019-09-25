@@ -14,6 +14,9 @@ Everything can be easily setup via setup.sh, it will install what is necessary
 for the most part. Please report back any issues so this can be improved for edge cases.
 
 *Currenty works on CentOS 7 and Mac OS X*
+*VMAF, libVPX, libAOM, libRav1e, libx264, libOpenCV build of FFmpeg*
+- rav1e support based off of work by Derek Buitenhuis
+  https://github.com/dwbuiten/FFmpeg/commit/2172caadfd1d5e8ff0bb16e7c7238338c132ed86
 
 Makefile will run the proper setup scriopt and install mediainfo, opencv, libx264, libvmaf, nasm
 git, wget, freetype-devel... Everything should be done for you, although if not report it as a bug.

@@ -35,10 +35,10 @@ fi
 if [ ! -e /usr/local/lib/libvpx.a ]; then
     brew install libvpx
 fi
-if [ ! -e /usr/local/include/aom/aom.h ]; then
-    brew install aom
+if [ ! -e /usr/local/bin/cargo ]; then
+    brew install rust
 fi
-if [ ! -e /usr/local/lib/libaom.a ]; then
+if [ ! -e /usr/local/include/aom/aom.h ]; then
     brew install aom
 fi
 if [ ! -e /usr/local/lib/libvmaf.a ]; then
@@ -66,6 +66,18 @@ fi
 # For some reason OpenCV3 doesn't create this link
 if [ ! -e /usr/local/include/opencv2 -a -d /usr/local/include/opencv4 ]; then
     sudo ln -s /usr/local/include/opencv4/opencv2/ /usr/local/include/
+fi
+
+if [ ! -d "rav1e" ]; then
+    git clone https://github.com/xiph/rav1e.git
+    cd rav1e
+    # TODO find stable version
+    cd ../
+fi
+
+## Setup rav1e AV1
+if [ ! -f /usr/local/lib/librav1e.a ]; then
+    make rav1elib
 fi
 
 
