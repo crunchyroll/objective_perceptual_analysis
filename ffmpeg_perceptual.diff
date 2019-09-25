@@ -129,10 +129,10 @@ index d2f9a39..c1cc29e 100644
  extern AVCodec ff_libspeex_encoder;
 diff --git a/libavcodec/librav1e.c b/libavcodec/librav1e.c
 new file mode 100644
-index 0000000..d1a9e54
+index 0000000..3ca74de
 --- /dev/null
 +++ b/libavcodec/librav1e.c
-@@ -0,0 +1,452 @@
+@@ -0,0 +1,454 @@
 +/*
 + * librav1e encoder
 + *
@@ -179,6 +179,7 @@ index 0000000..d1a9e54
 +    int max_quantizer;
 +    int quantizer;
 +    int done;
++    int frame_count;
 +} librav1eContext;
 +
 +static inline RaPixelRange range_map(enum AVColorRange range)
@@ -517,7 +518,8 @@ index 0000000..d1a9e54
 +        pkt->flags |= AV_PKT_FLAG_KEY;
 +
 +    //pkt->pts = pkt->dts = rpkt->number * avctx->ticks_per_frame;
-+    pkt->pts = pkt->dts = avctx->time_base.num * avctx->ticks_per_frame;
++    ctx->frame_count++;
++    pkt->pts = pkt->dts = ctx->frame_count * avctx->ticks_per_frame;
 +
 +    rav1e_packet_unref(rpkt);
 +
