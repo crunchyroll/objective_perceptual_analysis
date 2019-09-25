@@ -74,6 +74,8 @@ if args['metrics'] != None:
 if args['tests'] != None:
     test_list = args['tests'].split(';')
     for i in test_list:
+        if not i or i == '' or '|' not in i:
+            continue # skip empty args / last ; at end
         lparts = i.split('|')
         if debug:
             print "Got: %r" % lparts

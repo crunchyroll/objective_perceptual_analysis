@@ -4,9 +4,9 @@ bin/encode.py: contains logic to run encoding tests using nuencoder and vqmt
 bin/results.py: gather stats and produce reports comparing tests
 bin/decode: produce decoded output for test metrics
 
-bin/run_example.sh: example of a command line with many tests
-bin/clip_videos.sh: clipping video helper script to create in/out points
-bin/gen_cmd.sh: help create multiple command lines of incrementing bitrates
+scripts/run_example.sh: example of a command line with many tests
+scripts/clip_videos.sh: clipping video helper script to create in/out points
+scripts/gen_cmd.sh: help create multiple command lines of incrementing bitrates
 
 General usage:
 - setup FFmpeg for perceptual hash per title encoding
