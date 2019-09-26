@@ -1,24 +1,20 @@
-PHPTE: TODO
+TODO
 
 Dockerfile - alpine linux
-    - OpenCV APK
     - FFmpeg APK + patch
-    - VMAF
-    - LibVPX VP9
+    - simple and clean setup
 
 Quality Finder:
     - run low bitrate and high bitrate encodings
     - find sweet spot where VMAF gain and bitrate are best
-    - per scene based segmentation
     - rate scene complexity and machine learn patterns
 
 encode.py:
-    - global encoder stats
     - subtitle hardsub tests
-    - add vp9 libvpx encoding
 
 results.py:
     obj metrics
-        - graphs
-        - screen shot comparisons
-        - perceptual hash comparisons (create new metrics)
+        - more graphs
+        - more ways to analyze video encoding easier
+        - setup screen shot comparisons
+        - perceptual hash scene change / motion research
