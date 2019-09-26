@@ -103,6 +103,7 @@ fi
 # build tools
 g++ reference.cpp -o reference $(PKG_CONFIG_PATH="/usr/local/opt/opencv@3/lib/pkgconfig" pkg-config --cflags --libs opencv)
 
+echo
 echo "To install FFmpeg into /usr/bin/ffmpeg type: 'make install'"
 echo "./FFmpeg/ffmpeg can be copied where you want also"
 

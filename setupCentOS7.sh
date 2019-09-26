@@ -36,16 +36,16 @@ fi
 if [ ! -e /usr/bin/gnuplot ]; then
     sudo yum -y -q install gnuplot
 fi
-if [ ! -e /usr/bin/mediainfo]; then
+if [ ! -e /usr/bin/mediainfo ]; then
     sudo yum -y -q install mediainfo
 fi
-if [ ! -e /usr/include/freetype2] then
+if [ ! -e /usr/include/freetype2 ]; then
     sudo yum -y -q install freetype-devel
 fi
-if [ ! -e /usr/lib/libass.a] then
+if [ ! -e /usr/lib/libass.a ]; then
     sudo yum -y -q install libass-devel
 fi
-if [ ! -e /usr/include/fontconfig] then
+if [ ! -e /usr/include/fontconfig ]; then
     sudo yum -y -q install fontconfig-devel
 fi
 
@@ -254,6 +254,7 @@ fi
 # build tools
 make reference
 
+echo
 echo "To install FFmpeg into /usr/bin/ffmpeg type: 'make install'"
 echo "./FFmpeg/ffmpeg can be copied where you want also"
 
