@@ -205,10 +205,24 @@ for m in mezzanines:
                 start_time = time.time()
                 rate_control = rate_controls[test_label_idx]
 
-                encode_video(mezzanine_fn, encode_fn,
+                processes = []
+                p = None
+                # split mezzanine here
+                # get list of mezzanine segments
+                # run multiple processes for each segment
+                p = Process(target=encode_video, args=(mezzanine_fn, encode_fn,
                                 rate_control, test_args[test_label_idx], global_args,
                                 encoders[test_label_idx],
-                                pass_log_fn, threads)
+                                pass_log_fn, threads,))
+
+                # run each encode in parallel
+                if p != None:
+                    p.start()
+                    processes.append(p)
+
+                # wait for encode processes to finish
+                for p in processes:
+                    p.join()
 
                 end_time = time.time()
                 with open(speed_result, "w") as f:
