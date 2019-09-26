@@ -213,6 +213,7 @@ for m in mezzanines:
             print "Error opening %s: %s" % (vmaf_data, e)
 
         # read scd file if it was created
+        scenes = []
         if isfile(phqm_scd):
             with open(phqm_scd, "r") as scd_data:
                 sections = json.load(scd_data)
@@ -221,7 +222,7 @@ for m in mezzanines:
                     mdetail = "%03d). %06d-%06d hamm:%0.3f min:%0.2f max:%0.2f phqm:%0.2f vmaf:%0.2f psnr:%0.2f ssim:%0.2f" % (i,
                             s["start_frame"], s["end_frame"],
                             s["hamm_avg"], s["hamm_min"], s["hamm_max"], s["phqm_avg"], s["vmaf_avg"], s["psnr_avg"], s["ssim_avg"])
-                    print mdetail
+                    scenes.append(mdetail)
                     image_dir_base = preview_dir + "/" + ebase + "_" + "%06d-%06d" % (s["start_frame"], s["end_frame"])
                     image_dir_period = image_dir_base + "/" + "images"
                     video_dir_base = preview_dir + "/" + ebase + "/" + "videos"
@@ -324,10 +325,9 @@ for m in mezzanines:
         result_key = "%s-%s_%s" % (fkey[:32], str("%0.3f" % vmaf).replace('.','-'), elabel[1:])
         result[result_key] = {}
 
-        if debug: 
-            print " %s:" % result_key
-            print "  Encode [%s]:" % elabel
-            print "    Stats: {bitrate: %d, filesize: %d, duration: %0.2f}" % (bitrate, filesize, duration)
+        print " %s:" % result_key
+        print "  Encode [%s]:" % elabel
+        print "    Stats: {bitrate: %d, filesize: %d, duration: %0.2f}" % (bitrate, filesize, duration)
         # pick out specific codec values we are testing
         result[result_key]['bitrate'] = bitrate
         result[result_key]['filesize'] = filesize
@@ -336,9 +336,11 @@ for m in mezzanines:
         result[result_key]['label'] = hlabel
 
         phqm_normalized = min(100, (100 - (min(phqm, 5) * 20.0)))
-        if debug:
-            print "   Metrics: {speed: %0.2f, hamm: %0.2f phqm: %0.2f vmaf: %0.2f, ssim: %0.2f, psnr: %0.2f}" % (speed,
+        print "   Metrics: {speed: %0.2f, hamm: %0.2f phqm: %0.2f vmaf: %0.2f, ssim: %0.2f, psnr: %0.2f}" % (speed,
                                 phqm, phqm_normalized, vmaf, ssim, psnr)
+        for s in scenes:
+            print "    %s" % s
+
         result[result_key]['speed'] =  speed
         result[result_key]['phqm'] = "%0.3f" % phqm_normalized
         result[result_key]['hamm'] = "%0.3f" % phqm
