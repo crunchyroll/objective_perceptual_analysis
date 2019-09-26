@@ -2,6 +2,7 @@
 
 OS=$(uname -s)
 
+
 if [ "$OS" == "Darwin" ]; then
     echo "Setting up for Mac OS X"
     ./setupMacOSX.sh
@@ -12,4 +13,8 @@ elif [ "$OS" == "Linux" ]; then
     else
         echo "This Linux OS isn't supported. Try running ./setupCentOS7.sh manually if brave"
     fi
+fi
+
+if [ ! -d "video-splitter" ]; then
+    git clone https://github.com/c0decracker/video-splitter.git
 fi
