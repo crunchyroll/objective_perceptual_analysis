@@ -129,6 +129,40 @@ def get_results(test_metric, result_fn, encode_video_fn, create_result_cmd):
             # remove results since they are not complete
             remove(result_fn)
 
+def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, encoders, pass_log_fn, threads):
+    if rate_control == "twopass":
+        # pass 1
+        fp_args = list(test_args)
+        for i, a in enumerate(fp_args):
+            # for vp9 adjust speed on first pass to 4 as recommended
+            if a == "-speed":
+                fp_args[i+1] = "4"
+        create_encode_cmd = [encoders, '-loglevel', 'error', '-hide_banner',
+            '-nostats', '-nostdin', '-i', mezzanine_fn] + global_args + fp_args + ['-pass', '1',
+            '-an', '-passlogfile', pass_log_fn,
+            '-threads', str(threads), '-y', '/dev/null']
+
+        print " - encoding first pass..."
+        for output in execute(create_encode_cmd):
+            print output
+        # pass 2
+        create_encode_cmd = [encoders, '-loglevel', 'warning', '-hide_banner',
+            '-nostats', '-nostdin', '-i', mezzanine_fn] + global_args + test_args + ['-pass', '2',
+            '-passlogfile', pass_log_fn,
+            '-threads', str(threads), encode_fn]
+
+        print " - encoding second pass..."
+        for output in execute(create_encode_cmd):
+            print output
+    else:
+        print " - encoding in one pass..."
+        create_encode_cmd = [encoders[test_label_idx], '-loglevel', 'warning', '-hide_banner', '-nostats', '-nostdin',
+            '-i', mezzanine_fn] + global_args + test_args[test_label_idx] + ['-threads', str(threads),
+            encode_fn]
+
+        for output in execute(create_encode_cmd):
+            print output
+
 # create directories needed
 if not isdir(base_directory):
     mkdir(base_directory)
@@ -171,38 +205,10 @@ for m in mezzanines:
                 start_time = time.time()
                 rate_control = rate_controls[test_label_idx]
 
-                if rate_control == "twopass":
-                    # pass 1
-                    fp_args = list(test_args[test_label_idx])
-                    for i, a in enumerate(fp_args):
-                        # for vp9 adjust speed on first pass to 4 as recommended
-                        if a == "-speed":
-                            fp_args[i+1] = "4"
-                    create_encode_cmd = [encoders[test_label_idx], '-loglevel', 'error', '-hide_banner',
-                        '-nostats', '-nostdin', '-i', mezzanine_fn] + global_args + fp_args + ['-pass', '1',
-                        '-an', '-passlogfile', pass_log_fn,
-                        '-threads', str(threads), '-y', '/dev/null']
-
-                    print " - encoding first pass..."
-                    for output in execute(create_encode_cmd):
-                        print output
-                    # pass 2
-                    create_encode_cmd = [encoders[test_label_idx], '-loglevel', 'warning', '-hide_banner',
-                        '-nostats', '-nostdin', '-i', mezzanine_fn] + global_args + test_args[test_label_idx] + ['-pass', '2',
-                        '-passlogfile', pass_log_fn,
-                        '-threads', str(threads), encode_fn]
-
-                    print " - encoding second pass..."
-                    for output in execute(create_encode_cmd):
-                        print output
-                else:
-                    print " - encoding in one pass..."
-                    create_encode_cmd = [encoders[test_label_idx], '-loglevel', 'warning', '-hide_banner', '-nostats', '-nostdin',
-                        '-i', mezzanine_fn] + global_args + test_args[test_label_idx] + ['-threads', str(threads),
-                        encode_fn]
-
-                    for output in execute(create_encode_cmd):
-                        print output
+                encode_video(mezzanine_fn, encode_fn,
+                                rate_control, test_args[test_label_idx], global_args,
+                                encoders[test_label_idx],
+                                pass_log_fn, threads)
 
                 end_time = time.time()
                 with open(speed_result, "w") as f:
