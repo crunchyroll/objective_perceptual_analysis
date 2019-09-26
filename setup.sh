@@ -19,6 +19,7 @@ fi
 
 if [ ! -d "video-splitter" ]; then
     git clone https://github.com/c0decracker/video-splitter.git
+    chomd 755 video-splitter/ffmpeg-split.py
 fi
 echo
 echo "encode and results tools are in bin/"
