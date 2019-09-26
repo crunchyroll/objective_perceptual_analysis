@@ -50,8 +50,12 @@ fi
 if [ ! -e /usr/local/bin/cmake ]; then
     brew install cmake
 fi
-if [ ! -e /usr/local/include/opencv4 ]; then
+if [ ! -e /usr/local/opt/opencv@3 ]; then
     brew install opencv@3
+fi
+if [ ! -e /usr/local/include/opencv2 ]; then
+    # necessary to work
+    brew link --force opencv@3
 fi
 if [ ! -e /usr/local/bin/gnuplot ]; then
     brew install gnuplot
