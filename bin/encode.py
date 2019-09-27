@@ -22,6 +22,7 @@ ffmpeg_bin = "./FFmpeg/ffmpeg"
 vqmt_bin = "/usr/local/bin/vqmt"
 
 keep_raw = False
+segment = False
 base_directory = ""
 metrics = ""
 
@@ -45,6 +46,7 @@ ap.add_argument('-n', '--directory', dest='directory', required=True, help="Name
 ap.add_argument('-k', '--keep_raw', dest='keep_raw', required=False, action='store_true', help="keep raw yuv avi video clips in ./videos/")
 ap.add_argument('-d', '--debug', dest='debug', required=False, action='store_true', help="Debug")
 ap.add_argument('-o', '--use_msu', dest='use_msu', required=False, action='store_true', help="Use MSU VQMT tool for obj metrics")
+ap.add_argument('-s', '--segment', dest='segment', required=False, action='store_true', help="Use parallel encoding by splitting mezz")
 args = vars(ap.parse_args())
 
 keep_raw = args['keep_raw']
@@ -208,23 +210,25 @@ for m in mezzanines:
                 processes = []
                 p = None
                 # split mezzanine here
-                ## video-splitter/ffmpeg-split.py -c 12 -v copy -e '-an -dn' -f /the/mezzanine.mov
-                #
-                # get list of mezzanine segments
-                ##
-                #
-                # run multiple processes for each segment
-                ##
-                #
-                p = Process(target=encode_video, args=(mezzanine_fn, encode_fn,
-                                rate_control, test_args[test_label_idx], global_args,
-                                encoders[test_label_idx],
-                                pass_log_fn, threads,))
+                if segment:
+                    ##video-splitter/ffmpeg-split.py -c 12 -v copy -e '-an -dn' -f /the/mezzanine.mov
+                    #
+                    # get list of mezzanine segments
+                    mezzanine_segments = [f for f in listdir(mezz_dir) if f.startswith("%s-" % m.split('.')[0])]
+                    #
+                    # run multiple processes for each segment
+                    ##
+                    #
+                else:
+                    p = Process(target=encode_video, args=(mezzanine_fn, encode_fn,
+                                    rate_control, test_args[test_label_idx], global_args,
+                                    encoders[test_label_idx],
+                                    pass_log_fn, threads,))
 
-                # run each encode in parallel
-                if p != None:
-                    p.start()
-                    processes.append(p)
+                    # run each encode in parallel
+                    if p != None:
+                        p.start()
+                        processes.append(p)
 
                 # wait for encode processes to finish
                 for p in processes:
