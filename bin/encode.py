@@ -56,6 +56,7 @@ if args['threads'] != None:
     threads = int(args['threads'])
 encoder_args = args['encoder_args']
 use_msu = args['use_msu']
+segment = args['segment']
 
 mezz_dir = "%s/mezzanines" % base_directory
 encode_dir = "%s/encodes" % base_directory
@@ -208,24 +209,44 @@ for m in mezzanines:
                 rate_control = rate_controls[test_label_idx]
 
                 processes = []
+                mezzanine_segments = []
+                encode_segments = []
                 p = None
                 # split mezzanine here
                 if segment:
                     ##video-splitter/ffmpeg-split.py -c 12 -v copy -e '-an -dn' -f /the/mezzanine.mov
+                    cmd = ['video-splitter/ffmpeg-split.py', '-c', str(threads), '-v', 'copy', '-e', '-y -an -dn -loglevel error', '-f', mezzanine_fn]
+                    print " - splitting mezzanine into segments for parallel encoding..."
+                    stdout = subprocess.check_output(cmd)
                     #
                     # get list of mezzanine segments
                     mezzanine_segments = [f for f in listdir(mezz_dir) if f.startswith("%s-" % m.split('.')[0])]
                     #
                     # run multiple processes for each segment
-                    ##
-                    #
+                    if len(mezzanine_segments) > 0:
+                        for s in mezzanine_segments:
+                            mezzanine_segment = "%s/%s" % (mezz_dir, s)
+                            encode_segment = "%s/%s" % (video_dir, s)
+                            pass_log_fn = "%s/%s/%s_%s_%s.mp4_pass.log" % (cur_dir, encode_dir, s.split('.')[0], test_label, test_letter)
+                            print "Segment: mezzanine: %s encode: %s passlog: %s" % (mezzanine_segment, encode_segment, pass_log_fn)
+                            encode_segments.append(encode_segment)
+                            p = Process(target=encode_video, args=(mezzanine_segment, encode_segment,
+                                            rate_control, test_args[test_label_idx], global_args,
+                                            encoders[test_label_idx],
+                                            pass_log_fn, 1,))
+                            # run each encode in parallel
+                            if p != None:
+                                p.start()
+                                processes.append(p)
+                            else:
+                                print "Error: didn't get any mezzanine segments when splitting %s" % mezzanine_fn
+                                sys.exit(1)
                 else:
                     p = Process(target=encode_video, args=(mezzanine_fn, encode_fn,
                                     rate_control, test_args[test_label_idx], global_args,
                                     encoders[test_label_idx],
                                     pass_log_fn, threads,))
-
-                    # run each encode in parallel
+                    # run encode
                     if p != None:
                         p.start()
                         processes.append(p)
@@ -233,6 +254,23 @@ for m in mezzanines:
                 # wait for encode processes to finish
                 for p in processes:
                     p.join()
+
+                # mux segmented parallel encoding parts into one
+                if len(encode_segments) > 0:
+                    for es in encode_segments:
+                        if isfile(es):
+                            if debug:
+                                print "Deleting Encode segment: %s" % es
+                            remove(es)
+
+                # clean up mezzanine segments
+                if len(mezzanine_segments) > 0:
+                    for ms in mezzanine_segments:
+                        mezzanine_segment = "%s/%s" % (mezz_dir, ms)
+                        if isfile(mezzanine_segment):
+                            if debug:
+                                print "Deleting mezzanine segment: %s" % mezzanine_segment
+                            remove(mezzanine_segment)
 
                 end_time = time.time()
                 with open(speed_result, "w") as f:
