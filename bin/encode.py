@@ -208,8 +208,14 @@ for m in mezzanines:
                 processes = []
                 p = None
                 # split mezzanine here
+                ## video-splitter/ffmpeg-split.py -c 12 -v copy -e '-an -dn' -f /the/mezzanine.mov
+                #
                 # get list of mezzanine segments
+                ##
+                #
                 # run multiple processes for each segment
+                ##
+                #
                 p = Process(target=encode_video, args=(mezzanine_fn, encode_fn,
                                 rate_control, test_args[test_label_idx], global_args,
                                 encoders[test_label_idx],
