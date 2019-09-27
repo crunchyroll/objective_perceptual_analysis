@@ -255,6 +255,32 @@ for m in mezzanines:
                 for p in processes:
                     p.join()
 
+                # mux together encoding segments if needed
+                if segment:
+                    # ffmpeg -i segment[0] -i segment[1] -i segment[2] -filter_complex \
+                    #      '[0:0] [1:0] [2:0] concat=n=3:v=1:a=0 [v]' \
+                    #            -map '[v]' output.mp4
+                    cmd = ['FFmpeg/ffmpeg', '-hide_banner', '-y', '-nostdin', '-nostats',
+                                '-loglevel', 'error']
+                    for sfile in encode_segments:
+                        # input files
+                        cmd.append('-i')
+                        cmd.append(sfile)
+                    cmd.append('-filter_complex')
+                    filter_str = ""
+                    for order, sfile in enumerate(encode_segments):
+                        # input streams per file
+                        filter_str = filter_str + "[%d:0] " % (order)
+                    filter_str = filter_str + "concat=n=%d:v=1:a=0 [v]" % (len(encode_segments))
+                    cmd.append(filter_str)
+                    cmd.append('-map')
+                    cmd.append('[v]')
+                    cmd.append(encode_fn)
+
+                    if debug:
+                        print "Running cmd: %r" % cmd
+                    subprocess.call(cmd)
+
                 # mux segmented parallel encoding parts into one
                 if len(encode_segments) > 0:
                     for es in encode_segments:
