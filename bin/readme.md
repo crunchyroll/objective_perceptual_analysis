@@ -1,6 +1,6 @@
 Encoding subjective and objective test harness
 
-bin/encode.py: contains logic to run encoding tests using nuencoder and vqmt
+bin/encode.py: contains logic to run encoding tests using FFmpeg/ffmpeg
 bin/results.py: gather stats and produce reports comparing tests
 bin/decode: produce decoded output for test metrics
 
@@ -26,7 +26,7 @@ Example steps:
 3. execute bin/encode.py (see bin/encode.py -h  for Help Output)
     example: (multiple tests can be separated by commas)
     
-   ```'bin/encode.py -m psnr,vmaf -n test001 -p 4 \   
+   ```'bin/encode.py -m psnr,vmaf -n test001 -p 4 \
    -t "test1|FFmpeg/ffmpeg|twopass|-vcodec|libx264|-vf|perceptual|-b:v|4000k|-maxrate:v|4000k|-bufsize|6000k" -d -o'
    ```
         
@@ -42,6 +42,14 @@ Example steps:
     - perceptual_abr
     - abr
     
+Encoding Features / Research items:
+    - Parallel / Segmented encoding (especially for AV1)
+    - Image Hash x264 Perceptual encode optimization (WIP, help if you want)
+    - Perceptual Hash metric for analysis
+    - AV1 Encoding
+    - VP9 Encoding
+    - H.264 Encoding
+
 4. execute ```bin/results.py -n test001``` to get results
 
 Results Json ```stats.json``` output is CSV compatible in any converter.

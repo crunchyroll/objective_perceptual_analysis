@@ -2,6 +2,8 @@
 
 import argparse
 import json
+import traceback
+import fcntl
 from multiprocessing import Process
 from os import listdir
 from os.path import isfile, join
@@ -14,6 +16,7 @@ from os import mkdir
 from os.path import isfile
 from os.path import isdir
 from os.path import getsize
+from os.path import exists
 import subprocess
 import sys
 import time
@@ -166,6 +169,378 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
         for output in execute(create_encode_cmd):
             print output
 
+def segment_cache_close(lock_file, segments, seg_dir):
+    """Handle unlock of mezzanine segment cache."""
+    try:
+        # close lockfile
+        fcntl.lockf(lock_file, fcntl.LOCK_UN)
+        lock_file.close()
+    except Exception, e:
+        print "Failed closing lockfile: %s - %s" % (seg_dir, e)
+        # something is wrong, signal the cache is rotten
+        return None
+
+    # write out the cache json index and done/complete file
+    # if we have a new cache of mezz segments we just created
+    # only write if segments is not None, else we are just closing the cache
+    # confirm we have a .done file written, never trust .json otherwise
+    if segments and not isfile("%s/segments.done" % seg_dir) and not isfile("%s/segments.json" % seg_dir):
+        try:
+            with open("%s/segments.json" % seg_dir, 'w') as f:
+                f.write(json.dumps(segments))
+            # stamp this as DONE, can't trust json otherwise
+            with open("%s/segments.done" % seg_dir, 'w') as f:
+                f.write("%0.4f" % time.time())
+        except Exception, e:
+            print "failed writing segments json to cache file: %s - %s" % (seg_dir, e)
+            # nothing to do, we failed creating the cache
+            return None
+    # echo back segments json written out if successful
+    return segments
+
+def segment_cache_open(seg_dir):
+    """
+       Return a tuple containing a lockfile for segment directory cache
+       and list of segments for usage if cached.  Handle creation and
+       locking of mezzanine segment cache.
+    """
+    lock_file = "%s.lock" % (seg_dir)
+    lock_file_fd = None
+    segments = []
+    start_time = time.time()
+    # see if we have a lock already
+    # attempt open, exclusive lock, wait up to 45 seconds then give up
+    # if in use already.
+    try:
+        lock_file_fd = open(lock_file, 'w')
+        # open lock file first, if fail then we give up
+        if not lock_file_fd:
+            raise IOError("failed opening lockfile %s for segment cache" % lock_file)
+        # wait for actual file lock
+        while True:
+            try:
+                fcntl.lockf(lock_file_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                # Locked!
+                print "got lock for %s" % lock_file
+                break # got what we need
+            except IOError, e:
+                # non-blocking mode, check if we need to retry
+                if e.errno != errno.EAGAIN:
+                    # failure
+                    print "IO exception getting lock for %s - %s" % (lock_file, e)
+                    return (None, segments)
+                # try again, sleep a second, someone has the lock
+                print "%0.2f seconds Waiting for mezzanine lock %s" % ((time.time() - start_time), lock_file)
+                time.sleep(1)
+            except Exception, e:
+                # failure
+                print "Generic exception getting lock for %s - %s" % (lock_file, e)
+                return (None, segments)
+            # fail after waiting too long
+            if time.time() - start_time >= 300:
+                raise IOError("Lockfile timeout failure after %d seconds" % time.time() - start_time)
+    except Exception, e:
+        print "exception opening lock for %s - %s" % (lock_file, e)
+        # generic failure
+        return (None, segments)
+
+    # we have a valid lock, success!
+    # create tmp directory specific to duration and mezzanine path
+    try:
+        if not isdir("%s" % seg_dir):
+            mkdir("%s" % seg_dir)
+    except Exception, e:
+        print "failed creating mezzanine segment cache directory: %s - %s" % (seg_dir, e)
+        segment_cache_close(lock_file_fd, segments, seg_dir) # close opened cache lock
+        return (None, segments)
+
+    # check if we have a valid cached mezzanine
+    if isfile("%s/%s" % (seg_dir, "segments.done")) and isfile("%s/%s" % (seg_dir, "segments.json")):
+        with open("%s/%s" % (seg_dir, "segments.json"), 'r') as f:
+            try:
+                # get the cached mezzanine source segments
+                # if this exists, cache will be used instead of segmentation
+                segments = json.loads(f.read())
+                # we have a valid cached mezzanine!
+            except Exception, e:
+                # failure, bad mezzanine segments?
+                # segment them without using cache
+                print "Failed retrieving past mezzanine cache, segmenting instead: %s" % e
+                segment_cache_close(lock_file_fd, segments, seg_dir) # close opened cache lock
+                return (None, segments)
+    else:
+        print "mezzanine not found in cache, segmenting into: %s" % seg_dir
+
+    # return lock file if we succeeded
+    return (lock_file_fd, segments)
+
+def concat_video_segments(first, second, seg_dir, index = None):
+    """Take two video segments and combine them"""
+    concat_list = "%s/merge_segments_%d.list" % (seg_dir, index)
+    if not index: # generate something unique if index number not passed in
+        index = str(uuid.uuid4())
+    ext = 'ts'
+    merged_segment = "%s/merged_segment_%d.%s" % (seg_dir, index, ext)
+    with open(concat_list, 'w') as file:
+        file.write("file '%s'\n" % first)
+        file.write("file '%s'\n" % second)
+    concat_cmd = ['FFmpeg/ffmpeg',
+               '-f', 'concat', '-safe', '0', '-i', "%s" % concat_list,
+               '-f', 'mpegts',
+               '-codec', 'copy',
+               '-hide_banner', '-nostdin', '-loglevel', 'error', '-nostats']
+    concat_cmd.extend([merged_segment])
+    try:
+        output = subprocess.check_output(concat_cmd)
+    except Exception, e:
+        print "Failed combining segment %d[%s] with the last one, %s > %s" % (index, format, second, first)
+        return False
+    # move new segment into place over first
+    if isfile(merged_segment):
+        shutil.move(merged_segment, first)
+    else:
+        return False
+    print "Source concat segment merge output: %s" % output
+    return True
+
+def validate_segment(segment_json):
+    """Confirm segment is a valid video file"""
+    segment = segment_json['source']
+    index = int(segment_json['index'])
+    if debug:
+        print "Checking segment %s with attributes %s" % (segment, segment_json)
+    output = ''
+    try:
+        # If the first frame isn't a keyframe, this segment isn't valid.
+        ffprobe_output = subprocess.check_output(["FFmpeg/ffprobe",
+            '-hide_banner', '-loglevel', 'error',
+            segment,
+            '-select_streams', 'v:%d' % 0,
+            '-show_frames',
+            '-show_entries', 'frame=key_frame,pict_type',
+            '-read_intervals', '%+#1',
+            '-of', 'json'
+        ])
+        first_frame = json.loads(ffprobe_output)['frames'][0]
+        if first_frame['pict_type'] != 'I' or first_frame['key_frame'] != 1:
+            raise ValueError("The first frame was not a keyframe. Pict type %s, key_frame %d." % (first_frame['pict_type'],
+                                                first_frame['key_frame']))
+    except Exception, e:
+        print(traceback.format_exc())
+        print "Failed validating segment [%d]%s output %s: %s" % (index, segment, output, e)
+        return False
+    return True
+
+def get_segments(playlist_file, seg_dir, video_dir, encext):
+    """Returns a list of dicts for segments from a playlist file, else an empty dict."""
+    segments = []
+    segnum = 0
+    with open(playlist_file, 'r') as f:
+        for s_line in f:
+            (s_file, s_start, s_end) = s_line.split(",")
+
+            # Fix for newer ffmpeg, it doesn't use the full path anymore in playlists
+            if exists("%s/%s" % (seg_dir, s_file)):
+                # mezz segment cache, stored where mezzanines are
+                s_file = "%s/%s" % (seg_dir, s_file)
+
+            # Check to see that file exists, add file if it does
+            duration = float(s_end) - float(s_start)
+            if (exists(s_file) and getsize(s_file) > 0):
+                # create nice list of dicts for each segment we produced
+                segfile = s_file
+                segstart = s_start
+                segstop = s_end
+                encode_segment = "%s/v%d.%s" % (video_dir, segnum, encext)
+                source_segment = s_file
+
+                print "segment[%d] %0.1f-%0.1f (%0.1f)" % (segnum, float(segstart), float(segstop), duration)
+
+                # store segment name for combination
+                source_segment_dict = dict(
+                     index=segnum,
+                     source=source_segment,
+                     encode=encode_segment,
+                     start=float(segstart),
+                     stop=float(segstop),
+                     duration=duration,
+                     result=None,
+                     output='')
+
+                # store list of segment dicts, indexed by segnum
+                segments.append(source_segment_dict)
+                segnum += 1
+            else:
+                # failed to produce file it claims exists
+                print "Failure to produce a segment in m3u8 list: %s" % s_file
+                return {}
+
+    # Confirm we got a list of segments
+    if len(segments) <= 0:
+        print "Failed to segment mezzanine, 0 segments output."
+        return {}
+
+    # check if we didn't segment, if not then just return
+    if len(segments) == 1:
+        return segments
+
+    # Validate segments, fail if one doesn't work
+    last_segment = {}
+    number_of_segments = len(segments)
+    combined_count = 0
+    new_index = 0
+    fixed_segments= []
+    for s in segments:
+        # give up if more than 2 fail
+        if (combined_count == 1):
+            print "Too many failed segments %d, giving up on combining" % combined_count
+            return {}
+        index = int(s['index']) # we skip bad segments and rewrite the index for them
+        segments[index]['index'] = index # renumber index
+        if debug:
+            print "Segment Validate [%d]: last [%s], current [%s]" % (index, last_segment, s)
+        if not validate_segment(s):
+            if not last_segment or index == 0:
+                return {} # on first segment, can't repair: failed
+            print "Segment Invalid [%d]: [%s]!" % (index, s)
+            # attempt to repair segment
+            fixed_segments_index = len(fixed_segments) - 1 # get current fixed segments position
+            concat_video_segments(last_segment['source'], s['source'], seg_dir, index = index)
+            # fix up metadata on the original segments list
+            last_index = int(last_segment['index'])
+            fixed_segments[fixed_segments_index]['stop'] = s['stop'] # set last segment to this ones stop
+            fixed_segments[fixed_segments_index]['duration'] = last_segment['stop'] - last_segment['start'] # calculate new segment duration
+            print "Removed segment %d, combined with last: %s -> %s" % (index, s['source'], last_segment['source'])
+            # confirm the reparied segment is ok
+            if not validate_segment(fixed_segments[fixed_segments_index]):
+                # this failed, give up, really rare edge case
+                print "Combined Segment Invalid [%d]: [%s], old: [%s]!" % (fixed_segments_index, fixed_segments[fixed_segments_index], s)
+                return {}
+            # extra increment index offset for entry skip
+            combined_count += 1
+        else:
+            last_segment.clear()
+            last_segment = s # keep track of last good segment
+            # create a new list with the valid segments and combined ones
+            fixed_segments.append({})
+            fixed_segments[new_index] = segments[index].copy()
+            new_index += 1
+
+    if new_index != len(segments):
+        print "Merged %d segments that were invalid for the mezzanine, changed from %d to %d entries" % (combined_count,
+            new_index, len(segments))
+
+    # fixed up list of merged segments and time information stored as dicts
+    return fixed_segments
+
+def segment_source(mezzanine_fn, vcodec, video_framerate, seg_dir, video_dir, video_duration, processes, cache = True):
+    """Split Source Video into parts, returns list of source segments."""
+    # calc source segment duration
+    source_segment_duration = int((video_duration/1000.0) / max(1, processes)) + 1
+    if debug:
+        print "Source video duration: %f Segment duration: %f" % (video_duration, source_segment_duration)
+    # setup and lock cache directory for mezzanine segments
+    segment_lock = None
+    segments = []
+    if cache:
+        (segment_lock, segments) = segment_cache_open(seg_dir)
+        # if we have a valid cache of segments, use it, unlock and return
+        if segment_lock and len(segments) > 0:
+            segments = segment_cache_close(segment_lock, segments, seg_dir)
+            if len(segments) > 0 and len(segments) == processes:
+                return segments # cached segments
+
+    ext = "mov"
+    format = "mov"
+    playlist_file = "%s/v.csv" % seg_dir
+    segment_pattern = "%s/m%%d.%s" % (seg_dir, ext)
+    cmd = ['FFmpeg/ffmpeg']
+    # if mpeg we need to generate pts ts for missing start timestamps
+    # https://trac.ffmpeg.org/ticket/1979
+    if vcodec == 'mpeg4':
+        cmd.extend(['-fflags', '+genpts'])
+    cmd.extend(['-i', mezzanine_fn, '-codec', 'copy',
+               '-map', '0:v',
+               '-an', '-dn', '-sn',
+               '-f', 'ssegment',
+               '-segment_list_size', '0',
+               '-segment_time_delta', '%s' % (1/(2*video_framerate))])
+    cmd.extend(['-segment_time', '%s' % source_segment_duration])
+    cmd.extend(['-reset_timestamps', '0'])
+    cmd.extend(['-segment_list', playlist_file, '-segment_list_type', 'csv',])
+    cmd.extend(['-hide_banner', '-nostdin', '-loglevel', 'error', '-nostats'])
+    cmd.extend(['-individual_header_trailer', '1'])
+    cmd.extend(['-write_header_trailer', '1'])
+    cmd.extend(['-segment_format', format])
+
+    cmd.extend([segment_pattern])
+    try:
+        if debug:
+            print "Running Segmentation cmd: %s" % ' '.join(cmd)
+        output = subprocess.check_output(cmd)
+        if debug:
+            print "Source segment output: %s" % output
+        # Extract filenames of segments from playlist and time offsets
+        segments = get_segments(playlist_file, seg_dir, video_dir, ext)
+    except Exception, e:
+        print "Source segmentation failed: %s" % e
+        return []
+    finally:
+        # unlock cache segments if we got a lock, even if we failed to segment
+        if segment_lock:
+            # if fails, we don't use the segments, bad cache?
+            segment_cache_close(segment_lock, segments, seg_dir)
+
+    # confirm source exists, setup destination for encoding files
+    for segment in segments:
+        # check for source segment existing, if not then a bad cache
+        if 'source' not in segment or not isfile(segment['source']):
+            # hit a bad segment, it is all bad, rewrite cache if possible, or give up on segmenting
+            # break this loop, we just created a fresh segment so should be fine
+            print "Bad segment list, invalid segment found: %r" % segment
+            return []
+
+    return segments
+
+def prepare_encode(source_segments, audio_file, tmp_dir, video_file):
+    """
+    Take list of segments, audio file, and format, concat/mux/format.
+
+    Create list of files to concatenate with the ffmpeg,
+    concat stream muxer, rewrites timestamps, fixes a/v sync.
+    """
+    # create an mp4 file, use 'hls' for mpegts, then change segment() too
+    format = 'mp4'
+    # create a concat muxer file list of segments to combine
+    concat_list = "%s/mezz_segments" % tmp_dir
+    total_duration = 0.0
+    with open(concat_list, 'w') as file:
+        for segment in source_segments:
+            if debug:
+                print "adding encode to source segments: %r" % segment
+            encode = segment['encode']
+            file.write("file '%s/%s'\n" % (getcwd(), encode))
+            file.write("duration %f\n" % segment['duration'])
+            total_duration += segment['duration']
+
+    # Combine encoded segements back into one single video file
+    analyzeduration = min(2147480000, int((total_duration / 2.0) * 1000000.0))
+    concat_cmd = ['FFmpeg/ffmpeg', '-analyzeduration', str(analyzeduration),
+               '-f', 'concat', '-safe', '0', '-i', "%s" % concat_list,
+               '-i', audio_file,
+               '-f', format,
+               '-map', '0:v', '-map', '1:a',
+               '-vcodec', 'copy',
+               '-hide_banner', '-nostdin', '-loglevel', 'info']
+    if format == 'mp4':
+        concat_cmd.extend(['-movflags', '+faststart'])
+    concat_cmd.extend([video_file])
+    if debug:
+        print "Running recombine: %s" % ' '.join(concat_cmd)
+    output = subprocess.check_output(concat_cmd)
+    print "Muxed A/V output: %s" % output
+
+
 # create directories needed
 if not isdir(base_directory):
     mkdir(base_directory)
@@ -191,8 +566,34 @@ for m in mezzanines:
     test_label_idx = 0
     processes = []
     decoded_encodes = []
+
+    mezzanine_fn = "%s/%s/%s" % (cur_dir, mezz_dir, m)
+
+    # get mezzanine duration
+    params = "--Inform=General;%Duration%,%OverallBitRate%"
+    cmd = ['mediainfo', params, mezzanine_fn]
+    print " - extracting metadata from format..."
+    stdout = subprocess.check_output(cmd)
+    data_string = "".join([line for line in stdout if
+                    ((ord(line) >= 32 and ord(line) < 128) or ord(line) == 10 or ord(line) == 13)]).strip()
+    mezz_duration = float(data_string.split(',')[0])
+
+    params = "--Inform=Video;%CodecID%,%FrameRate%,%Height%,%Width%"
+    cmd = ['mediainfo', params, mezzanine_fn]
+    print " - extracting metadata from video..."
+    stdout = subprocess.check_output(cmd)
+    data_string = "".join([line for line in stdout if
+                    ((ord(line) >= 32 and ord(line) < 128) or ord(line) == 10 or ord(line) == 13)]).strip()
+    vcodec = "%s" % data_string.split(',')[0].lower()
+    mezz_fps = float(data_string.split(',')[1])
+    mezz_height = int(data_string.split(',')[2])
+    mezz_width = int(data_string.split(',')[3])
+
+    print "mezzanine:\n\tcodec: %s\n\tframerate: %0.2f\n\tframesize: %s\n\tduration: %0.2f" % (vcodec,
+                                                                    mezz_fps, "%dx%d" % (mezz_width, mezz_height),
+                                                                    mezz_duration)
+
     for test_label in test_labels:
-        mezzanine_fn = "%s/%s/%s" % (cur_dir, mezz_dir, m)
         encode_fn = "%s/%s/%s_%s_%s.mp4" % (cur_dir, encode_dir, m.split('.')[0], test_label, test_letter)
         encode_data_fn = "%s/%s/%s_%s_%s.mp4_data.json" % (cur_dir, encode_dir, m.split('.')[0], test_label, test_letter)
         pass_log_fn = "%s/%s/%s_%s_%s.mp4_pass.log" % (cur_dir, encode_dir, m.split('.')[0], test_label, test_letter)
@@ -211,29 +612,37 @@ for m in mezzanines:
                 processes = []
                 mezzanine_segments = []
                 encode_segments = []
+                source_segments = []
                 p = None
+                enc_dir = None
                 # split mezzanine here
                 if segment:
-                    ##video-splitter/ffmpeg-split.py -c 12 -v copy -e '-an -dn' -f /the/mezzanine.mov
-                    cmd = ['video-splitter/ffmpeg-split.py', '-c', str(threads), '-v', 'copy', '-e', '-y -an -dn -loglevel error', '-f', mezzanine_fn]
                     print " - splitting mezzanine into segments for parallel encoding..."
-                    stdout = subprocess.check_output(cmd)
-                    #
-                    # get list of mezzanine segments
-                    mezzanine_segments = [f for f in listdir(mezz_dir) if f.startswith("%s-" % m.split('.')[0])]
+                    seg_dir = "%s/%s_%d" % (video_dir, m.split('.')[0], threads)
+                    enc_dir = "%s/%s_%d" % (video_dir, "%s_%s_%s" % (m.split('.')[0], test_label, test_letter), threads)
+                    if not isdir(enc_dir):
+                        mkdir(enc_dir)
+                    source_segments = segment_source(mezzanine_fn, vcodec, mezz_fps, seg_dir, enc_dir, mezz_duration, threads, True)
                     #
                     # run multiple processes for each segment
-                    if len(mezzanine_segments) > 0:
-                        for s in mezzanine_segments:
-                            mezzanine_segment = "%s/%s" % (mezz_dir, s)
-                            encode_segment = "%s/%s" % (video_dir, s)
-                            pass_log_fn = "%s/%s/%s_%s_%s.mp4_pass.log" % (cur_dir, encode_dir, s.split('.')[0], test_label, test_letter)
-                            print "Segment: mezzanine: %s encode: %s passlog: %s" % (mezzanine_segment, encode_segment, pass_log_fn)
+                    if len(source_segments) > 0:
+                        for s in source_segments:
+                            mezzanine_segment = s['source']
+                            mezzanine_segments.append(mezzanine_segment)
+                            encode_segment = s['encode']
+                            encode_segments.append(encode_segment)
+                            pass_log_fn = "%s/%s/%s_%s_%s.mp4_pass.log" % (cur_dir,
+                                            encode_dir, "%s_%d" % (m.split('.')[0], s['index']), test_label, test_letter)
+                            # calc threads per segment depending on how many segments we got back
+                            seg_threads = min(threads, int((float(threads) * 2.0) / float(len(source_segments))))
+                            if debug:
+                                print "Segment: threads: %d mezzanine: %s encode: %s passlog: %s" % (seg_threads,
+                                                                                                 mezzanine_segment, encode_segment, pass_log_fn)
                             encode_segments.append(encode_segment)
                             p = Process(target=encode_video, args=(mezzanine_segment, encode_segment,
                                             rate_control, test_args[test_label_idx], global_args,
                                             encoders[test_label_idx],
-                                            pass_log_fn, 1,))
+                                            pass_log_fn, seg_threads,))
                             # run each encode in parallel
                             if p != None:
                                 p.start()
@@ -257,29 +666,7 @@ for m in mezzanines:
 
                 # mux together encoding segments if needed
                 if segment:
-                    # ffmpeg -i segment[0] -i segment[1] -i segment[2] -filter_complex \
-                    #      '[0:0] [1:0] [2:0] concat=n=3:v=1:a=0 [v]' \
-                    #            -map '[v]' output.mp4
-                    cmd = ['FFmpeg/ffmpeg', '-hide_banner', '-y', '-nostdin', '-nostats',
-                                '-loglevel', 'error']
-                    for sfile in encode_segments:
-                        # input files
-                        cmd.append('-i')
-                        cmd.append(sfile)
-                    cmd.append('-filter_complex')
-                    filter_str = ""
-                    for order, sfile in enumerate(encode_segments):
-                        # input streams per file
-                        filter_str = filter_str + "[%d:0] " % (order)
-                    filter_str = filter_str + "concat=n=%d:v=1:a=0 [v]" % (len(encode_segments))
-                    cmd.append(filter_str)
-                    cmd.append('-map')
-                    cmd.append('[v]')
-                    cmd.append(encode_fn)
-
-                    if debug:
-                        print "Running cmd: %r" % cmd
-                    subprocess.call(cmd)
+                    prepare_encode(source_segments, mezzanine_fn, enc_dir, encode_fn)
 
                 # mux segmented parallel encoding parts into one
                 if len(encode_segments) > 0:
@@ -290,7 +677,7 @@ for m in mezzanines:
                             remove(es)
 
                 # clean up mezzanine segments
-                if len(mezzanine_segments) > 0:
+                if not segment and len(mezzanine_segments) > 0:
                     for ms in mezzanine_segments:
                         mezzanine_segment = "%s/%s" % (mezz_dir, ms)
                         if isfile(mezzanine_segment):
@@ -302,6 +689,7 @@ for m in mezzanines:
                 with open(speed_result, "w") as f:
                     f.write("{\"file\":\"%s\",\"speed\":\"%d\"}" % (encode_fn, int(end_time - start_time)))
             except Exception, e:
+                print(traceback.format_exc())
                 print "Failure Encoding: %s" % e
         else:
             print " Encode exists"
