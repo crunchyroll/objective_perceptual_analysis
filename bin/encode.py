@@ -135,7 +135,7 @@ def get_results(test_metric, result_fn, encode_video_fn, create_result_cmd):
             # remove results since they are not complete
             remove(result_fn)
 
-def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, encoders, pass_log_fn, threads):
+def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, encoders, pass_log_fn, threads, idx = 0):
     if rate_control == "twopass":
         # pass 1
         fp_args = list(test_args)
@@ -148,7 +148,7 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
             '-an', '-passlogfile', pass_log_fn,
             '-threads', str(threads), '-y', '/dev/null']
 
-        print " - encoding first pass..."
+        print " [%d] %s - encoding first pass..." % (idx, encode_fn)
         for output in execute(create_encode_cmd):
             print output
         # pass 2
@@ -157,11 +157,11 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
             '-passlogfile', pass_log_fn,
             '-threads', str(threads), encode_fn]
 
-        print " - encoding second pass..."
+        print " [%d] %s - encoding second pass..." % (idx, encode_fn)
         for output in execute(create_encode_cmd):
             print output
     else:
-        print " - encoding in one pass..."
+        print " [%d] %s - encoding in one pass..." % (idx, encode_fn)
         create_encode_cmd = [encoders[test_label_idx], '-loglevel', 'warning', '-hide_banner', '-nostats', '-nostdin',
             '-i', mezzanine_fn] + global_args + test_args[test_label_idx] + ['-threads', str(threads),
             encode_fn]
@@ -442,16 +442,19 @@ def segment_source(mezzanine_fn, vcodec, video_framerate, seg_dir, video_dir, vi
     # setup and lock cache directory for mezzanine segments
     segment_lock = None
     segments = []
+    ext = "mov"
+    format = "mov"
     if cache:
         (segment_lock, segments) = segment_cache_open(seg_dir)
         # if we have a valid cache of segments, use it, unlock and return
         if segment_lock and len(segments) > 0:
             segments = segment_cache_close(segment_lock, segments, seg_dir)
-            if len(segments) > 0 and len(segments) == processes:
+            if len(segments) > 0:
+                # update encode output for this encode
+                for s in segments:
+                    s['encode'] = "%s/v%d.%s" % (video_dir, s['index'], ext)
                 return segments # cached segments
 
-    ext = "mov"
-    format = "mov"
     playlist_file = "%s/v.csv" % seg_dir
     segment_pattern = "%s/m%%d.%s" % (seg_dir, ext)
     cmd = ['FFmpeg/ffmpeg']
