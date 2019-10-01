@@ -154,7 +154,7 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
                 fp_args[i+1] = "4"
         create_encode_cmd = [encoders, '-loglevel', 'error', '-hide_banner',
             '-nostats', '-nostdin', '-i', mezzanine_fn] + global_args + fp_args + ['-pass', '1',
-            '-an', '-passlogfile', pass_log_fn,
+            '-an', '-passlogfile', pass_log_fn, '-f', 'mpegts',
             '-threads', str(threads), '-y', '/dev/null']
 
         print " FirstPass Encoding [%d] %s..." % (idx, pass_log_fn)
