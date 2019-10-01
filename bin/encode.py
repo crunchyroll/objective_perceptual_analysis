@@ -436,7 +436,7 @@ def get_segments(playlist_file, seg_dir, video_dir, encext):
 def segment_source(mezzanine_fn, vcodec, video_framerate, seg_dir, video_dir, video_duration, processes, cache = True):
     """Split Source Video into parts, returns list of source segments."""
     # calc source segment duration
-    source_segment_duration = int((video_duration/1000.0) / max(1, processes)) + 1
+    source_segment_duration = max(1, int((video_duration/1000.0) / max(1.0, float(processes))))
     if debug:
         print "Source video duration: %f Segment duration: %f" % (video_duration, source_segment_duration)
     # setup and lock cache directory for mezzanine segments
