@@ -136,6 +136,10 @@ def get_results(test_metric, result_fn, encode_video_fn, create_result_cmd):
             remove(result_fn)
 
 def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, encoders, pass_log_fn, threads, idx = 0):
+    # cleanup any failed encodings
+    if isfile(encode_fn):
+        remove(encode_fn)
+
     if rate_control == "twopass":
         # pass 1
         fp_args = list(test_args)
@@ -148,7 +152,7 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
             '-an', '-passlogfile', pass_log_fn,
             '-threads', str(threads), '-y', '/dev/null']
 
-        print " [%d] %s - encoding first pass..." % (idx, encode_fn)
+        print " FirstPass Encoding [%d] %s..." % (idx, pass_log_fn)
         for output in execute(create_encode_cmd):
             print output
         # pass 2
@@ -157,7 +161,7 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
             '-passlogfile', pass_log_fn,
             '-threads', str(threads), encode_fn]
 
-        print " [%d] %s - encoding second pass..." % (idx, encode_fn)
+        print " SecondPass Encoding [%d] %s..." % (idx, encode_fn)
         for output in execute(create_encode_cmd):
             print output
     else:
@@ -354,7 +358,7 @@ def get_segments(playlist_file, seg_dir, video_dir, encext):
                 encode_segment = "%s/v%d.%s" % (video_dir, segnum, encext)
                 source_segment = s_file
 
-                print "segment[%d] %0.1f-%0.1f (%0.1f)" % (segnum, float(segstart), float(segstop), duration)
+                print "segment[%d] %0.1f-%0.1f (%0.1f)" % (segnum+1, float(segstart), float(segstop), duration)
 
                 # store segment name for combination
                 source_segment_dict = dict(
@@ -448,8 +452,9 @@ def segment_source(mezzanine_fn, vcodec, video_framerate, seg_dir, video_dir, vi
         (segment_lock, segments) = segment_cache_open(seg_dir)
         # if we have a valid cache of segments, use it, unlock and return
         if segment_lock and len(segments) > 0:
-            segments = segment_cache_close(segment_lock, segments, seg_dir)
-            if len(segments) > 0:
+            # make sure we have the number of segments requested
+            if len(segments) > 0 and len(segments) >= processes:
+                segments = segment_cache_close(segment_lock, segments, seg_dir)
                 # update encode output for this encode
                 for s in segments:
                     s['encode'] = "%s/v%d.%s" % (video_dir, s['index'], ext)
@@ -629,7 +634,7 @@ for m in mezzanines:
                     #
                     # run multiple processes for each segment
                     if len(source_segments) > 0:
-                        for s in source_segments:
+                        for idx, s in enumerate(source_segments):
                             mezzanine_segment = s['source']
                             mezzanine_segments.append(mezzanine_segment)
                             encode_segment = s['encode']
@@ -645,7 +650,7 @@ for m in mezzanines:
                             p = Process(target=encode_video, args=(mezzanine_segment, encode_segment,
                                             rate_control, test_args[test_label_idx], global_args,
                                             encoders[test_label_idx],
-                                            pass_log_fn, seg_threads,))
+                                            pass_log_fn, seg_threads, (idx+1),))
                             # run each encode in parallel
                             if p != None:
                                 p.start()
