@@ -17,12 +17,7 @@ elif [ "$OS" == "Linux" ]; then
     fi
 fi
 
-if [ ! -d "video-splitter" ]; then
-    git clone https://github.com/c0decracker/video-splitter.git
-    chomd 755 video-splitter/ffmpeg-split.py
-fi
 echo
 echo "encode and results tools are in bin/"
-echo "video splitter is in video-splitter/"
 echo "scripts to run tests in scripts/"
 echo "tests directory is tests/"
