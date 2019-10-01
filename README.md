@@ -10,6 +10,16 @@ then a hamming distance is derived from the two hashes. This values shows the pe
 similarity of the two images. The hamming distance is used to vary the encoders bitrate
 or CRF level. Currently only X264 is supported in this implementation. 
 
+Also research via bin/encode.py and bin/results.py script:
+
+- Parallel Encoding / can set per test for comparisons
+- Quality both Objective and setup for Subjective tests
+- Easy encoding tests for H.254, VP9 and AV1
+- Perceptual Hash research with encoding decisions and metrics
+- Simple Objective metrics calculated
+- Frame images and metrics burn in per frame via SRT
+- Scene segmentation and analysis with objective metrics
+
 Everything can be easily setup via setup.sh, it will install what is necessary
 for the most part. Please report back any issues so this can be improved for edge cases.
 

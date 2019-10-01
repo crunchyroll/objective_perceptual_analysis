@@ -27,12 +27,14 @@ Example steps:
     example: (multiple tests can be separated by commas)
     
    ```'bin/encode.py -m psnr,vmaf -n test001 -p 4 \
-   -t "test1|FFmpeg/ffmpeg|twopass|-vcodec|libx264|-vf|perceptual|-b:v|4000k|-maxrate:v|4000k|-bufsize|6000k" -d -o'
+   -t "test1|FFmpeg/ffmpeg|twopass|S|-vcodec|libx264|-vf|perceptual|-b:v|4000k|-maxrate:v|4000k|-bufsize|6000k" -d -o'
    ```
         
-    Format - ```Label|FFmpegBin|RateControl|arg|arg;Label|FFmpegBin|RC|arg|arg;...```
+    Format - ```Label|FFmpegBin|FLAGS|RateControl|arg|arg;Label|FFmpegBin|RC|arg|arg;...```
         - multiple sets of encode tests separted by semi colons with each FFmpeg
         arg separated by pipes, with a label, binary path, and rate control method.
+        - FLAGS:
+        -   S=segmented/parallel encoding mode
     
 ratecontrol options:
    
