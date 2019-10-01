@@ -278,12 +278,11 @@ def segment_cache_open(seg_dir):
     # return lock file if we succeeded
     return (lock_file_fd, segments)
 
-def concat_video_segments(first, second, seg_dir, index = None):
+def concat_video_segments(first, second, seg_dir, index = None, ext = "ts"):
     """Take two video segments and combine them"""
     concat_list = "%s/merge_segments_%d.list" % (seg_dir, index)
     if not index: # generate something unique if index number not passed in
         index = str(uuid.uuid4())
-    ext = 'ts'
     merged_segment = "%s/merged_segment_%d.%s" % (seg_dir, index, ext)
     with open(concat_list, 'w') as file:
         file.write("file '%s'\n" % first)
@@ -409,7 +408,7 @@ def get_segments(playlist_file, seg_dir, video_dir, encext):
             print "Segment Invalid [%d]: [%s]!" % (index, s)
             # attempt to repair segment
             fixed_segments_index = len(fixed_segments) - 1 # get current fixed segments position
-            concat_video_segments(last_segment['source'], s['source'], seg_dir, index = index)
+            concat_video_segments(last_segment['source'], s['source'], seg_dir, index = index, ext = encext)
             # fix up metadata on the original segments list
             last_index = int(last_segment['index'])
             fixed_segments[fixed_segments_index]['stop'] = s['stop'] # set last segment to this ones stop
@@ -437,7 +436,7 @@ def get_segments(playlist_file, seg_dir, video_dir, encext):
     # fixed up list of merged segments and time information stored as dicts
     return fixed_segments
 
-def segment_source(mezzanine_fn, vcodec, video_framerate, seg_dir, video_dir, video_duration, processes, cache = True):
+def segment_source(mezzanine_fn, vcodec, video_framerate, seg_dir, video_dir, video_duration, processes, cache = True, ext = "mov", format = "mov"):
     """Split Source Video into parts, returns list of source segments."""
     # calc source segment duration
     source_segment_duration = max(1, int((video_duration/1000.0) / max(1.0, float(processes))))
@@ -446,8 +445,6 @@ def segment_source(mezzanine_fn, vcodec, video_framerate, seg_dir, video_dir, vi
     # setup and lock cache directory for mezzanine segments
     segment_lock = None
     segments = []
-    ext = "mov"
-    format = "mov"
     if cache:
         (segment_lock, segments) = segment_cache_open(seg_dir)
         # if we have a valid cache of segments, use it, unlock and return
@@ -630,7 +627,13 @@ for m in mezzanines:
                     enc_dir = "%s/%s_%d" % (video_dir, "%s_%s_%s" % (m.split('.')[0], test_label, test_letter), threads)
                     if not isdir(enc_dir):
                         mkdir(enc_dir)
-                    source_segments = segment_source(mezzanine_fn, vcodec, mezz_fps, seg_dir, enc_dir, mezz_duration, threads, True)
+                    ext = m.split('.')[1]
+                    format = "ts"
+                    if ext == "mov":
+                        format = "mov"
+                    elif ext == "mp4":
+                        format = "mp4"
+                    source_segments = segment_source(mezzanine_fn, vcodec, mezz_fps, seg_dir, enc_dir, mezz_duration, threads, True, ext, format)
                     #
                     # run multiple processes for each segment
                     if len(source_segments) > 0:
