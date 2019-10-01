@@ -33,6 +33,7 @@ metrics = ""
 global_args = []
 test_labels = [];
 encoders = [];
+encode_flags = [];
 rate_controls = [];
 test_args = []
 test_metrics = []
@@ -43,8 +44,8 @@ use_msu = False
 ap = argparse.ArgumentParser()
 ap.add_argument('-m', '--metrics', dest='metrics', required=False, help="Metric List. Delimited by commas: Options - psnr,vmaf,ssim")
 ap.add_argument('-p', '--threads', dest='threads', required=False, help="threads to use for encoding")
-ap.add_argument('-t', '--tests', dest='tests', required=True, help="Tests to run, Format - Label|FFmpegBin|RateControl|arg|arg;Label|FFmpegBin|RC|arg|arg;...")
-ap.add_argument('-a', '--encoder_args', dest='encoder_args', required=False, help="Global args for encoders - FFmpegBin|arg|arg,FFmpegBin|arg|arg")
+ap.add_argument('-t', '--tests', dest='tests', required=True, help="Tests to run, Format - Label|FFmpegBin|RateControl|Flags|arg|arg;Label|FFmpegBin|RC|FLGS|arg|arg;...")
+#ap.add_argument('-a', '--encoder_args', dest='encoder_args', required=False, help="Global args for encoders - FFmpegBin|arg|arg,FFmpegBin|arg|arg")
 ap.add_argument('-n', '--directory', dest='directory', required=True, help="Name of the tests base directory")
 ap.add_argument('-k', '--keep_raw', dest='keep_raw', required=False, action='store_true', help="keep raw yuv avi video clips in ./videos/")
 ap.add_argument('-d', '--debug', dest='debug', required=False, action='store_true', help="Debug")
@@ -57,7 +58,7 @@ base_directory = args['directory']
 debug = args['debug']
 if args['threads'] != None:
     threads = int(args['threads'])
-encoder_args = args['encoder_args']
+#encoder_args = args['encoder_args']
 use_msu = args['use_msu']
 segment = args['segment']
 
@@ -67,10 +68,12 @@ video_dir = "%s/videos" % base_directory
 result_dir = "%s/results" % base_directory
 cur_dir = getcwd()
 
+""" Not implemented
 if encoder_args != None:
     encoder_args_list = args['encoder_args'].split(',')
     for i in encoder_args_list:
         pass # TODO handle global args
+"""
 
 if args['metrics'] != None:
     metric_list = args['metrics'].split(',')
@@ -88,7 +91,8 @@ if args['tests'] != None:
         label = lparts[0]
         encoder = lparts[1]
         rate_control = lparts[2]
-        encoder_args = lparts[3:]
+        flags = lparts[3]
+        encoder_args = lparts[4:]
         if '_' in label:
             print "Error, Test labels cannot have underscores '_' in them!"
             sys.exit(1)
@@ -96,6 +100,7 @@ if args['tests'] != None:
         encoders.append(encoder)
         rate_controls.append(rate_control)
         test_args.append(encoder_args)
+        encode_flags.append(flags)
 
 print "Running test in %s directory" % base_directory
 
@@ -613,7 +618,11 @@ for m in mezzanines:
             try:
                 start_time = time.time()
                 rate_control = rate_controls[test_label_idx]
-
+                # Flags, S: Segment Encode
+                flags = encode_flags[test_label_idx]
+                segment_encode = False
+                if 'S' in flags:
+                    segment_encode = True
                 processes = []
                 mezzanine_segments = []
                 encode_segments = []
@@ -621,7 +630,7 @@ for m in mezzanines:
                 p = None
                 enc_dir = None
                 # split mezzanine here
-                if segment:
+                if segment or segment_encode:
                     print " - splitting mezzanine into segments for parallel encoding..."
                     seg_dir = "%s/%s_%d" % (video_dir, m.split('.')[0], threads)
                     enc_dir = "%s/%s_%d" % (video_dir, "%s_%s_%s" % (m.split('.')[0], test_label, test_letter), threads)
@@ -642,7 +651,7 @@ for m in mezzanines:
                             mezzanine_segments.append(mezzanine_segment)
                             encode_segment = s['encode']
                             encode_segments.append(encode_segment)
-                            pass_log_fn = "%s/%s/%s_%s_%s.mp4_pass.log" % (cur_dir,
+                            pass_log_fn = "%s/%s/%s_%s_%s_pass.log" % (cur_dir,
                                             encode_dir, "%s_%d" % (m.split('.')[0], s['index']), test_label, test_letter)
                             # calc threads per segment depending on how many segments we got back
                             seg_threads = min(threads, int((float(threads) * 2.0) / float(len(source_segments))))
@@ -676,7 +685,7 @@ for m in mezzanines:
                     p.join()
 
                 # mux together encoding segments if needed
-                if segment:
+                if segment or segment_encode:
                     prepare_encode(source_segments, mezzanine_fn, enc_dir, encode_fn)
 
                 # mux segmented parallel encoding parts into one
@@ -688,7 +697,7 @@ for m in mezzanines:
                             remove(es)
 
                 # clean up mezzanine segments
-                if not segment and len(mezzanine_segments) > 0:
+                if not segment and not segment_encode and len(mezzanine_segments) > 0:
                     for ms in mezzanine_segments:
                         mezzanine_segment = "%s/%s" % (mezz_dir, ms)
                         if isfile(mezzanine_segment):
@@ -739,7 +748,7 @@ for m in mezzanines:
                 f.write(json.dumps(data))
 
         # decode raw yuv versions of encodes if we are using MSU tools
-        if use_msu:
+        if use_msu or keep_raw:
             print " %s" % mezzanine_video_fn
             if not isfile(mezzanine_video_fn) or getsize(mezzanine_video_fn) <= 0:
                 # Decode mezzanie to raw YUV AVI format for VQMT and Subj PQMT
