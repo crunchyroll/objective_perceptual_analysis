@@ -637,11 +637,20 @@ for m in mezzanines:
                     if not isdir(enc_dir):
                         mkdir(enc_dir)
                     ext = m.split('.')[1]
-                    format = "ts"
-                    if ext == "mov":
+                    format = "mpegts"
+                    if vcodec == "acph":
                         format = "mov"
-                    elif ext == "mp4":
-                        format = "mp4"
+                        ext = "mov"
+                    elif vcodec == "avc1" or ext == "mp4":
+                        format = "mpegts"
+                        ext = "ts"
+                    elif ext == "mov":
+                        format = "mov"
+                    elif ext == "wmv":
+                        format = "asf"
+                    else:
+                        ext = "ts" # give up and use TS, safest
+
                     source_segments = segment_source(mezzanine_fn, vcodec, mezz_fps, seg_dir, enc_dir, mezz_duration, threads, True, ext, format)
                     #
                     # run multiple processes for each segment
