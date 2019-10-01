@@ -34,15 +34,16 @@ Example steps:
         - multiple sets of encode tests separted by semi colons with each FFmpeg
         arg separated by pipes, with a label, binary path, and rate control method.
     
-    ratecontrol options:
+ratecontrol options:
+   
     - twopass (implemented)
-    (below are not implemented, add them to the cmdline for ffmpeg)
     - crf_NN
     - perceptual_crf_NN
     - perceptual_abr
     - abr
     
 Encoding Features / Research items:
+
     - Parallel / Segmented encoding (especially for AV1)
     - Image Hash x264 Perceptual encode optimization (WIP, help if you want)
     - Perceptual Hash metric for analysis
