@@ -531,7 +531,7 @@ def prepare_encode(source_segments, audio_file, tmp_dir, video_file):
                '-f', format,
                '-map', '0:v', '-map', '1:a',
                '-vcodec', 'copy',
-               '-hide_banner', '-nostdin', '-loglevel', 'info']
+               '-hide_banner', '-nostdin', '-loglevel', 'error', '-nostats']
     if format == 'mp4':
         concat_cmd.extend(['-movflags', '+faststart'])
     concat_cmd.extend([video_file])
