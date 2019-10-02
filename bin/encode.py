@@ -167,8 +167,8 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
         create_encode_cmd = [encoders, '-loglevel', 'warning', '-hide_banner',
             '-nostats', '-nostdin', '-i', mezzanine_fn] + global_args + test_args + ['-pass', '2',
             '-passlogfile', pass_log_fn,
-#            '-r', "%f" % mezz_fps,
             '-f', format,
+#            '-r', "%f" % mezz_fps,
 #            '-copyts',
 #            '-max_delay', '0', '-start_at_zero',
             '-threads', str(threads), encode_fn]
@@ -605,7 +605,7 @@ for m in mezzanines:
                     ((ord(line) >= 32 and ord(line) < 128) or ord(line) == 10 or ord(line) == 13)]).strip()
     mezz_duration = float(data_string.split(',')[0])
 
-    params = "--Inform=Video;%CodecID%,%FrameRate%,%Height%,%Width%"
+    params = "--Inform=Video;%CodecID%,%FrameRate%,%Height%,%Width%,%Format%"
     cmd = ['mediainfo', params, mezzanine_fn]
     print " - extracting metadata from video..."
     stdout = subprocess.check_output(cmd)
@@ -615,9 +615,10 @@ for m in mezzanines:
     mezz_fps = float(data_string.split(',')[1])
     mezz_height = int(data_string.split(',')[2])
     mezz_width = int(data_string.split(',')[3])
+    mezz_format = "%s" % data_string.split(',')[4].lower()
 
-    print "mezzanine:\n\tcodec: %s\n\tframerate: %0.2f\n\tframesize: %s\n\tduration: %0.2f" % (vcodec,
-                                                                    mezz_fps, "%dx%d" % (mezz_width, mezz_height),
+    print "mezzanine:\n\tcodec: %s\n\tformat: %s\n\tframerate: %0.2f\n\tframesize: %s\n\tduration: %0.2f" % (vcodec,
+                                                                    mezz_format, mezz_fps, "%dx%d" % (mezz_width, mezz_height),
                                                                     mezz_duration)
 
     for test_label in test_labels:
@@ -646,6 +647,7 @@ for m in mezzanines:
                 source_segments = []
                 p = None
                 enc_dir = None
+                encext = "mp4" # final encode extension: TODO make option for encode per line
                 # split mezzanine here
                 if segment or segment_encode:
                     print " - splitting mezzanine into segments for parallel encoding..."
@@ -657,13 +659,15 @@ for m in mezzanines:
                     format = "mp4" # segmented mezz split format
                     segencfmt = "mp4" # format for encode segments
                     segencext = "mp4" # extension for combining segments
-                    encext = "mp4" # final encode extension: TODO make option for encode per line
-                    if vcodec == "apch":
+                    if vcodec == "apch" or vcodec == "apcs":
                         format = "mov"
                         ext = "mov"
                     elif vcodec == "avc1" or ext == "mp4":
                         format = "mp4"
                         ext = "mp4"
+                    elif mezz_format == "mpeg video":
+                        format = "mpeg"
+                        ext = "mpg"
                     elif ext == "mov":
                         format = "mov"
                     elif ext == "wmv":
