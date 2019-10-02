@@ -17,15 +17,18 @@ environ["GDFONTPATH"] = "/usr/share/fonts/msttcorefonts/"
 results = []
 
 debug = False
+preview = False
 base_directory = None
 
 ap = argparse.ArgumentParser()
 ap.add_argument('-n', '--directory', dest='directory', required=True, help="Name of the tests base directory")
 ap.add_argument('-d', '--debug', dest='debug', required=False, action='store_true', help="Debug")
+ap.add_argument('-p', '--preview', dest='preview', required=False, action='store_true', help="Create preview videos with metrics burned in")
 args = vars(ap.parse_args())
 
 base_directory = args['directory']
 debug = args['debug']
+preview = args['preview']
 
 mezz_dir = "%s/mezzanines" % base_directory
 encode_dir = "%s/encodes" % base_directory
@@ -236,7 +239,7 @@ for m in mezzanines:
                         mkdir("%s/%s/videos" % (preview_dir, ebase))
 
                     # create a directory for the images in the frame range
-                    if not isdir(image_dir_period):
+                    if preview and not isdir(image_dir_period):
                         mkdir(image_dir_period)
 
                         # ffmpeg -i mezzanine -vf select='between(n\,%d\,%d),setpts=PTS-STARTPTS' image_dir_period/%08d.jpg
@@ -259,7 +262,7 @@ for m in mezzanines:
                     video_files.append("%s.mp4" % video_dir_period)
 
                     video_concat = preview_dir + "/" + ebase + ".mp4"
-                    if not isfile(video_concat) and i == (len(sections)-1):
+                    if preview and not isfile(video_concat) and i == (len(sections)-1):
                         # last segment, concatenate them all
                         #
                         # ffmpeg -i segment[0] -i segment[1] -i segment[2] -filter_complex \
