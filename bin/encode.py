@@ -22,6 +22,7 @@ import sys
 import time
 
 ffmpeg_bin = "./FFmpeg/ffmpeg"
+ffprobe_bin = "./FFmpeg/ffprobe"
 vqmt_bin = "/usr/local/bin/vqmt"
 
 keep_raw = False
@@ -40,6 +41,8 @@ test_metrics = []
 threads = 2
 debug = False
 use_msu = False
+use_audio = False
+use_experimental = False
 
 ap = argparse.ArgumentParser()
 ap.add_argument('-m', '--metrics', dest='metrics', required=False, help="Metric List. Delimited by commas: Options - psnr,vmaf,ssim")
@@ -51,6 +54,8 @@ ap.add_argument('-k', '--keep_raw', dest='keep_raw', required=False, action='sto
 ap.add_argument('-d', '--debug', dest='debug', required=False, action='store_true', help="Debug")
 ap.add_argument('-o', '--use_msu', dest='use_msu', required=False, action='store_true', help="Use MSU VQMT tool for obj metrics")
 ap.add_argument('-s', '--segment', dest='segment', required=False, action='store_true', help="Use parallel encoding by splitting mezz")
+ap.add_argument('-a', '--use_audio', dest='use_audio', required=False, action='store_true', help="Include Audio in encodings, default is false")
+ap.add_argument('-e', '--use_experimental', dest='use_experimental', required=False, action='store_true', help="Include experimental commands, -r fps -copyts -start_at_zero, -muxrate 0")
 args = vars(ap.parse_args())
 
 keep_raw = args['keep_raw']
@@ -60,6 +65,8 @@ if args['threads'] != None:
     threads = int(args['threads'])
 #encoder_args = args['encoder_args']
 use_msu = args['use_msu']
+use_audio = args['use_audio']
+use_experimental = args['use_experimental']
 segment = args['segment']
 
 mezz_dir = "%s/mezzanines" % base_directory
@@ -155,10 +162,15 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
         create_encode_cmd = [encoders, '-loglevel', 'error', '-hide_banner',
             '-nostats', '-nostdin', '-i', mezzanine_fn] + global_args + fp_args + ['-pass', '1',
             '-an', '-passlogfile', pass_log_fn, '-f', format,
-#            '-r', "%f" % mezz_fps,
-#            '-copyts',
-#            '-max_delay', '0', '-start_at_zero',
-            '-threads', str(threads), '-y', '/dev/null']
+            '-threads', str(threads), '-y']
+        # Experimental args
+        if use_experimental:
+            create_encode_cmd = create_encode_cmd + [
+                   '-r', "%f" % mezz_fps,
+                   '-copyts',
+                   '-max_delay', '0',
+                   '-start_at_zero']
+        create_encode_cmd = create_encode_cmd + ['/dev/null']
 
         print " FirstPass Encoding [%d] %s..." % (idx, pass_log_fn)
         for output in execute(create_encode_cmd):
@@ -168,10 +180,15 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
             '-nostats', '-nostdin', '-i', mezzanine_fn] + global_args + test_args + ['-pass', '2',
             '-passlogfile', pass_log_fn,
             '-f', format,
-#            '-r', "%f" % mezz_fps,
-#            '-copyts',
-#            '-max_delay', '0', '-start_at_zero',
-            '-threads', str(threads), encode_fn]
+            '-threads', str(threads)]
+        # Experimental args
+        if use_experimental:
+            create_encode_cmd = create_encode_cmd + [
+                   '-r', "%f" % mezz_fps,
+                   '-copyts',
+                   '-max_delay', '0',
+                   '-start_at_zero']
+        create_encode_cmd = create_encode_cmd + [encode_fn]
 
         print " SecondPass Encoding [%d] %s..." % (idx, encode_fn)
         for output in execute(create_encode_cmd):
@@ -180,10 +197,15 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
         print " [%d] %s - encoding in one pass..." % (idx, encode_fn)
         create_encode_cmd = [encoders[test_label_idx], '-loglevel', 'warning', '-hide_banner', '-nostats', '-nostdin',
             '-i', mezzanine_fn] + global_args + test_args[test_label_idx] + ['-threads', str(threads),
-#            '-r', "%f" % mezz_fps,
-#            '-copyts',
-#            '-max_delay', '0', '-start_at_zero',
-            '-f', format, encode_fn]
+            '-f', format]
+        # Experimental args
+        if use_experimental:
+            create_encode_cmd = create_encode_cmd + [
+                   '-r', "%f" % mezz_fps,
+                   '-copyts',
+                   '-max_delay', '0',
+                   '-start_at_zero']
+        create_encode_cmd = create_encode_cmd + [encode_fn]
 
         for output in execute(create_encode_cmd):
             print output
@@ -302,7 +324,7 @@ def concat_video_segments(first, second, seg_dir, index, format, ext):
     with open(concat_list, 'w') as file:
         file.write("file '%s'\n" % first)
         file.write("file '%s'\n" % second)
-    concat_cmd = ['FFmpeg/ffmpeg',
+    concat_cmd = [ffmpeg_bin,
                '-f', 'concat', '-safe', '0', '-i', "%s" % concat_list,
                '-f', format,
                '-codec', 'copy',
@@ -332,7 +354,7 @@ def validate_segment(segment_json):
     output = ''
     try:
         # If the first frame isn't a keyframe, this segment isn't valid.
-        ffprobe_output = subprocess.check_output(["FFmpeg/ffprobe",
+        ffprobe_output = subprocess.check_output([ffprobe_bin,
             '-hide_banner', '-loglevel', 'error',
             segment,
             '-select_streams', 'v:%d' % 0,
@@ -476,7 +498,7 @@ def segment_source(mezzanine_fn, vcodec, video_framerate, seg_dir, video_dir, vi
 
     playlist_file = "%s/v.csv" % seg_dir
     segment_pattern = "%s/m%%d.%s" % (seg_dir, ext)
-    cmd = ['FFmpeg/ffmpeg']
+    cmd = [ffmpeg_bin]
     # if mpeg we need to generate pts ts for missing start timestamps
     # https://trac.ffmpeg.org/ticket/1979
     if vcodec == 'mpeg4':
@@ -485,8 +507,6 @@ def segment_source(mezzanine_fn, vcodec, video_framerate, seg_dir, video_dir, vi
                '-map', '0:v',
                '-an', '-dn', '-sn',
                '-f', 'ssegment',
-#               '-r', "%f" % framerate,
-#               '-max_delay', '0', '-start_at_zero',
                '-segment_list_size', '0',
                '-segment_time_delta', '%s' % (1/(2*video_framerate))])
     cmd.extend(['-segment_time', '%s' % source_segment_duration])
@@ -496,6 +516,11 @@ def segment_source(mezzanine_fn, vcodec, video_framerate, seg_dir, video_dir, vi
     cmd.extend(['-individual_header_trailer', '1'])
     cmd.extend(['-write_header_trailer', '1'])
     cmd.extend(['-segment_format', format])
+#    if format == 'mpeg':
+#       cmd.extend(['-preload', '0', '-muxrate', '99999999999'])
+#    cmd.extend(['-r', "%f" % framerate])
+#    cmd.extend(['-max_delay', '0'])
+#    cmd.extend(['-start_at_zero'])
 
     cmd.extend([segment_pattern])
     try:
@@ -547,18 +572,25 @@ def prepare_encode(source_segments, audio_file, tmp_dir, video_file, mezz_fps, e
 
     # Combine encoded segements back into one single video file
     analyzeduration = min(2147480000, int((total_duration / 2.0) * 1000000.0))
-    concat_cmd = ['FFmpeg/ffmpeg', '-analyzeduration', str(analyzeduration),
-               '-f', 'concat', '-safe', '0',
-               '-i', "%s" % concat_list,
-               '-i', audio_file,
+    concat_cmd = [ffmpeg_bin , '-analyzeduration', str(analyzeduration),
+               '-f', 'concat', '-safe', '0', '-y']
+    concat_cmd = concat_cmd + ['-i', "%s" % concat_list]
+
+    if use_audio:
+       concat_cmd = concat_cmd + ['-i', audio_file, '-map', '1:a']
+
+    concat_cmd = concat_cmd + [
                '-map', '0:v',
-               '-map', '1:a',
                '-f', encext,
-#               '-r', "%f" % mezz_fps,
-#               '-copyts',
-#               '-max_delay', '0', '-start_at_zero',
                '-vcodec', 'copy',
                '-hide_banner', '-nostdin', '-loglevel', 'error', '-nostats']
+    # Experimental args
+    if use_experimental:
+        concat_cmd = concat_cmd + [
+               '-r', "%f" % mezz_fps,
+               '-copyts',
+               '-max_delay', '0',
+               '-start_at_zero']
     if encext == 'mp4':
         concat_cmd.extend(['-movflags', '+faststart'])
     concat_cmd.extend([video_file])
@@ -659,7 +691,7 @@ for m in mezzanines:
                     format = "mp4" # segmented mezz split format
                     segencfmt = "mp4" # format for encode segments
                     segencext = "mp4" # extension for combining segments
-                    if vcodec == "apch" or vcodec == "apcs":
+                    if format == "prores":
                         format = "mov"
                         ext = "mov"
                     elif vcodec == "avc1" or ext == "mp4":
@@ -673,7 +705,9 @@ for m in mezzanines:
                     elif ext == "wmv":
                         format = "asf"
                     else:
-                        ext = "mp4" # give up and use TS, safest
+                        ext = "mp4" # unknown format / codec
+
+                    print "Segmenting format: %s extension: %s segment_format: %s segment_extension: %s" % (format, ext, segencfmt, segencext)
 
                     source_segments = segment_source(mezzanine_fn, vcodec, mezz_fps, seg_dir, enc_dir, mezz_duration, threads, True, ext, format, segencext, mezz_fps)
                     #
