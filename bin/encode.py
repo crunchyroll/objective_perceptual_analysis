@@ -156,7 +156,8 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
             '-nostats', '-nostdin', '-i', mezzanine_fn] + global_args + fp_args + ['-pass', '1',
             '-an', '-passlogfile', pass_log_fn, '-f', format,
             '-r', "%f" % mezz_fps,
-            '-copyts', '-max_delay', '0', '-start_at_zero',
+            '-copyts',
+            '-max_delay', '0', '-start_at_zero',
             '-threads', str(threads), '-y', '/dev/null']
 
         print " FirstPass Encoding [%d] %s..." % (idx, pass_log_fn)
@@ -168,7 +169,8 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
             '-passlogfile', pass_log_fn,
             '-r', "%f" % mezz_fps,
             '-f', format,
-            '-copyts', '-max_delay', '0', '-start_at_zero',
+            '-copyts',
+            '-max_delay', '0', '-start_at_zero',
             '-threads', str(threads), encode_fn]
 
         print " SecondPass Encoding [%d] %s..." % (idx, encode_fn)
@@ -179,7 +181,8 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
         create_encode_cmd = [encoders[test_label_idx], '-loglevel', 'warning', '-hide_banner', '-nostats', '-nostdin',
             '-i', mezzanine_fn] + global_args + test_args[test_label_idx] + ['-threads', str(threads),
             '-r', "%f" % mezz_fps,
-            '-copyts', '-max_delay', '0', '-start_at_zero',
+#            '-copyts',
+            '-max_delay', '0', '-start_at_zero',
             '-f', format, encode_fn]
 
         for output in execute(create_encode_cmd):
@@ -290,7 +293,7 @@ def segment_cache_open(seg_dir):
     # return lock file if we succeeded
     return (lock_file_fd, segments)
 
-def concat_video_segments(first, second, seg_dir, index = None, ext = "ts"):
+def concat_video_segments(first, second, seg_dir, index, format, ext):
     """Take two video segments and combine them"""
     concat_list = "%s/merge_segments_%d.list" % (seg_dir, index)
     if not index: # generate something unique if index number not passed in
@@ -301,9 +304,10 @@ def concat_video_segments(first, second, seg_dir, index = None, ext = "ts"):
         file.write("file '%s'\n" % second)
     concat_cmd = ['FFmpeg/ffmpeg',
                '-f', 'concat', '-safe', '0', '-i', "%s" % concat_list,
-               '-f', 'mpegts',
+               '-f', format,
                '-codec', 'copy',
-               '-copyts', '-max_delay', '0', '-start_at_zero',
+               '-copyts',
+               '-max_delay', '0', '-start_at_zero',
                '-hide_banner', '-nostdin', '-loglevel', 'error', '-nostats']
     concat_cmd.extend([merged_segment])
     try:
@@ -347,7 +351,7 @@ def validate_segment(segment_json):
         return False
     return True
 
-def get_segments(playlist_file, seg_dir, video_dir, encext):
+def get_segments(playlist_file, seg_dir, video_dir, format, encext):
     """Returns a list of dicts for segments from a playlist file, else an empty dict."""
     segments = []
     segnum = 0
@@ -421,7 +425,7 @@ def get_segments(playlist_file, seg_dir, video_dir, encext):
             print "Segment Invalid [%d]: [%s]!" % (index, s)
             # attempt to repair segment
             fixed_segments_index = len(fixed_segments) - 1 # get current fixed segments position
-            concat_video_segments(last_segment['source'], s['source'], seg_dir, index = index, ext = encext)
+            concat_video_segments(last_segment['source'], s['source'], seg_dir, index, format, encext)
             # fix up metadata on the original segments list
             last_index = int(last_segment['index'])
             fixed_segments[fixed_segments_index]['stop'] = s['stop'] # set last segment to this ones stop
@@ -449,7 +453,7 @@ def get_segments(playlist_file, seg_dir, video_dir, encext):
     # fixed up list of merged segments and time information stored as dicts
     return fixed_segments
 
-def segment_source(mezzanine_fn, vcodec, video_framerate, seg_dir, video_dir, video_duration, processes, cache = True, ext = "mov", format = "mov", encext = "mp4"):
+def segment_source(mezzanine_fn, vcodec, video_framerate, seg_dir, video_dir, video_duration, processes, cache, ext, format, encext, framerate):
     """Split Source Video into parts, returns list of source segments."""
     # calc source segment duration
     source_segment_duration = max(1, int((video_duration/1000.0) / max(1.0, float(processes))))
@@ -481,6 +485,8 @@ def segment_source(mezzanine_fn, vcodec, video_framerate, seg_dir, video_dir, vi
                '-map', '0:v',
                '-an', '-dn', '-sn',
                '-f', 'ssegment',
+               '-r', "%f" % framerate,
+               '-max_delay', '0', '-start_at_zero',
                '-segment_list_size', '0',
                '-segment_time_delta', '%s' % (1/(2*video_framerate))])
     cmd.extend(['-segment_time', '%s' % source_segment_duration])
@@ -499,7 +505,7 @@ def segment_source(mezzanine_fn, vcodec, video_framerate, seg_dir, video_dir, vi
         if debug:
             print "Source segment output: %s" % output
         # Extract filenames of segments from playlist and time offsets
-        segments = get_segments(playlist_file, seg_dir, video_dir, encext)
+        segments = get_segments(playlist_file, seg_dir, video_dir, format, encext)
     except Exception, e:
         print "Source segmentation failed: %s" % e
         return []
@@ -545,11 +551,11 @@ def prepare_encode(source_segments, audio_file, tmp_dir, video_file, mezz_fps, e
                '-f', 'concat', '-safe', '0',
                '-i', "%s" % concat_list,
                '-i', audio_file,
-               '-map', '1:a',
                '-map', '0:v',
+               '-map', '1:a',
                '-f', encext,
                '-r', "%f" % mezz_fps,
-               '-copyts', '-max_delay', '0', '-start_at_zero',
+               '-max_delay', '0', '-start_at_zero',
                '-vcodec', 'copy',
                '-hide_banner', '-nostdin', '-loglevel', 'error', '-nostats']
     if encext == 'mp4':
@@ -647,7 +653,7 @@ for m in mezzanines:
                     if not isdir(enc_dir):
                         mkdir(enc_dir)
                     ext = m.split('.')[1]
-                    format = "mpegts" # segmented mezz split format
+                    format = "mp4" # segmented mezz split format
                     segencfmt = "mp4" # format for encode segments
                     segencext = "mp4" # extension for combining segments
                     encext = "mp4" # final encode extension: TODO make option for encode per line
@@ -655,16 +661,16 @@ for m in mezzanines:
                         format = "mov"
                         ext = "mov"
                     elif vcodec == "avc1" or ext == "mp4":
-                        format = "mpegts"
-                        ext = "ts"
+                        format = "mp4"
+                        ext = "mp4"
                     elif ext == "mov":
                         format = "mov"
                     elif ext == "wmv":
                         format = "asf"
                     else:
-                        ext = "ts" # give up and use TS, safest
+                        ext = "mp4" # give up and use TS, safest
 
-                    source_segments = segment_source(mezzanine_fn, vcodec, mezz_fps, seg_dir, enc_dir, mezz_duration, threads, True, ext, format, segencext)
+                    source_segments = segment_source(mezzanine_fn, vcodec, mezz_fps, seg_dir, enc_dir, mezz_duration, threads, True, ext, format, segencext, mezz_fps)
                     #
                     # run multiple processes for each segment
                     if len(source_segments) > 0:
