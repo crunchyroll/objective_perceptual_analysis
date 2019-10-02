@@ -181,7 +181,7 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
         create_encode_cmd = [encoders[test_label_idx], '-loglevel', 'warning', '-hide_banner', '-nostats', '-nostdin',
             '-i', mezzanine_fn] + global_args + test_args[test_label_idx] + ['-threads', str(threads),
             '-r', "%f" % mezz_fps,
-#            '-copyts',
+            '-copyts',
             '-max_delay', '0', '-start_at_zero',
             '-f', format, encode_fn]
 
@@ -555,6 +555,7 @@ def prepare_encode(source_segments, audio_file, tmp_dir, video_file, mezz_fps, e
                '-map', '1:a',
                '-f', encext,
                '-r', "%f" % mezz_fps,
+               '-copyts',
                '-max_delay', '0', '-start_at_zero',
                '-vcodec', 'copy',
                '-hide_banner', '-nostdin', '-loglevel', 'error', '-nostats']
