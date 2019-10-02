@@ -135,7 +135,7 @@ def get_results(test_metric, result_fn, encode_video_fn, create_result_cmd):
             # collect output for file storage
             print "%s" % output
     except Exception, e:
-        print "Failure getting VQMT %s metric: %s" % (test_metric, e)
+        print "Failure getting %s metric: %s" % (test_metric, e)
         if result_fn and isfile(result_fn):
             # remove results since they are not complete
             remove(result_fn)
@@ -815,6 +815,7 @@ for m in mezzanines:
             if not isfile(result_fn) or getsize(result_fn) <= 0:
                 create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-i', encode_fn,
                     '-i', mezzanine_fn, '-nostats', '-nostdin', '-threads', str(threads),
+                    '-max_muxing_queue_size', '1024',
                     '-filter_complex', '[0:v][1:v]img_hash=stats_file=%s' % result_fn, '-f', 'null', '-']
                 print " - calculating the %s score for encoding..." % "phqm"
                 p = Process(target=get_results, args=('vmaf', result_fn_stdout, encode_fn, create_result_cmd,))
@@ -833,6 +834,7 @@ for m in mezzanines:
                 if not isfile(result_fn) or getsize(result_fn) <= 0:
                     create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-i', encode_fn, '-i', mezzanine_fn,
                         '-nostats', '-nostdin', '-threads', str(threads),
+                        '-max_muxing_queue_size', '1024',
                         '-filter_complex', '[0:v][1:v]libvmaf=psnr=1:ms_ssim=1:log_fmt=json:log_path=%s' % result_fn, '-f', 'null', '-']
                     print " - calculating the %s score for encoding..." % "vmaf"
                     p = Process(target=get_results, args=('vmaf', result_fn_stdout, encode_fn, create_result_cmd,))
