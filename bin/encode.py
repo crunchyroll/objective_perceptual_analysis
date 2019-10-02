@@ -155,9 +155,9 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
         create_encode_cmd = [encoders, '-loglevel', 'error', '-hide_banner',
             '-nostats', '-nostdin', '-i', mezzanine_fn] + global_args + fp_args + ['-pass', '1',
             '-an', '-passlogfile', pass_log_fn, '-f', format,
-            '-r', "%f" % mezz_fps,
-            '-copyts',
-            '-max_delay', '0', '-start_at_zero',
+#            '-r', "%f" % mezz_fps,
+#            '-copyts',
+#            '-max_delay', '0', '-start_at_zero',
             '-threads', str(threads), '-y', '/dev/null']
 
         print " FirstPass Encoding [%d] %s..." % (idx, pass_log_fn)
@@ -167,10 +167,10 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
         create_encode_cmd = [encoders, '-loglevel', 'warning', '-hide_banner',
             '-nostats', '-nostdin', '-i', mezzanine_fn] + global_args + test_args + ['-pass', '2',
             '-passlogfile', pass_log_fn,
-            '-r', "%f" % mezz_fps,
+#            '-r', "%f" % mezz_fps,
             '-f', format,
-            '-copyts',
-            '-max_delay', '0', '-start_at_zero',
+#            '-copyts',
+#            '-max_delay', '0', '-start_at_zero',
             '-threads', str(threads), encode_fn]
 
         print " SecondPass Encoding [%d] %s..." % (idx, encode_fn)
@@ -180,9 +180,9 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
         print " [%d] %s - encoding in one pass..." % (idx, encode_fn)
         create_encode_cmd = [encoders[test_label_idx], '-loglevel', 'warning', '-hide_banner', '-nostats', '-nostdin',
             '-i', mezzanine_fn] + global_args + test_args[test_label_idx] + ['-threads', str(threads),
-            '-r', "%f" % mezz_fps,
-            '-copyts',
-            '-max_delay', '0', '-start_at_zero',
+#            '-r', "%f" % mezz_fps,
+#            '-copyts',
+#            '-max_delay', '0', '-start_at_zero',
             '-f', format, encode_fn]
 
         for output in execute(create_encode_cmd):
@@ -374,7 +374,7 @@ def get_segments(playlist_file, seg_dir, video_dir, format, encext):
                 encode_segment = "%s/v%d.%s" % (video_dir, segnum, encext)
                 source_segment = s_file
 
-                print "segment[%d] %0.1f-%0.1f (%0.1f)" % (segnum+1, float(segstart), float(segstop), duration)
+                print "segment[%d] %0.1f-%0.1f (%0.1f) %s" % (segnum+1, float(segstart), float(segstop), duration, encode_segment)
 
                 # store segment name for combination
                 source_segment_dict = dict(
@@ -485,8 +485,8 @@ def segment_source(mezzanine_fn, vcodec, video_framerate, seg_dir, video_dir, vi
                '-map', '0:v',
                '-an', '-dn', '-sn',
                '-f', 'ssegment',
-               '-r', "%f" % framerate,
-               '-max_delay', '0', '-start_at_zero',
+#               '-r', "%f" % framerate,
+#               '-max_delay', '0', '-start_at_zero',
                '-segment_list_size', '0',
                '-segment_time_delta', '%s' % (1/(2*video_framerate))])
     cmd.extend(['-segment_time', '%s' % source_segment_duration])
@@ -554,9 +554,9 @@ def prepare_encode(source_segments, audio_file, tmp_dir, video_file, mezz_fps, e
                '-map', '0:v',
                '-map', '1:a',
                '-f', encext,
-               '-r', "%f" % mezz_fps,
-               '-copyts',
-               '-max_delay', '0', '-start_at_zero',
+#               '-r', "%f" % mezz_fps,
+#               '-copyts',
+#               '-max_delay', '0', '-start_at_zero',
                '-vcodec', 'copy',
                '-hide_banner', '-nostdin', '-loglevel', 'error', '-nostats']
     if encext == 'mp4':
@@ -658,7 +658,7 @@ for m in mezzanines:
                     segencfmt = "mp4" # format for encode segments
                     segencext = "mp4" # extension for combining segments
                     encext = "mp4" # final encode extension: TODO make option for encode per line
-                    if vcodec == "acph":
+                    if vcodec == "apch":
                         format = "mov"
                         ext = "mov"
                     elif vcodec == "avc1" or ext == "mp4":
