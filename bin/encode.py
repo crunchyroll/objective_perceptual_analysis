@@ -663,7 +663,7 @@ for m in mezzanines:
                             pass_log_fn = "%s/%s/%s_%s_%s_pass.log" % (cur_dir,
                                             encode_dir, "%s_%d" % (m.split('.')[0], s['index']), test_label, test_letter)
                             # calc threads per segment depending on how many segments we got back
-                            seg_threads = min(threads, int((float(threads) * 2.0) / float(len(source_segments))))
+                            seg_threads = max(2,min(threads, int((float(threads) * 2.0) / float(len(source_segments)))))
                             if debug:
                                 print "Segment: threads: %d mezzanine: %s encode: %s passlog: %s" % (seg_threads,
                                                                                                  mezzanine_segment, encode_segment, pass_log_fn)
