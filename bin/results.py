@@ -251,7 +251,7 @@ for m in mezzanines:
                                 '-pix_fmt', 'yuv420p',
                                 "%s/%%08d.jpg" % image_dir_period])
                     # create video segment with stats burned in
-                    if not isfile("%s.mp4" % video_dir_period):
+                    if preview and not isfile("%s.mp4" % video_dir_period):
                         subprocess.call(['FFmpeg/ffmpeg', '-hide_banner', '-y', '-nostdin', '-nostats', '-loglevel', 'error',
                                 '-i', "%s/%s" % (mezz_dir, m), '-vf',
                                 "select='between(n\,%d\,%d)',setpts=PTS-STARTPTS,drawtext=text='%s':fontcolor=white:box=1:boxcolor=black@0.7:fontsize=28:x=5:y=5" % (s["start_frame"], s["end_frame"], mdetail.replace(':', ' ').replace(')', '')),

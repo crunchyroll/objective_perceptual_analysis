@@ -501,7 +501,7 @@ def segment_source(mezzanine_fn, vcodec, video_framerate, seg_dir, video_dir, vi
     cmd = [ffmpeg_bin]
     # if mpeg we need to generate pts ts for missing start timestamps
     # https://trac.ffmpeg.org/ticket/1979
-    if vcodec == 'mpeg4':
+    if vcodec == 'mpeg4' or vcodec == 'xvid':
         cmd.extend(['-fflags', '+genpts'])
     cmd.extend(['-i', mezzanine_fn, '-codec', 'copy',
                '-map', '0:v',
@@ -516,11 +516,12 @@ def segment_source(mezzanine_fn, vcodec, video_framerate, seg_dir, video_dir, vi
     cmd.extend(['-individual_header_trailer', '1'])
     cmd.extend(['-write_header_trailer', '1'])
     cmd.extend(['-segment_format', format])
-#    if format == 'mpeg':
-#       cmd.extend(['-preload', '0', '-muxrate', '99999999999'])
-#    cmd.extend(['-r', "%f" % framerate])
-#    cmd.extend(['-max_delay', '0'])
-#    cmd.extend(['-start_at_zero'])
+    if use_experimental and format == 'mpeg':
+        cmd.extend(['-preload', '0'])
+        #cmd.extend(['-muxrate', '99999999999'])
+        cmd.extend(['-r', "%f" % framerate])
+        cmd.extend(['-max_delay', '0'])
+        cmd.extend(['-start_at_zero'])
 
     cmd.extend([segment_pattern])
     try:
@@ -691,10 +692,10 @@ for m in mezzanines:
                     format = "mp4" # segmented mezz split format
                     segencfmt = "mp4" # format for encode segments
                     segencext = "mp4" # extension for combining segments
-                    if format == "prores":
+                    if mezz_format == "prores":
                         format = "mov"
                         ext = "mov"
-                    elif vcodec == "avc1" or ext == "mp4":
+                    elif vcodec == "avc1" or ext == "mp4" or mezz_format == "mpeg-4 visual":
                         format = "mp4"
                         ext = "mp4"
                     elif mezz_format == "mpeg video":
@@ -704,8 +705,12 @@ for m in mezzanines:
                         format = "mov"
                     elif ext == "wmv":
                         format = "asf"
+                    elif ext == "avi":
+                        format = "mp4"
+                        ext = "mp4"
                     else:
                         ext = "mp4" # unknown format / codec
+                        format = "mp4"
 
                     print "Segmenting format: %s extension: %s segment_format: %s segment_extension: %s" % (format, ext, segencfmt, segencext)
 
