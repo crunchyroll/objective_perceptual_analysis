@@ -195,9 +195,8 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
             print output
     else:
         print " [%d] %s - encoding in one pass..." % (idx, encode_fn)
-        create_encode_cmd = [encoders[test_label_idx], '-loglevel', 'warning', '-hide_banner', '-nostats', '-nostdin',
-            '-i', mezzanine_fn] + global_args + test_args[test_label_idx] + ['-threads', str(threads),
-            '-f', format]
+        create_encode_cmd = [encoders, '-loglevel', 'warning', '-hide_banner', '-nostats', '-nostdin',
+            '-i', mezzanine_fn] + global_args + test_args + ['-threads', str(threads), '-f', format]
         # Experimental args
         if use_experimental:
             create_encode_cmd = create_encode_cmd + [

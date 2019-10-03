@@ -92,6 +92,7 @@ if [ ! -d "dav1d" ]; then
 fi
 
 if [ ! -d "rav1e" ]; then
+    sudo cargo install cargo-c || echo "Already installed cargo-c"
     git clone https://github.com/xiph/rav1e.git
     cd rav1e
     # TODO find stable version

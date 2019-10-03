@@ -43,7 +43,6 @@ aomlib:
 rav1elib:
 	cd rav1e && \
 	cargo build --release && \
-	sudo cargo install cargo-c && \
 	sudo cargo cinstall --release
 
 vmaflib:

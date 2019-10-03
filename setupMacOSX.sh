@@ -81,6 +81,7 @@ fi
 
 ## Setup rav1e AV1
 if [ ! -f /usr/local/lib/librav1e.a ]; then
+    sudo cargo install cargo-c || echo "Already installed cargo-c"
     make rav1elib
 fi
 
