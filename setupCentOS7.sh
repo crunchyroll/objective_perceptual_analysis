@@ -275,7 +275,7 @@ fi
 
 ## Setup FFmpeg
 if [ ! -f FFmpeg/ffmpeg ]; then
-    make ffmpegbin
+    FFCFGARGS= make ffmpegbin
 fi
 
 # build tools
