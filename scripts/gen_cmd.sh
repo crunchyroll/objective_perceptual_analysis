@@ -25,7 +25,7 @@ while [ $b -le 8000 ]; do
 
     printf "\n%05dAOMAV1|FFmpeg/ffmpeg|twopass|S|-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-vcodec|libaom-av1|-strict|experimental|-b:v|%dk|-maxrate:v|%0.0fk|-bufsize:v|%0.0fk|-minrate:v|%dk|-keyint_min|48|-g|48|-hide_banner|-nostats|-row-mt|1;\\" $b $b $(echo "$b * 1.5" | bc -l) $(echo "$b * 3" | bc -l) $b
 
-    printf "\n%05dRAV1EAV1|FFmpeg/ffmpeg|abr|S|-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-vcodec|librav1e|-rav1e-params|speed=0:bitrate=%d|-b:v|%dk|-maxrate:v|%0.0fk|-bufsize:v|%0.0fk|-minrate:v|%dk|-keyint_min|48|-g|48|-hide_banner|-nostats;\\" $b $b $b $(echo "$b * 1.5" | bc -l) $(echo "$b * 3" | bc -l) $b
+    printf "\n%05dRAV1EAV1|FFmpeg/ffmpeg|abr|S|-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-vcodec|librav1e|-speed|6|-b:v|%dk|-keyint_min|48|-g|48|-hide_banner|-nostats;\\" $b $b
 
     printf "\n%05dVPXVP9|FFmpeg/ffmpeg|twopass|S|-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-vcodec|libvpx-vp9|-speed|2|-b:v|%dk|-maxrate:v|%0.0fk|-bufsize:v|%0.0fk|-minrate:v|%dk|-keyint_min|48|-g|48|-hide_banner|-nostats|-row-mt|1;\\" $b $b $(echo "$b * 1.5" | bc -l) $(echo "$b * 3" | bc -l) $b
     b=$(expr $b + 1000)

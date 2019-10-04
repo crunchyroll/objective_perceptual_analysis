@@ -129,10 +129,10 @@ index d2f9a39..c1cc29e 100644
  extern AVCodec ff_libspeex_encoder;
 diff --git a/libavcodec/librav1e.c b/libavcodec/librav1e.c
 new file mode 100644
-index 0000000..3ca74de
+index 0000000..725fad2
 --- /dev/null
 +++ b/libavcodec/librav1e.c
-@@ -0,0 +1,454 @@
+@@ -0,0 +1,463 @@
 +/*
 + * librav1e encoder
 + *
@@ -180,6 +180,7 @@ index 0000000..3ca74de
 +    int quantizer;
 +    int done;
 +    int frame_count;
++    int speed;
 +} librav1eContext;
 +
 +static inline RaPixelRange range_map(enum AVColorRange range)
@@ -350,6 +351,13 @@ index 0000000..3ca74de
 +            }
 +            av_dict_free(&dict);
 +        }
++    }
++
++    rret = rav1e_config_parse_int(cfg, "speed", ctx->speed);
++    if (rret < 0) {
++        av_log(avctx, AV_LOG_ERROR, "Invalid speed passed to rav1e.\n");
++        ret = AVERROR_INVALIDDATA;
++        goto end;
 +    }
 +
 +    rret = rav1e_config_parse_int(cfg, "width", avctx->width);
@@ -548,6 +556,7 @@ index 0000000..3ca74de
 +static const AVOption options[] = {
 +    { "quantizer", "use constant quantizer mode", OFFSET(quantizer), AV_OPT_TYPE_INT, { .i64 = -1 }, -1, 255, VE },
 +    { "max-quantizer", "max quantizer when using bitrate mode", OFFSET(max_quantizer), AV_OPT_TYPE_INT, { .i64 = 255 }, 1, 255, VE },
++    { "speed",        "Quality/Speed ratio modifier",                OFFSET(speed),        AV_OPT_TYPE_INT, {.i64 = 1},  -8, 8, VE},
 +    { "rav1e-params", "set the rav1e configuration using a :-separated list of key=value parameters", OFFSET(rav1e_opts), AV_OPT_TYPE_STRING, { 0 }, 0, 0, VE },
 +    { NULL }
 +};
