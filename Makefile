@@ -44,11 +44,12 @@ svtav1lib:
 	cd SVT-AV1/Build && \
 	cmake .. -G"Unix Makefiles" \
 	-DCMAKE_BUILD_TYPE=Release \
-	-DCMAKE_CXX_FLAGS="$$CXXFLAGS" \
-	-DCMAKE_C_FLAGS="$$CFLAGS" \
+	-DCMAKE_CXX_FLAGS="-I/usr/local/include -L/usr/local/lib" \
+	-DCMAKE_C_FLAGS="-I/usr/local/include -L/usr/local/lib" \
 	-DCMAKE_CXX_COMPILER=/usr/local/bin/g++ \
-	-DCMAKE_CC_COMPILER=/usr/local/bin/gcc && \
-	make -j1 && \
+	-DCMAKE_CC_COMPILER=/usr/local/bin/gcc \
+	-DCMAKE_C_COMPILER=/usr/local/bin/gcc && \
+	make -j8 && \
 	sudo make install
 
 rav1elib:

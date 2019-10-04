@@ -260,8 +260,9 @@ fi
 
 # Setup SVT-AV1
 if [ ! -f "/usr/local/lib/pkgconfig/SvtAv1Dec.pc" ]; then
-    #make svtav1lib
-    echo "TODO: svt av1"
+    make svtav1lib
+    sudo cp -f SVT-AV1/Build/SvtAv1Enc.pc /usr/share/pkgconfig/
+    sudo cp -f SVT-AV1/Build/SvtAv1Dec.pc /usr/share/pkgconfig/
 fi
 
 ## Setup rav1e AV1
@@ -275,7 +276,7 @@ fi
 
 ## Setup FFmpeg
 if [ ! -f FFmpeg/ffmpeg ]; then
-    FFCFGARGS= make ffmpegbin
+    FFCFGARGS="--enable-libsvtav1" make ffmpegbin
 fi
 
 # build tools
