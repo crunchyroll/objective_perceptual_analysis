@@ -32,6 +32,10 @@ if [ ! -e /usr/bin/rustc ]; then
 fi
 if [ ! -e /usr/bin/cmake3 ]; then
     sudo yum -y -q install cmake3
+    sudo ln -s /usr/bin/cmake3 /usr/bin/cmake
+fi
+if [ ! -e /usr/bin/cmake ]; then
+    sudo ln -s /usr/bin/cmake3 /usr/bin/cmake
 fi
 if [ ! -e /usr/bin/gnuplot ]; then
     sudo yum -y -q install gnuplot
@@ -84,6 +88,13 @@ if [ ! -d "aom" ]; then
     cd ../
 fi
 
+if [ ! -d "SVT-AV1" ]; then
+    git clone https://github.com/OpenVisualCloud/SVT-AV1.git
+    cd SVT-AV1
+    # TODO find stable version
+    cd ../
+fi
+
 if [ ! -d "dav1d" ]; then
     git clone https://code.videolan.org/videolan/dav1d.git
     cd dav1d
@@ -104,6 +115,7 @@ if [ ! -d "FFmpeg" ]; then
     cd FFmpeg
     git checkout remotes/origin/release/4.2
     cat ../ffmpeg_perceptual.diff | patch -p1
+#cat ../SVT-AV1/ffmpeg_plugin/0001-Add-ability-for-ffmpeg-to-run-svt-av1.patch |patch -p1
     cd ../
 fi
 
@@ -113,6 +125,14 @@ if [ ! -d "vmaf" ]; then
     git checkout v1.3.14
     cd ../
 fi
+
+# GCC 5.4.0 install to /usr/local/
+if [ ! -f "/usr/local/bin/gcc" ]; then
+    sh setupGCC_540.sh
+fi
+# setup path to point to GCC 5.4.0
+export PATH=/usr/local/bin:$PATH
+export LD_LIBRARY_PATH=/usr/local/lib64:$LD_LIBRARY_PATH
 
 # requirement for x264
 if [ ! -f "nasm-2.14.03rc2.tar.bz2" ]; then
@@ -236,6 +256,12 @@ if [ ! -f /usr/lib/libaom.so ]; then
     make aomlib
     sudo ln -s /usr/lib/pkgconfig/aom.pc /usr/share/pkgconfig/
     sudo ldconfig
+fi
+
+# Setup SVT-AV1
+if [ ! -f "/usr/local/lib/pkgconfig/SvtAv1Dec.pc" ]; then
+    #make svtav1lib
+    echo "TODO: svt av1"
 fi
 
 ## Setup rav1e AV1

@@ -79,10 +79,26 @@ if [ ! -d "rav1e" ]; then
     cd ../
 fi
 
+if [ ! -d "SVT-AV1" ]; then
+    git clone https://github.com/OpenVisualCloud/SVT-AV1.git
+    cd SVT-AV1
+    # TODO find stable version
+    cd ../
+fi
+
 ## Setup rav1e AV1
 if [ ! -f /usr/local/lib/librav1e.a ]; then
     sudo cargo install cargo-c || echo "Already installed cargo-c"
     make rav1elib
+fi
+
+## Setup Intel SVT-AV1
+if [ ! -f "/usr/local/lib/pkgconfig/SvtAv1Dec.pc" ]; then
+  cd SVT-AV1/Build && \
+  cmake .. -G"Unix Makefiles" \
+  -DCMAKE_BUILD_TYPE=Release \
+  make -j$(nproc) && \
+  sudo make install
 fi
 
 
@@ -91,6 +107,7 @@ if [ ! -d "FFmpeg" ]; then
     cd FFmpeg
     git checkout remotes/origin/release/4.2
     cat ../ffmpeg_perceptual.diff | patch -p1
+    cat ../SVT-AV1/ffmpeg_plugin/0001-Add-ability-for-ffmpeg-to-run-svt-av1.patch |patch -p1
     cd ../
 fi
 

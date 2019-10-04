@@ -18,7 +18,9 @@ printf 'bin/encode.py \\
         -n tests/test'
 printf $testnum
 printf ' \\
-        -p 12 -t "\\'
+        -p '
+printf "%d" $(nproc)
+printf ' -t "\\'
 
 while [ $b -le 8000 ]; do
     printf "\n%05dX264H264|FFmpeg/ffmpeg|twopass|S|-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-profile:v|high|-preset|slow|-vcodec|libx264|-bf|0|-refs|4|-b:v|%dk|-maxrate:v|%0.0fk|-bufsize:v|%0.0fk|-minrate:v|%dk|-tune|animation|-x264opts|rc-lookahead=48:keyint=96|-keyint_min|48|-g|96|-force_key_frames|expr:eq(mod(n,48),0)|-hide_banner|-nostats;\\" $b $b $(echo "$b * 1.5" | bc -l) $(echo "$b * 3" | bc -l) $b
