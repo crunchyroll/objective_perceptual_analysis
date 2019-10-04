@@ -129,10 +129,10 @@ index d2f9a39..c1cc29e 100644
  extern AVCodec ff_libspeex_encoder;
 diff --git a/libavcodec/librav1e.c b/libavcodec/librav1e.c
 new file mode 100644
-index 0000000..725fad2
+index 0000000..0d58457
 --- /dev/null
 +++ b/libavcodec/librav1e.c
-@@ -0,0 +1,463 @@
+@@ -0,0 +1,477 @@
 +/*
 + * librav1e encoder
 + *
@@ -356,6 +356,20 @@ index 0000000..725fad2
 +    rret = rav1e_config_parse_int(cfg, "speed", ctx->speed);
 +    if (rret < 0) {
 +        av_log(avctx, AV_LOG_ERROR, "Invalid speed passed to rav1e.\n");
++        ret = AVERROR_INVALIDDATA;
++        goto end;
++    }
++
++    rret = rav1e_config_parse_int(cfg, "min_key_frame_interval", avctx->keyint_min);
++    if (rret < 0) {
++        av_log(avctx, AV_LOG_ERROR, "Invalid min_key_frame_interval passed to rav1e.\n");
++        ret = AVERROR_INVALIDDATA;
++        goto end;
++    }
++
++    rret = rav1e_config_parse_int(cfg, "key_frame_interval", avctx->gop_size);
++    if (rret < 0) {
++        av_log(avctx, AV_LOG_ERROR, "Invalid max_key_frame_interval passed to rav1e.\n");
 +        ret = AVERROR_INVALIDDATA;
 +        goto end;
 +    }
