@@ -760,20 +760,20 @@ for m in mezzanines:
                     finished = True # search if any processes are alive
                     count = 0
                     for i, p in enumerate(processes):
-                        p.join(1) # 1 second timeout
+                        p.join(5) # 1 second timeout
                         fsize = 0 # encode filesize
                         if isfile(p.name):
                             fsize = getsize(p.name)
                         if p.is_alive(): # check if we timed out
                             count += 1
                             finished = False
-                            running_procs.append("[%d]%s (running) bytes %d" % (i, p.name.split('.')[1], fsize))
+                            running_procs.append("[%d]%s (running) bytes %d" % (i, p.name.split('/')[-1].split('.')[0], fsize))
                         else:
-                            running_procs.append("[%d]%s (finished) bytes %d" % (i, p.name.split('.')[1], fsize))
-                    sys.stdout.write("\r")
+                            running_procs.append("[%d]%s (finished) bytes %d" % (i, p.name.split('/')[-1].split('.')[0], fsize))
                     sys.stdout.flush()
-                    sys.stdout.write(" [%d] status: %s" % (count, ' | '.join(running_procs)))
+                    sys.stdout.write("\r [%d] status: %s" % (count, ' | '.join(running_procs)))
                     sys.stdout.flush()
+                    sys.stdout.write('\r')
 
                 # mux together encoding segments if needed
                 if segment or segment_encode:
