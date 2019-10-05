@@ -1,7 +1,6 @@
 #!/bin/sh
 
 bin/encode.py \
-        -d \
         -m vmaf,psnr \
         -n tests/test000 \
         -p 16 -t "\

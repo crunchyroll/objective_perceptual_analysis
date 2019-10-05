@@ -172,9 +172,9 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
                    '-start_at_zero']
         create_encode_cmd = create_encode_cmd + ['/dev/null']
 
-        print " FirstPass Encoding [%d] %s..." % (idx, pass_log_fn)
+        print "\r FirstPass Encoding [%d] %s..." % (idx, pass_log_fn)
         for output in execute(create_encode_cmd):
-            print output
+            print "\r%s" % output
         # pass 2
         create_encode_cmd = [encoders, '-loglevel', 'warning', '-hide_banner',
             '-nostats', '-nostdin', '-i', mezzanine_fn] + global_args + test_args + ['-pass', '2',
@@ -190,11 +190,11 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
                    '-start_at_zero']
         create_encode_cmd = create_encode_cmd + [encode_fn]
 
-        print " SecondPass Encoding [%d] %s..." % (idx, encode_fn)
+        print "\r SecondPass Encoding [%d] %s..." % (idx, encode_fn)
         for output in execute(create_encode_cmd):
             print output
     else:
-        print " [%d] %s - encoding in one pass..." % (idx, encode_fn)
+        print "\r [%d] %s - encoding in one pass..." % (idx, encode_fn)
         create_encode_cmd = [encoders, '-loglevel', 'warning', '-hide_banner', '-nostats', '-nostdin',
             '-i', mezzanine_fn] + global_args + test_args + ['-threads', str(threads), '-f', format]
         # Experimental args
@@ -395,7 +395,7 @@ def get_segments(playlist_file, seg_dir, video_dir, format, encext):
                 encode_segment = "%s/v%d.%s" % (video_dir, segnum, encext)
                 source_segment = s_file
 
-                print "segment[%d] %0.1f-%0.1f (%0.1f) %s" % (segnum+1, float(segstart), float(segstop), duration, encode_segment)
+                print "\rsegment[%d] %0.1f-%0.1f (%0.1f) %s" % (segnum+1, float(segstart), float(segstop), duration, source_segment)
 
                 # store segment name for combination
                 source_segment_dict = dict(
@@ -665,6 +665,7 @@ for m in mezzanines:
         print " %s" % encode_fn
         # Encode mezzanine
         if not isfile(encode_fn) or getsize(encode_fn) <= 0:
+            processes = []
             try:
                 start_time = time.time()
                 rate_control = rate_controls[test_label_idx]
@@ -673,7 +674,6 @@ for m in mezzanines:
                 segment_encode = False
                 if 'S' in flags:
                     segment_encode = True
-                processes = []
                 mezzanine_segments = []
                 encode_segments = []
                 source_segments = []
@@ -730,7 +730,7 @@ for m in mezzanines:
                                 print "Segment: threads: %d mezzanine: %s encode: %s passlog: %s" % (seg_threads,
                                                                                                  mezzanine_segment, encode_segment, pass_log_fn)
                             encode_segments.append(encode_segment)
-                            p = Process(target=encode_video, args=(mezzanine_segment, encode_segment,
+                            p = Process(name=encode_segment, target=encode_video, args=(mezzanine_segment, encode_segment,
                                             rate_control, test_args[test_label_idx], global_args,
                                             encoders[test_label_idx],
                                             pass_log_fn, seg_threads, (idx+1), mezz_fps, segencfmt,))
@@ -742,7 +742,7 @@ for m in mezzanines:
                                 print "Error: didn't get any mezzanine segments when splitting %s" % mezzanine_fn
                                 sys.exit(1)
                 else:
-                    p = Process(target=encode_video, args=(mezzanine_fn, encode_fn,
+                    p = Process(name=encode_fn, target=encode_video, args=(mezzanine_fn, encode_fn,
                                     rate_control, test_args[test_label_idx], global_args,
                                     encoders[test_label_idx],
                                     pass_log_fn, threads, 1, mezz_fps, encext,))
@@ -752,8 +752,28 @@ for m in mezzanines:
                         processes.append(p)
 
                 # wait for encode processes to finish
-                for p in processes:
-                    p.join()
+                finished = False
+                print "---"
+                print "Starting encoding processes..."
+                while not finished:
+                    running_procs = []
+                    finished = True # search if any processes are alive
+                    count = 0
+                    for i, p in enumerate(processes):
+                        p.join(1) # 1 second timeout
+                        fsize = 0 # encode filesize
+                        if isfile(p.name):
+                            fsize = getsize(p.name)
+                        if p.is_alive(): # check if we timed out
+                            count += 1
+                            finished = False
+                            running_procs.append("[%d]%s (running) bytes %d" % (i, p.name.split('.')[1], fsize))
+                        else:
+                            running_procs.append("[%d]%s (finished) bytes %d" % (i, p.name.split('.')[1], fsize))
+                    sys.stdout.write("\r")
+                    sys.stdout.flush()
+                    sys.stdout.write(" [%d] status: %s" % (count, ' | '.join(running_procs)))
+                    sys.stdout.flush()
 
                 # mux together encoding segments if needed
                 if segment or segment_encode:
@@ -782,6 +802,11 @@ for m in mezzanines:
             except Exception, e:
                 print(traceback.format_exc())
                 print "Failure Encoding: %s" % e
+                for p in processes:
+                    if p.is_alive():
+                        p.terminate() # kill processes so they don't hang around
+                    if isfile(p.name):
+                        remove(p.name) # remove files
         else:
             print " Encode exists"
 
