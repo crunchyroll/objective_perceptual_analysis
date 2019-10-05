@@ -35,6 +35,7 @@ Example steps:
         arg separated by pipes, with a label, binary path, and rate control method.
         - FLAGS:
         -   S=segmented/parallel encoding mode
+        -   F=force mezzanine fps (use -r FPS when encoding)
     
 ratecontrol options:
    

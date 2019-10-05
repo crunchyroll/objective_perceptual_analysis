@@ -43,6 +43,7 @@ debug = False
 use_msu = False
 use_audio = False
 use_experimental = False
+force_framerate = False
 
 ap = argparse.ArgumentParser()
 ap.add_argument('-m', '--metrics', dest='metrics', required=False, help="Metric List. Delimited by commas: Options - psnr,vmaf,ssim")
@@ -55,7 +56,8 @@ ap.add_argument('-d', '--debug', dest='debug', required=False, action='store_tru
 ap.add_argument('-o', '--use_msu', dest='use_msu', required=False, action='store_true', help="Use MSU VQMT tool for obj metrics")
 ap.add_argument('-s', '--segment', dest='segment', required=False, action='store_true', help="Use parallel encoding by splitting mezz")
 ap.add_argument('-a', '--use_audio', dest='use_audio', required=False, action='store_true', help="Include Audio in encodings, default is false")
-ap.add_argument('-e', '--use_experimental', dest='use_experimental', required=False, action='store_true', help="Include experimental commands, -r fps -copyts -start_at_zero, -muxrate 0")
+ap.add_argument('-e', '--use_experimental', dest='use_experimental', required=False, action='store_true', help="Include experimental commands, -copyts -start_at_zero, -muxrate 0")
+ap.add_argument('-r', '--force_framerate', dest='force_framerate', required=False, action='store_true', help="Force FPS by -r FPS using mezzanines value")
 args = vars(ap.parse_args())
 
 keep_raw = args['keep_raw']
@@ -67,6 +69,7 @@ if args['threads'] != None:
 use_msu = args['use_msu']
 use_audio = args['use_audio']
 use_experimental = args['use_experimental']
+force_framerate = args['force_framerate']
 segment = args['segment']
 
 mezz_dir = "%s/mezzanines" % base_directory
@@ -147,7 +150,7 @@ def get_results(test_metric, result_fn, encode_video_fn, create_result_cmd):
             # remove results since they are not complete
             remove(result_fn)
 
-def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, encoders, pass_log_fn, threads, idx, mezz_fps, format):
+def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, encoders, pass_log_fn, threads, idx, mezz_fps, format, test_force_framerate):
     # cleanup any failed encodings
     if isfile(encode_fn):
         remove(encode_fn)
@@ -163,10 +166,12 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
             '-nostats', '-nostdin', '-i', mezzanine_fn] + global_args + fp_args + ['-pass', '1',
             '-an', '-passlogfile', pass_log_fn, '-f', format,
             '-threads', str(threads), '-y']
+        # force framerate
+        if test_force_framerate:
+            create_encode_cmd = create_encode_cmd + ['-r', "%f" % mezz_fps]
         # Experimental args
         if use_experimental:
             create_encode_cmd = create_encode_cmd + [
-                   '-r', "%f" % mezz_fps,
                    '-copyts',
                    '-max_delay', '0',
                    '-start_at_zero']
@@ -181,10 +186,12 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
             '-passlogfile', pass_log_fn,
             '-f', format,
             '-threads', str(threads)]
+        # force framerate
+        if test_force_framerate:
+            create_encode_cmd = create_encode_cmd + ['-r', "%f" % mezz_fps]
         # Experimental args
         if use_experimental:
             create_encode_cmd = create_encode_cmd + [
-                   '-r', "%f" % mezz_fps,
                    '-copyts',
                    '-max_delay', '0',
                    '-start_at_zero']
@@ -197,10 +204,12 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
         print "\r [%d] %s - encoding in one pass..." % (idx, encode_fn)
         create_encode_cmd = [encoders, '-loglevel', 'warning', '-hide_banner', '-nostats', '-nostdin',
             '-i', mezzanine_fn] + global_args + test_args + ['-threads', str(threads), '-f', format]
+        # force framerate
+        if test_force_framerate:
+            create_encode_cmd = create_encode_cmd + ['-r', "%f" % mezz_fps]
         # Experimental args
         if use_experimental:
             create_encode_cmd = create_encode_cmd + [
-                   '-r', "%f" % mezz_fps,
                    '-copyts',
                    '-max_delay', '0',
                    '-start_at_zero']
@@ -517,8 +526,6 @@ def segment_source(mezzanine_fn, vcodec, video_framerate, seg_dir, video_dir, vi
     cmd.extend(['-segment_format', format])
     if use_experimental and format == 'mpeg':
         cmd.extend(['-preload', '0'])
-        #cmd.extend(['-muxrate', '99999999999'])
-        cmd.extend(['-r', "%f" % framerate])
         cmd.extend(['-max_delay', '0'])
         cmd.extend(['-start_at_zero'])
 
@@ -584,10 +591,12 @@ def prepare_encode(source_segments, audio_file, tmp_dir, video_file, mezz_fps, e
                '-f', encext,
                '-vcodec', 'copy',
                '-hide_banner', '-nostdin', '-loglevel', 'error', '-nostats']
+    # force framerate
+    if force_framerate:
+        concat_cmd = concat_cmd + ['-r', "%f" % mezz_fps]
     # Experimental args
     if use_experimental:
         concat_cmd = concat_cmd + [
-               '-r', "%f" % mezz_fps,
                '-copyts',
                '-max_delay', '0',
                '-start_at_zero']
@@ -669,11 +678,18 @@ for m in mezzanines:
             try:
                 start_time = time.time()
                 rate_control = rate_controls[test_label_idx]
-                # Flags, S: Segment Encode
+                # Flags:
+                ## - S: Segment Encode
+                ## - F: Force mezzanine FPS
                 flags = encode_flags[test_label_idx]
                 segment_encode = False
+                test_force_framerate = False
                 if 'S' in flags:
                     segment_encode = True
+                if 'F' in flags:
+                    test_force_framerate = True
+                if force_framerate:
+                    test_force_framerate = True
                 mezzanine_segments = []
                 encode_segments = []
                 source_segments = []
@@ -732,8 +748,8 @@ for m in mezzanines:
                             encode_segments.append(encode_segment)
                             p = Process(name=encode_segment, target=encode_video, args=(mezzanine_segment, encode_segment,
                                             rate_control, test_args[test_label_idx], global_args,
-                                            encoders[test_label_idx],
-                                            pass_log_fn, seg_threads, (idx+1), mezz_fps, segencfmt,))
+                                            encoders[test_label_idx], pass_log_fn, seg_threads, (idx+1),
+                                            mezz_fps, segencfmt, test_force_framerate))
                             # run each encode in parallel
                             if p != None:
                                 p.start()
@@ -744,8 +760,8 @@ for m in mezzanines:
                 else:
                     p = Process(name=encode_fn, target=encode_video, args=(mezzanine_fn, encode_fn,
                                     rate_control, test_args[test_label_idx], global_args,
-                                    encoders[test_label_idx],
-                                    pass_log_fn, threads, 1, mezz_fps, encext,))
+                                    encoders[test_label_idx], pass_log_fn, threads, 1,
+                                    mezz_fps, encext, test_force_framerate))
                     # run encode
                     if p != None:
                         p.start()
