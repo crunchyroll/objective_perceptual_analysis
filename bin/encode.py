@@ -477,7 +477,7 @@ def get_segments(playlist_file, seg_dir, video_dir, format, encext):
 def segment_source(mezzanine_fn, vcodec, video_framerate, seg_dir, video_dir, video_duration, processes, cache, ext, format, encext, framerate):
     """Split Source Video into parts, returns list of source segments."""
     # calc source segment duration
-    source_segment_duration = max(1, int((video_duration/1000.0) / max(1.0, float(processes))))
+    source_segment_duration = max(1, int((video_duration/1000.0) / max(1.0, float(processes)))+1)
     if debug:
         print "Source video duration: %f Segment duration: %f" % (video_duration, source_segment_duration)
     # setup and lock cache directory for mezzanine segments
@@ -755,22 +755,24 @@ for m in mezzanines:
                 finished = False
                 print "---"
                 print "Starting encoding processes..."
+                start_wait_time = time.time()
                 while not finished:
                     running_procs = []
                     finished = True # search if any processes are alive
                     count = 0
                     for i, p in enumerate(processes):
-                        p.join(5) # 1 second timeout
+                        p.join(0.1) # 1 second timeout
                         fsize = 0 # encode filesize
                         if isfile(p.name):
                             fsize = getsize(p.name)
                         if p.is_alive(): # check if we timed out
                             count += 1
                             finished = False
-                            running_procs.append("[%d]%s (running) bytes %d" % (i, p.name.split('/')[-1].split('.')[0], fsize))
-                        else:
-                            running_procs.append("[%d]%s (finished) bytes %d" % (i, p.name.split('/')[-1].split('.')[0], fsize))
-                    print "\r [%d] status: %s" % (count, ' | '.join(running_procs))
+                            running_procs.append("%s:%d" % (p.name.split('/')[-1].split('.')[0], fsize))
+
+                    sys.stdout.flush()
+                    sys.stdout.write("\r%s[%d/%d]%s" % (test_label, count, time.time() - start_wait_time, '|'.join(running_procs)))
+                    sys.stdout.flush()
 
                 # mux together encoding segments if needed
                 if segment or segment_encode:
