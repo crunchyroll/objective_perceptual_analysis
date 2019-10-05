@@ -770,10 +770,7 @@ for m in mezzanines:
                             running_procs.append("[%d]%s (running) bytes %d" % (i, p.name.split('/')[-1].split('.')[0], fsize))
                         else:
                             running_procs.append("[%d]%s (finished) bytes %d" % (i, p.name.split('/')[-1].split('.')[0], fsize))
-                    sys.stdout.flush()
-                    sys.stdout.write("\r [%d] status: %s" % (count, ' | '.join(running_procs)))
-                    sys.stdout.flush()
-                    sys.stdout.write('\r')
+                    print "\r [%d] status: %s" % (count, ' | '.join(running_procs))
 
                 # mux together encoding segments if needed
                 if segment or segment_encode:
