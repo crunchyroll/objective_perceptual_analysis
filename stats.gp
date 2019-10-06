@@ -7,11 +7,11 @@ set style line 4  lc rgb 'black' lt 1 lw 1 #
 set style line 5  lc rgb 'green' lt 1 lw 3 #
 set style line 6  lc rgb 'blue' lt 1 lw 2 #
 set style line 7  lc rgb 'orange' lt 1 lw 1 #
-#set style data histogram
-set style data line
+set style data histogram
+#set style data line
 set key opaque
-#set style histogram cluster gap 1
-#set style fill pattern border -1
+set style histogram cluster gap 1
+set style fill pattern border -1
 set boxwidth 0.9
 set yrange [0:100]
 set xtics format ""
