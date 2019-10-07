@@ -35,6 +35,7 @@ global_args = []
 test_labels = [];
 encoders = [];
 encode_flags = [];
+encode_formats = [];
 rate_controls = [];
 test_args = []
 test_metrics = []
@@ -48,7 +49,7 @@ force_framerate = False
 ap = argparse.ArgumentParser()
 ap.add_argument('-m', '--metrics', dest='metrics', required=False, help="Metric List. Delimited by commas: Options - psnr,vmaf,ssim")
 ap.add_argument('-p', '--threads', dest='threads', required=False, help="threads to use for encoding")
-ap.add_argument('-t', '--tests', dest='tests', required=True, help="Tests to run, Format - Label|FFmpegBin|RateControl|Flags|arg|arg;Label|FFmpegBin|RC|FLGS|arg|arg;...")
+ap.add_argument('-t', '--tests', dest='tests', required=True, help="Tests to run, Format - Label|FFmpegBin|RateControl|Flags|Format|arg|arg;Label|FFmpegBin|RC|FLGS|arg|arg;...")
 #ap.add_argument('-a', '--encoder_args', dest='encoder_args', required=False, help="Global args for encoders - FFmpegBin|arg|arg,FFmpegBin|arg|arg")
 ap.add_argument('-n', '--directory', dest='directory', required=True, help="Name of the tests base directory")
 ap.add_argument('-k', '--keep_raw', dest='keep_raw', required=False, action='store_true', help="keep raw yuv avi video clips in ./videos/")
@@ -102,7 +103,8 @@ if args['tests'] != None:
         encoder = lparts[1]
         rate_control = lparts[2]
         flags = lparts[3]
-        encoder_args = lparts[4:]
+        encode_fmt = lparts[4]
+        encoder_args = lparts[5:]
         if '_' in label:
             print "Error, Test labels cannot have underscores '_' in them!"
             sys.exit(1)
@@ -111,6 +113,7 @@ if args['tests'] != None:
         rate_controls.append(rate_control)
         test_args.append(encoder_args)
         encode_flags.append(flags)
+        encode_formats.append(encode_fmt)
 
 print "Running test in %s directory" % base_directory
 
@@ -186,6 +189,11 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
             '-passlogfile', pass_log_fn,
             '-f', format,
             '-threads', str(threads)]
+        # turn off audio if not asked for
+        if not use_audio:
+            create_encode_cmd = create_encode_cmd + ['-an']
+        elif format == 'webm': # experimental audio vorbis / for ffmpeg
+            create_encode_cmd = create_encode_cmd + ['-strict', '2']
         # force framerate
         if test_force_framerate:
             create_encode_cmd = create_encode_cmd + ['-r', "%f" % mezz_fps]
@@ -213,6 +221,11 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
                    '-copyts',
                    '-max_delay', '0',
                    '-start_at_zero']
+        # turn off audio if not asked for
+        if not use_audio:
+            create_encode_cmd = create_encode_cmd + ['-an']
+        elif format == 'webm': # experimental audio vorbis / for ffmpeg
+            create_encode_cmd = create_encode_cmd + ['-strict', '2']
         create_encode_cmd = create_encode_cmd + [encode_fn]
 
         for output in execute(create_encode_cmd):
@@ -663,25 +676,29 @@ for m in mezzanines:
                                                                     mezz_duration)
 
     for test_label in test_labels:
-        encode_fn = "%s/%s/%s_%s_%s.mp4" % (cur_dir, encode_dir, m.split('.')[0], test_label, test_letter)
-        encode_data_fn = "%s/%s/%s_%s_%s.mp4_data.json" % (cur_dir, encode_dir, m.split('.')[0], test_label, test_letter)
-        pass_log_fn = "%s/%s/%s_%s_%s.mp4_pass.log" % (cur_dir, encode_dir, m.split('.')[0], test_label, test_letter)
+        rate_control = rate_controls[test_label_idx]
+        # Flags:
+        ## - S: Segment Encode
+        ## - F: Force mezzanine FPS
+        flags = encode_flags[test_label_idx]
+        encode_format = encode_formats[test_label_idx]
+
+        # Filenames 
+        encode_fn = "%s/%s/%s_%s_%s.%s" % (cur_dir, encode_dir, m.split('.')[0], test_label, test_letter, encode_format)
+        encode_data_fn = "%s/%s/%s_%s_%s.%s_data.json" % (cur_dir, encode_dir, m.split('.')[0], test_label, test_letter, encode_format)
+        pass_log_fn = "%s/%s/%s_%s_%s.%s_pass.log" % (cur_dir, encode_dir, m.split('.')[0], test_label, test_letter, encode_format)
         mezzanine_video_fn = "%s/%s/%s.avi" % (cur_dir, video_dir, m.split('.')[0])
         encode_video_fn = "%s/%s/%s_%s_%s.avi" % (cur_dir, video_dir, m.split('.')[0], test_label, test_letter)
         result_base = "%s/%s/%s_%s_%s" % (cur_dir, result_dir, m.split('.')[0], test_label, test_letter)
         speed_result = "%s/%s/%s_%s_%s_speed.json" % (cur_dir, result_dir, m.split('.')[0], test_label, test_letter)
         print "\n%s:" % mezzanine_fn
         print " %s" % encode_fn
+
         # Encode mezzanine
         if not isfile(encode_fn) or getsize(encode_fn) <= 0:
             processes = []
             try:
                 start_time = time.time()
-                rate_control = rate_controls[test_label_idx]
-                # Flags:
-                ## - S: Segment Encode
-                ## - F: Force mezzanine FPS
-                flags = encode_flags[test_label_idx]
                 segment_encode = False
                 test_force_framerate = False
                 if 'S' in flags:
@@ -695,7 +712,7 @@ for m in mezzanines:
                 source_segments = []
                 p = None
                 enc_dir = None
-                encext = "mp4" # final encode extension: TODO make option for encode per line
+                encext = "%s" % encode_format # final encode extension: TODO make option for encode per line
                 # split mezzanine here
                 if segment or segment_encode:
                     print " - splitting mezzanine into segments for parallel encoding..."
@@ -705,8 +722,8 @@ for m in mezzanines:
                         mkdir(enc_dir)
                     ext = m.split('.')[1]
                     format = "mp4" # segmented mezz split format
-                    segencfmt = "mp4" # format for encode segments
-                    segencext = "mp4" # extension for combining segments
+                    segencfmt = "%s" % encode_format # format for encode segments
+                    segencext = "%s" % encode_format # extension for combining segments
                     if mezz_format == "prores":
                         format = "mov"
                         ext = "mov"
@@ -836,7 +853,13 @@ for m in mezzanines:
             stdout = subprocess.check_output(cmd)
             data_string = "".join([line for line in stdout if
                             ((ord(line) >= 32 and ord(line) < 128) or ord(line) == 10 or ord(line) == 13)]).strip()
-            duration = "%0.3f" % float(data_string.split(',')[0])
+            duration = -1
+            print "reading media stats: %s" % data_string
+            if data_string != ',':
+                duration = "%0.3f" % float(data_string.split(',')[0])
+            if duration < 1:
+                print "Error reading media stats: '%s' doesn't contain duration,bitrate bad encoding!!!" % data_string
+                continue
             bitrate = "%s" % data_string.split(',')[1].strip()
             data = {}
             data['video'] = {}
