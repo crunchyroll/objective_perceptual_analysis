@@ -159,13 +159,15 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
         remove(encode_fn)
 
     if rate_control == "twopass":
+        encode_log_1 = "%s_pass1.log" % encode_fn
+        encode_log_2 = "%s_pass2.log" % encode_fn
         # pass 1
         fp_args = list(test_args)
         for i, a in enumerate(fp_args):
             # for vp9 adjust speed on first pass to 4 as recommended
             if a == "-speed":
                 fp_args[i+1] = "4"
-        create_encode_cmd = [encoders, '-loglevel', 'error', '-hide_banner',
+        create_encode_cmd = [encoders, '-loglevel', 'error', '-hide_banner', '-report',
             '-nostats', '-nostdin', '-i', mezzanine_fn] + global_args + fp_args + ['-pass', '1',
             '-an', '-passlogfile', pass_log_fn, '-f', format,
             '-threads', str(threads), '-y']
@@ -181,10 +183,10 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
         create_encode_cmd = create_encode_cmd + ['/dev/null']
 
         print "\r FirstPass Encoding [%d] %s..." % (idx, pass_log_fn)
-        for output in execute(create_encode_cmd):
+        for output in execute(create_encode_cmd, encode_log_1):
             print "\r%s" % output
         # pass 2
-        create_encode_cmd = [encoders, '-loglevel', 'warning', '-hide_banner',
+        create_encode_cmd = [encoders, '-loglevel', 'warning', '-hide_banner', '-report',
             '-nostats', '-nostdin', '-i', mezzanine_fn] + global_args + test_args + ['-pass', '2',
             '-passlogfile', pass_log_fn,
             '-f', format,
@@ -206,11 +208,13 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
         create_encode_cmd = create_encode_cmd + [encode_fn]
 
         print "\r SecondPass Encoding [%d] %s..." % (idx, encode_fn)
-        for output in execute(create_encode_cmd):
+        for output in execute(create_encode_cmd, encode_log_2):
             print output
     else:
+        encode_log = "%s.log" % encode_fn
+
         print "\r [%d] %s - encoding in one pass..." % (idx, encode_fn)
-        create_encode_cmd = [encoders, '-loglevel', 'warning', '-hide_banner', '-nostats', '-nostdin',
+        create_encode_cmd = [encoders, '-loglevel', 'warning', '-hide_banner', '-nostats', '-nostdin', '-report',
             '-i', mezzanine_fn] + global_args + test_args + ['-threads', str(threads), '-f', format]
         # force framerate
         if test_force_framerate:
@@ -228,7 +232,7 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
             create_encode_cmd = create_encode_cmd + ['-strict', '2']
         create_encode_cmd = create_encode_cmd + [encode_fn]
 
-        for output in execute(create_encode_cmd):
+        for output in execute(create_encode_cmd, encode_log):
             print output
 
 def segment_cache_close(lock_file, segments, seg_dir):
@@ -940,8 +944,7 @@ for m in mezzanines:
             if not isfile(result_fn) or getsize(result_fn) <= 0:
                 create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-codec:v', 'libdav1d', '-i', encode_fn,
                     '-i', mezzanine_fn, '-nostats', '-nostdin', '-threads', str(threads),
-                    '-max_muxing_queue_size', '1024',
-                    '-filter_complex', '[0:v][1:v]img_hash=stats_file=%s' % result_fn, '-f', 'null', '-']
+                    '-filter_complex', '[0:v][1:v]img_hash=stats_file=%s' % result_fn, '-an', '-codec:v', 'rawvideo', '-y', '-f', 'avi', '/dev/null']
                 print " - calculating the %s score for encoding..." % "phqm"
                 p = Process(target=get_results, args=('vmaf', result_fn_stdout, encode_fn, create_result_cmd,))
                 # run each metric in parallel
@@ -959,8 +962,7 @@ for m in mezzanines:
                 if not isfile(result_fn) or getsize(result_fn) <= 0:
                     create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-codec:v', 'libdav1d', '-i', encode_fn, '-i', mezzanine_fn,
                         '-nostats', '-nostdin', '-threads', str(threads),
-                        '-max_muxing_queue_size', '1024',
-                        '-filter_complex', '[0:v][1:v]libvmaf=psnr=1:ms_ssim=1:log_fmt=json:log_path=%s' % result_fn, '-f', 'null', '-']
+                        '-filter_complex', '[0:v][1:v]libvmaf=psnr=1:ms_ssim=1:log_fmt=json:log_path=%s' % result_fn, '-an', '-codec:v', 'rawvideo', '-y', '-f', 'avi', '/dev/null']
                     print " - calculating the %s score for encoding..." % "vmaf"
                     p = Process(target=get_results, args=('vmaf', result_fn_stdout, encode_fn, create_result_cmd,))
                     if p != None:
