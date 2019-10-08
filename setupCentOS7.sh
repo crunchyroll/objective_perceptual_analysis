@@ -52,6 +52,12 @@ fi
 if [ ! -e /usr/include/fontconfig ]; then
     sudo yum -y -q install fontconfig-devel
 fi
+if [ ! -e /usr/bin/meson ]; then
+    sudo yum -y -q install meson
+fi
+if [ ! -e /usr/bin/nija ]; then
+    sudo yum -y -q install ninja-build
+fi
 
 ## get opencv and opencv_contrib
 if [ ! -d "opencv" ]; then
@@ -245,6 +251,13 @@ if [ ! -f /usr/local/lib/libvmaf.a ]; then
     sudo ln -s /usr/local/lib/pkgconfig/libvmaf.pc /usr/share/pkgconfig/
 fi
 
+## setup dav1d
+if [ ! -f /usr/local/bin/dav1d ]; then
+    make dav1dlib
+    sudo ln -s /usr/local/lib64/pkgconfig/dav1d.pc /usr/share/pkgconfig
+    sudo ldconfig
+fi
+
 ## Setup VPX
 if [ ! -f /usr/lib/libvpx.a ]; then
     make vpxlib
@@ -277,7 +290,7 @@ fi
 
 ## Setup FFmpeg
 if [ ! -f FFmpeg/ffmpeg ]; then
-    FFCFGARGS="--enable-libsvtav1" make ffmpegbin
+    make ffmpegbin
 fi
 
 # build tools

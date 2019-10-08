@@ -52,6 +52,13 @@ svtav1lib:
 	make -j8 && \
 	sudo make install
 
+dav1dlib:
+	cd dav1d && \
+	meson build --buildtype release && \
+	ninja-build -C build && \
+	cd build && \
+	sudo meson install
+
 rav1elib:
 	cd rav1e && \
 	cargo build --release && \
@@ -64,7 +71,7 @@ vmaflib:
 
 ffmpegbin:
 	cd FFmpeg && \
-	./configure --prefix=/usr --enable-libx264 --enable-libvpx --enable-gpl --enable-libopencv --enable-version3 --enable-libvmaf --enable-libfreetype --enable-fontconfig --enable-libass --enable-libaom --enable-librav1e $$FFCFGARGS && \
+	./configure --prefix=/usr --enable-libx264 --enable-libvpx --enable-gpl --enable-libopencv --enable-version3 --enable-libvmaf --enable-libfreetype --enable-fontconfig --enable-libass --enable-libaom --enable-librav1e --enable-libdav1d --enable-libsvtav1 && \
 	make clean && \
 	make -j8
 

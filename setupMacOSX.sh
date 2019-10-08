@@ -66,6 +66,10 @@ fi
 if [ ! -e /usr/local/include/fontconfig ]; then
     brew install fontconfig
 fi
+## setup dav1d
+if [ ! -f /usr/local/bin/dav1d ]; then
+    brew install dav1d
+fi
 
 # For some reason OpenCV3 doesn't create this link
 if [ ! -e /usr/local/include/opencv2 -a -d /usr/local/include/opencv4 ]; then
@@ -115,7 +119,7 @@ fi
 ## Setup FFmpeg
 if [ ! -f FFmpeg/ffmpeg ]; then
     export PKG_CONFIG_PATH="/usr/local/opt/opencv@3/lib/pkgconfig"
-    FFCFGARGS="--enable-libsvtav1" make ffmpegbin
+    make ffmpegbin
 fi
 
 # build tools
