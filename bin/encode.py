@@ -942,9 +942,9 @@ for m in mezzanines:
             print " - %s" % result_fn
             # get psnr and perceptual difference metrics
             if not isfile(result_fn) or getsize(result_fn) <= 0:
-                create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-codec:v', 'libdav1d', '-i', encode_fn, '-report',
+                create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-i', encode_fn, '-report',
                     '-i', mezzanine_fn, '-nostats', '-nostdin', '-threads', str(threads),
-                    '-filter_complex', '[0:v][1:v]img_hash=stats_file=%s' % result_fn, '-an', '-codec:v', 'rawvideo', '-y', '-f', 'avi', '/dev/null']
+                    '-filter_complex', '[0:v][1:v]img_hash=stats_file=%s' % result_fn, '-an', '-codec:v', 'rawvideo', '-y', '-f', 'null', '/dev/null']
                 print " - calculating the %s score for encoding..." % "phqm"
                 p = Process(target=get_results, args=('vmaf', result_fn_stdout, encode_fn, create_result_cmd,))
                 # run each metric in parallel
@@ -960,9 +960,9 @@ for m in mezzanines:
                 result_fn_stdout = "%s_%s.stdout" % (result_base, 'vmaf')
                 print " - %s" % result_fn
                 if not isfile(result_fn) or getsize(result_fn) <= 0:
-                    create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-codec:v', 'libdav1d', '-i', encode_fn, '-i', mezzanine_fn, '-report',
+                    create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-i', encode_fn, '-i', mezzanine_fn, '-report',
                         '-nostats', '-nostdin', '-threads', str(threads),
-                        '-filter_complex', '[0:v][1:v]libvmaf=psnr=1:ms_ssim=1:log_fmt=json:log_path=%s' % result_fn, '-an', '-codec:v', 'rawvideo', '-y', '-f', 'avi', '/dev/null']
+                        '-filter_complex', '[0:v][1:v]libvmaf=psnr=1:ms_ssim=1:log_fmt=json:log_path=%s' % result_fn, '-an', '-codec:v', 'rawvideo', '-y', '-f', 'null', '/dev/null']
                     print " - calculating the %s score for encoding..." % "vmaf"
                     p = Process(target=get_results, args=('vmaf', result_fn_stdout, encode_fn, create_result_cmd,))
                     if p != None:
