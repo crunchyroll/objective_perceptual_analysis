@@ -863,6 +863,8 @@ for m in mezzanines:
                 duration = "%0.3f" % float(data_string.split(',')[0])
             if duration < 1:
                 print "Error reading media stats: '%s' doesn't contain duration,bitrate bad encoding!!!" % data_string
+                # increment test label
+                test_label_idx += 1
                 continue
             bitrate = "%s" % data_string.split(',')[1].strip()
             data = {}
