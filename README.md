@@ -23,6 +23,9 @@ Also research via bin/encode.py and bin/results.py script:
 Everything can be easily setup via setup.sh, it will install what is necessary
 for the most part. Please report back any issues so this can be improved for edge cases.
 
+See the bin/readme.md file for information on bin/encode.py and bin/results.py.
+See the scripts/readme.md file for information on setting up tests.
+
 *Currenty works on CentOS 7 and Mac OS X*
 *VMAF, libVPX, libAOM, libRav1e, libx264, libOpenCV build of FFmpeg*
 - rav1e support based off of work by Derek Buitenhuis

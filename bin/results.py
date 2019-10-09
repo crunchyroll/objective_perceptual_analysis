@@ -4,6 +4,7 @@ import argparse
 import datetime
 import json
 import subprocess
+from os import getcwd
 from os import listdir
 from os import mkdir
 from os.path import isfile, isdir, join, getsize
@@ -12,6 +13,7 @@ from os.path import splitext
 from os import environ
 
 environ["GDFONTPATH"] = "/usr/share/fonts/msttcorefonts/"
+environ["PATH"] = "%s/FFmpeg:%s" % (getcwd(), environ["PATH"])
 
 # results list
 results = []
@@ -245,14 +247,14 @@ for m in mezzanines:
                         # ffmpeg -i mezzanine -vf select='between(n\,%d\,%d),setpts=PTS-STARTPTS' image_dir_period/%08d.jpg
                         # drawtext=text='Test Text':fontcolor=white:fontsize=75:x=1002:y=100:
                         # box=1:boxcolor=black@0.7
-                        subprocess.call(['FFmpeg/ffmpeg', '-hide_banner', '-y', '-nostdin', '-nostats', '-loglevel', 'error',
+                        subprocess.call(['ffmpeg', '-hide_banner', '-y', '-nostdin', '-nostats', '-loglevel', 'error',
                                 '-i', "%s/%s" % (mezz_dir, m), '-vf',
                                 "select='between(n\,%d\,%d)',setpts=PTS-STARTPTS,drawtext=text='%s':fontcolor=white:box=1:boxcolor=black@0.7:fontsize=28:x=5:y=5" % (s["start_frame"], s["end_frame"], mdetail.replace(':', ' ').replace(')', '')),
                                 '-pix_fmt', 'yuv420p',
                                 "%s/%%08d.jpg" % image_dir_period])
                     # create video segment with stats burned in
                     if preview and not isfile("%s.mp4" % video_dir_period):
-                        subprocess.call(['FFmpeg/ffmpeg', '-hide_banner', '-y', '-nostdin', '-nostats', '-loglevel', 'error',
+                        subprocess.call(['ffmpeg', '-hide_banner', '-y', '-nostdin', '-nostats', '-loglevel', 'error',
                                 '-i', "%s/%s" % (mezz_dir, m), '-vf',
                                 "select='between(n\,%d\,%d)',setpts=PTS-STARTPTS,drawtext=text='%s':fontcolor=white:box=1:boxcolor=black@0.7:fontsize=28:x=5:y=5" % (s["start_frame"], s["end_frame"], mdetail.replace(':', ' ').replace(')', '')),
                                 '-pix_fmt', 'yuv420p', '-an',
@@ -268,7 +270,7 @@ for m in mezzanines:
                         # ffmpeg -i segment[0] -i segment[1] -i segment[2] -filter_complex \
                         #      '[0:0] [1:0] [2:0] concat=n=3:v=1:a=0 [v]' \
                         #            -map '[v]' output.mp4
-                        cmd = ['FFmpeg/ffmpeg', '-hide_banner', '-y', '-nostdin', '-nostats',
+                        cmd = ['ffmpeg', '-hide_banner', '-y', '-nostdin', '-nostats',
                                     '-loglevel', 'error']
                         for sfile in video_files:
                             # input files

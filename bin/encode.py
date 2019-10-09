@@ -21,8 +21,10 @@ import subprocess
 import sys
 import time
 
-ffmpeg_bin = "./FFmpeg/ffmpeg"
-ffprobe_bin = "./FFmpeg/ffprobe"
+environ["PATH"] = "%s/FFmpeg:%s" % (getcwd(), environ["PATH"])
+
+ffmpeg_bin = "ffmpeg"
+ffprobe_bin = "ffprobe"
 vqmt_bin = "/usr/local/bin/vqmt"
 
 keep_raw = False
@@ -120,7 +122,8 @@ print "Running test in %s directory" % base_directory
 def execute(command, output_file = None):
     if debug:
         print "  # (%s) " % " ".join(command)
-    process = subprocess.Popen(command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    process = subprocess.Popen(command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                               cwd="%s" % base_directory)
 
     # Poll process for new output until finished
     while True:
@@ -755,9 +758,9 @@ for m in mezzanines:
                     # run multiple processes for each segment
                     if len(source_segments) > 0:
                         for idx, s in enumerate(source_segments):
-                            mezzanine_segment = s['source']
+                            mezzanine_segment = "%s/%s" % (cur_dir, s['source'])
                             mezzanine_segments.append(mezzanine_segment)
-                            encode_segment = s['encode']
+                            encode_segment = "%s/%s" % (cur_dir, s['encode'])
                             encode_segments.append(encode_segment)
                             pass_log_fn = "%s/%s/%s_%s_%s_pass.log" % (cur_dir,
                                             encode_dir, "%s_%d" % (m.split('.')[0], s['index']), test_label, test_letter)
