@@ -111,7 +111,6 @@ if [ ! -d "FFmpeg" ]; then
     cd FFmpeg
     git checkout remotes/origin/release/4.2
     cat ../ffmpeg_perceptual.diff | patch -p1
-    cat ../SVT-AV1/ffmpeg_plugin/0001-Add-ability-for-ffmpeg-to-run-svt-av1.patch |patch -p1
     cd ../
 fi
 
