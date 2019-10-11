@@ -1,4 +1,11 @@
-Perceptual Hash Per Title Encoder && Quality Metric
+Objective Perceptual Analysis - Video Karma Predictor
+
+This is a kit for testing codecs objectively through FFmpeg.
+It employs VMAF, SSIM, PSNR and also a Perceptual Hash metric.
+Multiple encoding tests can be ran comparing the encoders and
+the encodings, encoding techniques. The metrics and test harness
+allow quick feedback to test theories and new code in FFmpeg.
+There's objective metrics, graphs and easy comparisons historically.
 
 Use OpenCV img_hash frame comparisons in FFmpeg libavfilter for per title encoding / Perceptual Quality comparisons
 
