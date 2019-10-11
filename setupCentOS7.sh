@@ -282,8 +282,8 @@ if [ ! -f /usr/local/lib/librav1e.a ]; then
     make rav1elib
     sudo ln -s /usr/local/lib/pkgconfig/rav1e.pc /usr/share/pkgconfig/
     # CentOS doesn't include /usr/local/lib by default
-    echo "/usr/local/lib" >> /etc/ld.so.conf.d/local.conf
-    echo "/usr/local/lib64" >> /etc/ld.so.conf.d/local.conf
+    sudo echo "/usr/local/lib" >> /etc/ld.so.conf.d/local.conf
+    sudo echo "/usr/local/lib64" >> /etc/ld.so.conf.d/local.conf
     sudo ldconfig
 fi
 
