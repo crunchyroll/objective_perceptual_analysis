@@ -37,6 +37,9 @@ Example steps:
         - FLAGS:
         -   S=segmented/parallel encoding mode
         -   F=force mezzanine fps (use -r FPS when encoding)
+        - Encoders:
+        -   ffmpeg - supports FFmpeg/ffmpeg build via 'ffmpeg'
+        -   SvtAv1EncApp - if given as an encoder then it is used instead of ffmpeg
     
 format output supported:
    
