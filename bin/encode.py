@@ -6,6 +6,7 @@ import traceback
 import fcntl
 from multiprocessing import Process
 from os import listdir
+from os import mkfifo
 from os.path import isfile, join
 from os.path import basename
 from os.path import splitext
@@ -156,7 +157,9 @@ def get_results(test_metric, result_fn, encode_video_fn, create_result_cmd):
             # remove results since they are not complete
             remove(result_fn)
 
-def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, encoders, pass_log_fn, threads, idx, mezz_fps, format, test_force_framerate):
+def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
+                 global_args, encoders, pass_log_fn, threads, idx,
+                 mezz_fps, format, test_force_framerate, mezz_height, mezz_width, mezz_num, mezz_den):
     # cleanup any failed encodings
     if isfile(encode_fn):
         remove(encode_fn)
@@ -216,7 +219,107 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args, global_args, 
     else:
         encode_log = "%s.log" % encode_fn
 
-        print "\r [%d] %s - encoding in one pass..." % (idx, encode_fn)
+        print "\r [%d] %s - %s encoding in one pass..." % (idx, encode_fn, encoders)
+        if encoders == "SvtAv1EncApp":
+            mezzanine_fifo = "%s_ref.yuv" % encode_fn.replace('.', '_')
+            encode_out = "%s_enc.ivf" % encode_fn.replace('.', '_')
+            eprocesses = []
+            p = None
+
+            # create log and fifo in / out
+            enc_log = "%s_enc.log" % encode_fn
+            yuv_log = "%s_yuv.log" % encode_fn
+            mp4_log = "%s_mp4.log" % encode_fn
+            if isfile(mezzanine_fifo):
+                remove(mezzanine_fifo)
+            mkfifo(mezzanine_fifo)
+
+            # Encode (mezzanine_fifo -> encode_out)
+            create_encode_cmd = [encoders, '-i', mezzanine_fifo] + test_args + ['-lp', str(threads)]
+            create_encode_cmd = create_encode_cmd + ['-w', str(mezz_width), '-h', str(mezz_height),
+                                                        '-fps-num', "%d" % mezz_num, '-fps-denom', "%d" % mezz_den]
+            create_encode_cmd = create_encode_cmd + ['-b', encode_out]
+            p = Process(name="SvtEnc: %s" % mezzanine_fn, target=execute, args=(create_encode_cmd, enc_log))
+            # run process in parallel
+            if p != None:
+                p.start()
+                eprocesses.append(p)
+            else:
+                print "Error: Failed running Svt Encoder: %s" % mezzanine_fn
+                sys.exit(1)
+
+            # Decode YUV (mezzanine_fn -> mezzanine_fifo)
+            cmd = ['ffmpeg', '-y', '-vsync', '0', '-i', mezzanine_fn, '-nostdin', '-loglevel', 'warning', '-nostats',
+                     '-f', 'rawvideo', '-pix_fmt', 'yuv420p', '-an', mezzanine_fifo]
+            p = Process(name="YUV: %s" % mezzanine_fn, target=execute, args=(cmd, yuv_log))
+            # run each process in parallel
+            if p != None:
+                p.start()
+                eprocesses.append(p)
+            else:
+                print "Error: Failed decoding to YUV: %s" % mezzanine_fn
+                sys.exit(1)
+
+            # Wait for processes to finish
+            finished = False
+            while not finished:
+                finished = True # search if any processes are alive
+                count = 0
+                for i, p in enumerate(eprocesses):
+                    p.join(0.1) # 1 second timeout
+                    if p.is_alive(): # check if we timed out
+                        count += 1
+                        finished = False
+                        #print "\rProcess: %s running" % p.name
+
+            # cleanup
+            if isfile(mezzanine_fifo):
+                remove(mezzanine_fifo)
+
+            # clear processes
+            eprocesses[:] = []
+
+            # Mux (encode_out -> encode_fn)
+            cmd = ['ffmpeg', '-y', '-i', encode_out, '-nostdin', '-loglevel', 'warning', '-nostats',
+                     '-f', format, '-vcodec', 'copy']
+            if format == 'mp4':
+                cmd.extend(['-movflags', '+faststart'])
+            cmd.extend([encode_fn])
+            p = Process(name="MUX: %s" % mezzanine_fn, target=execute, args=(cmd, mp4_log))
+            # run process in parallel
+            if p != None:
+                p.start()
+                eprocesses.append(p)
+            else:
+                print "Error: Failed muxing to MP4: %s" % mezzanine_fn
+                sys.exit(1)
+
+            # Wait for processes to finish
+            finished = False
+            while not finished:
+                finished = True # search if any processes are alive
+                count = 0
+                for i, p in enumerate(eprocesses):
+                    p.join(0.1) # 1 second timeout
+                    if p.is_alive(): # check if we timed out
+                        count += 1
+                        finished = False
+                        #print "\rProcess: %s running" % p.name
+
+            # remove SVT encode output after muxed
+            if isfile(encode_out):
+                remove(encode_out)
+
+            # Exit
+            print "Done with SVT-AV1 Encoding"
+            return
+
+        if 'ffmpeg' not in encoders:
+            print "---"
+            print "WARNING: Encoder %s is not supported, probably will not work!!!" % encoders
+            print "---"
+
+        ## FFmpeg Encoding
         create_encode_cmd = [encoders, '-loglevel', 'warning', '-hide_banner', '-nostats', '-nostdin', '-report',
             '-i', mezzanine_fn] + global_args + test_args + ['-threads', str(threads), '-f', format]
         # force framerate
@@ -666,7 +769,7 @@ for m in mezzanines:
                     ((ord(line) >= 32 and ord(line) < 128) or ord(line) == 10 or ord(line) == 13)]).strip()
     mezz_duration = float(data_string.split(',')[0])
 
-    params = "--Inform=Video;%CodecID%,%FrameRate%,%Height%,%Width%,%Format%"
+    params = "--Inform=Video;%CodecID%,%FrameRate%,%Height%,%Width%,%Format%,%FrameRate_Num%,%FrameRate_Den%"
     cmd = ['mediainfo', params, mezzanine_fn]
     print " - extracting metadata from video..."
     stdout = subprocess.check_output(cmd)
@@ -677,8 +780,10 @@ for m in mezzanines:
     mezz_height = int(data_string.split(',')[2])
     mezz_width = int(data_string.split(',')[3])
     mezz_format = "%s" % data_string.split(',')[4].lower()
+    mezz_num = float(data_string.split(',')[5])
+    mezz_den = float(data_string.split(',')[6])
 
-    print "mezzanine:\n\tcodec: %s\n\tformat: %s\n\tframerate: %0.2f\n\tframesize: %s\n\tduration: %0.2f" % (vcodec,
+    print "mezzanine:\n\tcodec: %s\n\tformat: %s\n\tframerate: %f\n\tframesize: %s\n\tduration: %0.2f" % (vcodec,
                                                                     mezz_format, mezz_fps, "%dx%d" % (mezz_width, mezz_height),
                                                                     mezz_duration)
 
@@ -773,7 +878,7 @@ for m in mezzanines:
                             p = Process(name=encode_segment, target=encode_video, args=(mezzanine_segment, encode_segment,
                                             rate_control, test_args[test_label_idx], global_args,
                                             encoders[test_label_idx], pass_log_fn, seg_threads, (idx+1),
-                                            mezz_fps, segencfmt, test_force_framerate))
+                                            mezz_fps, segencfmt, test_force_framerate, mezz_height, mezz_width, mezz_num, mezz_den))
                             # run each encode in parallel
                             if p != None:
                                 p.start()
@@ -785,7 +890,7 @@ for m in mezzanines:
                     p = Process(name=encode_fn, target=encode_video, args=(mezzanine_fn, encode_fn,
                                     rate_control, test_args[test_label_idx], global_args,
                                     encoders[test_label_idx], pass_log_fn, threads, 1,
-                                    mezz_fps, encext, test_force_framerate))
+                                    mezz_fps, encext, test_force_framerate, mezz_height, mezz_width, mezz_num, mezz_den))
                     # run encode
                     if p != None:
                         p.start()
