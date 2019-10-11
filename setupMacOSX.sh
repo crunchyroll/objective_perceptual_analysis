@@ -110,7 +110,7 @@ if [ ! -d "FFmpeg" ]; then
     git clone https://git.ffmpeg.org/ffmpeg.git FFmpeg
     cd FFmpeg
     git checkout remotes/origin/release/4.2
-    cat ../ffmpeg_perceptual.diff | patch -p1
+    cat ../ffmpeg_modifications.diff | patch -p1
     cd ../
 fi
 

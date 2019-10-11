@@ -51,7 +51,7 @@ This uses an FFmpeg with an extra video filter which uses OpenCV to
 compute hamming distance values from each frames hash vs. the previous
 frames hash. 
 
-There is a ffmpeg_perceptual.diff patch included...
+There is a ffmpeg_modifications.diff patch included...
 
 (this is done for you via the make command which runs the proper setup* script)
 
@@ -59,7 +59,7 @@ There is a ffmpeg_perceptual.diff patch included...
     git clone https://git.ffmpeg.org/ffmpeg.git FFmpeg
     cd FFmpeg
     git checkout remotes/origin/release/4.2
-    cat ../ffmpeg_perceptual.diff | patch -p1
+    cat ../ffmpeg_modifications.diff | patch -p1
 ```
 
 FFmpeg Commands:
