@@ -88,7 +88,7 @@ if [ ! -d "libvpx" ]; then
 fi
 
 if [ ! -d "aom" ]; then
-    git clone git clone https://aomedia.googlesource.com/aom/
+    git clone https://aomedia.googlesource.com/aom/
     cd aom
     # TODO find stable version
     cd ../
