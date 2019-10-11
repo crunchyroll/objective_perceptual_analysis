@@ -127,7 +127,7 @@ fi
 if [ ! -d "vmaf" ]; then
     git clone https://github.com/Netflix/vmaf.git vmaf
     cd vmaf
-    git checkout v1.3.14
+    git checkout v1.3.15
     cd ../
 fi
 
