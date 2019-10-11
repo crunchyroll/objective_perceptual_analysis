@@ -43,14 +43,21 @@ int main(int argc, char **argv)
         exit(1);
     }
 
+    std::cout<<"AverageHash:"<<std::endl;
     computeHash(img_hash::AverageHash::create(), argv[1], argv[2]);
+    std::cout<<"PHash:"<<std::endl;
     computeHash(img_hash::PHash::create(), argv[1], argv[2]);
+    std::cout<<"MarrHildrethHash:"<<std::endl;
     computeHash(img_hash::MarrHildrethHash::create(), argv[1], argv[2]);
+    std::cout<<"RadialVarianceHash:"<<std::endl;
     computeHash(img_hash::RadialVarianceHash::create(), argv[1], argv[2]);
     //BlockMeanHash support mode 0 and mode 1, they associate to 
     //mode 1 and mode 2 of PHash library
+    std::cout<<"BlockMeanHash mode 0:"<<std::endl;
     computeHash(img_hash::BlockMeanHash::create(0), argv[1], argv[2]);
+    std::cout<<"BlockMeanHash mode 1:"<<std::endl;
     computeHash(img_hash::BlockMeanHash::create(1), argv[1], argv[2]);
+    std::cout<<"COlorMomentHash:"<<std::endl;
     computeHash(img_hash::ColorMomentHash::create(), argv[1], argv[2]);
 }
 
