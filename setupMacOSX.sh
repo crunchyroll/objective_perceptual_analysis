@@ -50,6 +50,9 @@ fi
 if [ ! -e /usr/local/bin/cmake ]; then
     brew install cmake
 fi
+if [ ! -e /usr/local/bin/cmake3 ]; then
+    ln -s /usr/local/bin/cmake /usr/local/bin/cmake3
+fi
 if [ ! -e /usr/local/opt/opencv@3 ]; then
     brew install opencv@3
 fi

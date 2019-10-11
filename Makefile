@@ -42,7 +42,7 @@ aomlib:
 
 svtav1lib:
 	cd SVT-AV1/Build && \
-	cmake .. -G"Unix Makefiles" \
+	cmake3 .. -G"Unix Makefiles" \
 	-DCMAKE_BUILD_TYPE=Release \
 	-DCMAKE_CXX_FLAGS="-I/usr/local/include -L/usr/local/lib" \
 	-DCMAKE_C_FLAGS="-I/usr/local/include -L/usr/local/lib" \
