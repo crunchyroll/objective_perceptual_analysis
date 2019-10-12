@@ -66,5 +66,5 @@ Encoding Features / Research items:
 4. execute ```bin/results.py -n test001``` to get results
 
 Results Json ```stats.json``` output is CSV compatible in any converter.
-Also there is a graph ```stats.jpg``` created using gnuplot and ```stats.dat```.
+Also there is a graph ```stats.jpg``` created using gnuplot and ```stats.csv```.
 

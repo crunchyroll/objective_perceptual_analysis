@@ -443,7 +443,7 @@ for label, data in sorted(results_avg.iteritems()):
     if vmaf > 0 and ssim > 0 and psnr > 0 and phqm >= 0:
         body =  "%s%s\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%d\t%d\n" % (body, label, phqm, vmaf, ssim, psnr, bitrate, speed)
 
-with open("%s/stats.dat" % base_directory, "w") as f:
+with open("%s/stats.csv" % base_directory, "w") as f:
     f.write("%s" % body)
 
 # copy gnuplot config template into the test base directory
