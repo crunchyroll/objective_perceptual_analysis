@@ -36,16 +36,12 @@ See the scripts/readme.md file for information on setting up tests.
 *Currenty works on CentOS 7 and Mac OS X*
 *VMAF, libVPX, libAOM, libRav1e, libx264, libOpenCV build of FFmpeg*
 - rav1e support based off of work by Derek Buitenhuis
-  https://github.com/dwbuiten/FFmpeg/commit/2172caadfd1d5e8ff0bb16e7c7238338c132ed86
+  https://github.com/dwbuiten/FFmpeg
 
-Makefile will run the proper setup scriopt and install mediainfo, opencv, libx264, libvmaf, nasm
+Makefile will run the proper setup script and install mediainfo, opencv, libx264, libvmaf, nasm
 git, wget, freetype-devel... Everything should be done for you, although if not report it as a bug.
 
 type: ```make```
-
-Testing: reference program will test that opencv img_hash is working correctly.
-
-```./reference <ref image> <target image>```
 
 This uses an FFmpeg with an extra video filter which uses OpenCV to
 compute hamming distance values from each frames hash vs. the previous
@@ -61,6 +57,9 @@ There is a ffmpeg_modifications.diff patch included...
     git checkout remotes/origin/release/4.2
     cat ../ffmpeg_modifications.diff | patch -p1
 ```
+
+You can run tests using the bin/encode.py script. See the /bin/readme.md for more
+details.
 
 FFmpeg Commands:
 

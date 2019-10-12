@@ -26,8 +26,8 @@ Example steps:
 3. execute bin/encode.py (see bin/encode.py -h  for Help Output)
     example: (multiple tests can be separated by commas)
     
-   ```'bin/encode.py -m psnr,vmaf -n test001 -p 4 \
-   -t "test1|ffmpeg|twopass|S|mp4|-vcodec|libx264|-vf|perceptual|-b:v|4000k|-maxrate:v|4000k|-bufsize|6000k" -d -o'
+   ```bin/encode.py -m psnr,vmaf -n test001 -p 4 \
+   -t "test1|ffmpeg|twopass|S|mp4|-vcodec|libx264|-vf|perceptual|-b:v|4000k|-maxrate:v|4000k|-bufsize|6000k" -d -o
    ```
         
     The PATH environment is set to include ./FFmpeg/ so it will use the custom one automatically.
