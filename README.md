@@ -34,12 +34,14 @@ See the bin/readme.md file for information on bin/encode.py and bin/results.py.
 See the scripts/readme.md file for information on setting up tests.
 
 *Currenty works on CentOS 7 and Mac OS X*
-*VMAF, libVPX, libAOM, libRav1e, libx264, libOpenCV build of FFmpeg*
+*VMAF, libVPX, libAOM, libRav1e, svt-av1, libx264, libOpenCV build of FFmpeg*
 - rav1e support based off of work by Derek Buitenhuis
   https://github.com/dwbuiten/FFmpeg
 
 Makefile will run the proper setup script and install mediainfo, opencv, libx264, libvmaf, nasm
 git, wget, freetype-devel... Everything should be done for you, although if not report it as a bug.
+*Warning: Scripts will install / alter system packages via Sudo. Please keep this in mind*
+(Dockerfile coming soon to make this a non-issue)
 
 type: ```make```
 
