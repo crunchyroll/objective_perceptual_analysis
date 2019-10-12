@@ -125,10 +125,7 @@ if [ ! -d "FFmpeg" ]; then
 fi
 
 if [ ! -d "vmaf" ]; then
-    git clone https://github.com/Netflix/vmaf.git vmaf
-    cd vmaf
-    git checkout v1.3.15
-    cd ../
+    git clone -b v1.3.15 https://github.com/Netflix/vmaf.git vmaf
 fi
 
 # GCC 5.4.0 install to /usr/local/
