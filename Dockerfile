@@ -10,7 +10,7 @@
 # docker build --rm --build-arg SSH_PRIVATE_KEY=id_rsa -t opaencoder .
 #
 ## execute scripts on files via docker
-# docker run --rm -v ~/tests:/root/opaencoder/tests opaencoder run_example.sh
+# docker run --rm -v `pwd`/tests:/opaencoder/tests opaencoder sh scripts/run_example.sh
 #
 ## open a shell in docker container
 # docker run --rm -it opaencoder /bin/bash

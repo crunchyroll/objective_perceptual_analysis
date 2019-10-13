@@ -38,10 +38,19 @@ See the scripts/readme.md file for information on setting up tests.
 - rav1e support based off of work by Derek Buitenhuis
   https://github.com/dwbuiten/FFmpeg
 
+*Dockerfile setup: Easy and safest*
+
+```
+type: make docker
+
+Example using the docker image:
+- docker run --rm -v `pwd`/tests:/opaencoder/tests opaencoder sh scripts/run_example.sh
+
+```
+
 Makefile will run the proper setup script and install mediainfo, opencv, libx264, libvmaf, nasm
 git, wget, freetype-devel... Everything should be done for you, although if not report it as a bug.
 *Warning: Scripts will install / alter system packages via Sudo. Please keep this in mind*
-(Dockerfile coming soon to make this a non-issue)
 
 type: ```make```
 
