@@ -64,8 +64,8 @@ RUN yum clean all
 RUN rm -rf /var/cache/yum
 
 # Clean up
-COPY /root/opaencoder/FFmpeg/ffmpeg /root/opaencoder/bin/ffmpeg
-COPY /root/opaencoder/FFmpeg/ffprobe /root/opaencoder/bin/ffprobe
+RUN cp /root/opaencoder/FFmpeg/ffmpeg /root/opaencoder/bin/ffmpeg
+RUN cp /root/opaencoder/FFmpeg/ffprobe /root/opaencoder/bin/ffprobe
 RUN rm -rf /root/opaencoder/FFmpeg
 RUN rm -rf /root/opaencoder/x264
 RUN rm -rf /root/opaencoder/aom
