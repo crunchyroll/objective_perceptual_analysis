@@ -89,9 +89,9 @@ FROM centos:7
 COPY --from=0 /root/opaencoder /opaencoder
 COPY --from=0 /usr/local/ /usr/local/
 COPY --from=0 /etc/ld.so.conf.d/local.conf /etc/ld.so.conf.d/local.conf
-COPY --from=0 /lib/libopencv* /lib/
-COPY --from=0 /lib/libaom.so* /lib/
-COPY --from=0 /lib/libx264.so* /lib/
+COPY --from=0 /usr/lib/libopencv* /usr/lib/
+COPY --from=0 /usr/lib/libaom.so* /usr/lib/
+COPY --from=0 /usr/lib/libx264.so* /usr/lib/
 WORKDIR /opaencoder
 
 LABEL version="0.1"
