@@ -79,3 +79,8 @@ install:
 	cd FFmpeg && \
 	sudo make install
 
+docker:
+	docker build --rm --build-arg SSH_PRIVATE_KEY=id_rsa -t opaencoder .
+
+docker_clean:
+	docker system prune
