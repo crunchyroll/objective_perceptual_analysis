@@ -159,7 +159,7 @@ def get_results(test_metric, result_fn, encode_video_fn, create_result_cmd):
 
 def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
                  global_args, encoders, pass_log_fn, threads, idx,
-                 mezz_fps, format, test_force_framerate, mezz_height, mezz_width, mezz_num, mezz_den):
+                 mezz_fps, format, test_force_framerate, mezz_height, mezz_width, mezz_num, mezz_den, mezz_frames):
     # cleanup any failed encodings
     if isfile(encode_fn):
         remove(encode_fn)
@@ -237,7 +237,8 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
             # Encode (mezzanine_fifo -> encode_out)
             create_encode_cmd = [encoders, '-i', mezzanine_fifo] + test_args + ['-lp', str(threads)]
             create_encode_cmd = create_encode_cmd + ['-w', str(mezz_width), '-h', str(mezz_height),
-                                                        '-fps-num', "%d" % mezz_num, '-fps-denom', "%d" % mezz_den]
+                                                        '-fps-num', "%d" % mezz_num, '-fps-denom', "%d" % mezz_den,
+                                                        '-n', str(mezz_frames)]
             create_encode_cmd = create_encode_cmd + ['-b', encode_out]
             p = Process(name="SvtEnc: %s" % mezzanine_fn, target=execute, args=(create_encode_cmd, enc_log))
             # run process in parallel
@@ -782,10 +783,11 @@ for m in mezzanines:
     mezz_format = "%s" % data_string.split(',')[4].lower()
     mezz_num = float(data_string.split(',')[5])
     mezz_den = float(data_string.split(',')[6])
+    mezz_frames = int(mezz_fps * (mezz_duration / 1000)+1)
 
-    print "mezzanine:\n\tcodec: %s\n\tformat: %s\n\tframerate: %f\n\tframesize: %s\n\tduration: %0.2f" % (vcodec,
+    print "mezzanine:\n\tcodec: %s\n\tformat: %s\n\tframerate: %f\n\tframesize: %s\n\tduration: %0.2f\n\tframes: %d" % (vcodec,
                                                                     mezz_format, mezz_fps, "%dx%d" % (mezz_width, mezz_height),
-                                                                    mezz_duration)
+                                                                    mezz_duration, mezz_frames)
 
     for test_label in test_labels:
         rate_control = rate_controls[test_label_idx]
@@ -878,7 +880,7 @@ for m in mezzanines:
                             p = Process(name=encode_segment, target=encode_video, args=(mezzanine_segment, encode_segment,
                                             rate_control, test_args[test_label_idx], global_args,
                                             encoders[test_label_idx], pass_log_fn, seg_threads, (idx+1),
-                                            mezz_fps, segencfmt, test_force_framerate, mezz_height, mezz_width, mezz_num, mezz_den))
+                                            mezz_fps, segencfmt, test_force_framerate, mezz_height, mezz_width, mezz_num, mezz_den, mezz_frames))
                             # run each encode in parallel
                             if p != None:
                                 p.start()
@@ -890,7 +892,7 @@ for m in mezzanines:
                     p = Process(name=encode_fn, target=encode_video, args=(mezzanine_fn, encode_fn,
                                     rate_control, test_args[test_label_idx], global_args,
                                     encoders[test_label_idx], pass_log_fn, threads, 1,
-                                    mezz_fps, encext, test_force_framerate, mezz_height, mezz_width, mezz_num, mezz_den))
+                                    mezz_fps, encext, test_force_framerate, mezz_height, mezz_width, mezz_num, mezz_den, mezz_frames))
                     # run encode
                     if p != None:
                         p.start()
