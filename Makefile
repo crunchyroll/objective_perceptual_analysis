@@ -40,6 +40,13 @@ aomlib:
 	make -j8 && \
 	sudo make install
 
+svtav1libmac:
+	cd SVT-AV1/Build && \
+	cmake3 .. -G"Unix Makefiles" \
+	-DCMAKE_BUILD_TYPE=Release && \
+	make -j8 && \
+	sudo make install
+
 svtav1lib:
 	cd SVT-AV1/Build && \
 	cmake3 .. -G"Unix Makefiles" \

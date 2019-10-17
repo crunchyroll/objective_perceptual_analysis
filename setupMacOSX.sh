@@ -101,11 +101,7 @@ fi
 
 ## Setup Intel SVT-AV1
 if [ ! -f "/usr/local/lib/pkgconfig/SvtAv1Dec.pc" ]; then
-  cd SVT-AV1/Build && \
-  cmake .. -G"Unix Makefiles" \
-  -DCMAKE_BUILD_TYPE=Release \
-  make -j$(nproc) && \
-  sudo make install
+  make svtav1libmac
 fi
 
 
