@@ -164,6 +164,121 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
     if isfile(encode_fn):
         remove(encode_fn)
 
+    if encoders == "SvtAv1EncApp":
+        mezzanine_fifo = "%s_ref.yuv" % encode_fn.replace('.', '_')
+        encode_out = "%s_enc.ivf" % encode_fn.replace('.', '_')
+        eprocesses = []
+        p = None
+
+        # create log and fifo in / out
+        enc_log = "%s_enc.log" % encode_fn
+        yuv_log = "%s_yuv.log" % encode_fn
+        mp4_log = "%s_mp4.log" % encode_fn
+        if isfile(mezzanine_fifo):
+            remove(mezzanine_fifo)
+        mkfifo(mezzanine_fifo)
+
+        passnum = 1
+        while passnum < 2 or (passnum == 2 and rate_control == 'twopass'):
+            enc_log = "%s_enc_%d.log" % (encode_fn, passnum)
+            # Encode (mezzanine_fifo -> encode_out)
+            create_encode_cmd = [encoders, '-i', mezzanine_fifo]
+            # twopass encoding
+            if rate_control == "twopass":
+                if passnum == 1:
+                    fp_args = list(test_args)
+                    for i, a in enumerate(fp_args):
+                        # for av1 adjust enc-mode on first pass to 8 as recommended
+                        if a == "-enc-mode":
+                            fp_args[i+1] = "8"
+                    create_encode_cmd = create_encode_cmd + fp_args
+                    create_encode_cmd = create_encode_cmd + ['-output-stat-file', pass_log_fn]
+                else:
+                    create_encode_cmd = create_encode_cmd + test_args
+                    create_encode_cmd = create_encode_cmd + ['-input-stat-file', pass_log_fn]
+
+            create_encode_cmd = create_encode_cmd + ['-lp', str(threads)]
+            create_encode_cmd = create_encode_cmd + ['-w', str(mezz_width), '-h', str(mezz_height),
+                                                        '-fps-num', "%d" % mezz_num, '-fps-denom', "%d" % mezz_den,
+                                                        '-n', str(mezz_frames)]
+            create_encode_cmd = create_encode_cmd + ['-b', encode_out]
+            p = Process(name="SvtEnc: %s" % mezzanine_fn, target=execute, args=(create_encode_cmd, enc_log))
+            # run process in parallel
+            if p != None:
+                p.start()
+                eprocesses.append(p)
+            else:
+                print "Error: Failed running Svt Encoder: %s" % mezzanine_fn
+                sys.exit(1)
+
+            # Decode YUV (mezzanine_fn -> mezzanine_fifo)
+            cmd = ['ffmpeg', '-y', '-vsync', '0', '-i', mezzanine_fn, '-nostdin', '-loglevel', 'warning', '-nostats',
+                     '-f', 'rawvideo', '-pix_fmt', 'yuv420p', '-an', mezzanine_fifo]
+            p = Process(name="YUV: %s" % mezzanine_fn, target=execute, args=(cmd, yuv_log))
+            # run each process in parallel
+            if p != None:
+                p.start()
+                eprocesses.append(p)
+            else:
+                print "Error: Failed decoding to YUV: %s" % mezzanine_fn
+                sys.exit(1)
+
+            # Wait for processes to finish
+            finished = False
+            while not finished:
+                finished = True # search if any processes are alive
+                count = 0
+                for i, p in enumerate(eprocesses):
+                    p.join(0.1) # 1 second timeout
+                    if p.is_alive(): # check if we timed out
+                        count += 1
+                        finished = False
+                        #print "\rProcess: %s running" % p.name
+            # clear processes
+            eprocesses[:] = []
+
+            # pass number
+            passnum += 1
+
+        # cleanup
+        if isfile(mezzanine_fifo):
+            remove(mezzanine_fifo)
+
+        # Mux (encode_out -> encode_fn)
+        cmd = ['ffmpeg', '-y', '-i', encode_out, '-nostdin', '-loglevel', 'warning', '-nostats',
+                 '-f', format, '-vcodec', 'copy']
+        if format == 'mp4':
+            cmd.extend(['-movflags', '+faststart'])
+        cmd.extend([encode_fn])
+        p = Process(name="MUX: %s" % mezzanine_fn, target=execute, args=(cmd, mp4_log))
+        # run process in parallel
+        if p != None:
+            p.start()
+            eprocesses.append(p)
+        else:
+            print "Error: Failed muxing to MP4: %s" % mezzanine_fn
+            sys.exit(1)
+
+        # Wait for processes to finish
+        finished = False
+        while not finished:
+            finished = True # search if any processes are alive
+            count = 0
+            for i, p in enumerate(eprocesses):
+                p.join(0.1) # 1 second timeout
+                if p.is_alive(): # check if we timed out
+                    count += 1
+                    finished = False
+                    #print "\rProcess: %s running" % p.name
+
+        # remove SVT encode output after muxed
+        if isfile(encode_out):
+            remove(encode_out)
+
+        # Exit
+        print "Done with SVT-AV1 Encoding"
+        return
+
     if rate_control == "twopass":
         encode_log_1 = "%s_1.log" % pass_log_fn
         encode_log_2 = "%s_2.log" % pass_log_fn
@@ -217,103 +332,8 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
         for output in execute(create_encode_cmd, encode_log_2):
             print output
     else:
-        encode_log = "%s.log" % encode_fn
-
         print "\r [%d] %s - %s encoding in one pass..." % (idx, encode_fn, encoders)
-        if encoders == "SvtAv1EncApp":
-            mezzanine_fifo = "%s_ref.yuv" % encode_fn.replace('.', '_')
-            encode_out = "%s_enc.ivf" % encode_fn.replace('.', '_')
-            eprocesses = []
-            p = None
-
-            # create log and fifo in / out
-            enc_log = "%s_enc.log" % encode_fn
-            yuv_log = "%s_yuv.log" % encode_fn
-            mp4_log = "%s_mp4.log" % encode_fn
-            if isfile(mezzanine_fifo):
-                remove(mezzanine_fifo)
-            mkfifo(mezzanine_fifo)
-
-            # Encode (mezzanine_fifo -> encode_out)
-            create_encode_cmd = [encoders, '-i', mezzanine_fifo] + test_args + ['-lp', str(threads)]
-            create_encode_cmd = create_encode_cmd + ['-w', str(mezz_width), '-h', str(mezz_height),
-                                                        '-fps-num', "%d" % mezz_num, '-fps-denom', "%d" % mezz_den,
-                                                        '-n', str(mezz_frames)]
-            create_encode_cmd = create_encode_cmd + ['-b', encode_out]
-            p = Process(name="SvtEnc: %s" % mezzanine_fn, target=execute, args=(create_encode_cmd, enc_log))
-            # run process in parallel
-            if p != None:
-                p.start()
-                eprocesses.append(p)
-            else:
-                print "Error: Failed running Svt Encoder: %s" % mezzanine_fn
-                sys.exit(1)
-
-            # Decode YUV (mezzanine_fn -> mezzanine_fifo)
-            cmd = ['ffmpeg', '-y', '-vsync', '0', '-i', mezzanine_fn, '-nostdin', '-loglevel', 'warning', '-nostats',
-                     '-f', 'rawvideo', '-pix_fmt', 'yuv420p', '-an', mezzanine_fifo]
-            p = Process(name="YUV: %s" % mezzanine_fn, target=execute, args=(cmd, yuv_log))
-            # run each process in parallel
-            if p != None:
-                p.start()
-                eprocesses.append(p)
-            else:
-                print "Error: Failed decoding to YUV: %s" % mezzanine_fn
-                sys.exit(1)
-
-            # Wait for processes to finish
-            finished = False
-            while not finished:
-                finished = True # search if any processes are alive
-                count = 0
-                for i, p in enumerate(eprocesses):
-                    p.join(0.1) # 1 second timeout
-                    if p.is_alive(): # check if we timed out
-                        count += 1
-                        finished = False
-                        #print "\rProcess: %s running" % p.name
-
-            # cleanup
-            if isfile(mezzanine_fifo):
-                remove(mezzanine_fifo)
-
-            # clear processes
-            eprocesses[:] = []
-
-            # Mux (encode_out -> encode_fn)
-            cmd = ['ffmpeg', '-y', '-i', encode_out, '-nostdin', '-loglevel', 'warning', '-nostats',
-                     '-f', format, '-vcodec', 'copy']
-            if format == 'mp4':
-                cmd.extend(['-movflags', '+faststart'])
-            cmd.extend([encode_fn])
-            p = Process(name="MUX: %s" % mezzanine_fn, target=execute, args=(cmd, mp4_log))
-            # run process in parallel
-            if p != None:
-                p.start()
-                eprocesses.append(p)
-            else:
-                print "Error: Failed muxing to MP4: %s" % mezzanine_fn
-                sys.exit(1)
-
-            # Wait for processes to finish
-            finished = False
-            while not finished:
-                finished = True # search if any processes are alive
-                count = 0
-                for i, p in enumerate(eprocesses):
-                    p.join(0.1) # 1 second timeout
-                    if p.is_alive(): # check if we timed out
-                        count += 1
-                        finished = False
-                        #print "\rProcess: %s running" % p.name
-
-            # remove SVT encode output after muxed
-            if isfile(encode_out):
-                remove(encode_out)
-
-            # Exit
-            print "Done with SVT-AV1 Encoding"
-            return
+        encode_log = "%s.log" % encode_fn
 
         if 'ffmpeg' not in encoders:
             print "---"
