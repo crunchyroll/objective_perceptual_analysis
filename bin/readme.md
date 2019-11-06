@@ -26,7 +26,7 @@ Example steps:
 3. execute bin/encode.py (see bin/encode.py -h  for Help Output)
     example: (multiple tests can be separated by commas)
     
-   ```bin/encode.py -m psnr,vmaf -n test001 -p 4 \
+   ```bin/encode.py -m psnr,vmaf -n tests/test001 -p 4 \
    -t "test1|ffmpeg|twopass|S|mp4|-vcodec|libx264|-vf|perceptual|-b:v|4000k|-maxrate:v|4000k|-bufsize|6000k" -d -o
    ```
         
@@ -63,7 +63,7 @@ Encoding Features / Research items:
     - VP9 Encoding
     - H.264 Encoding
 
-4. execute ```bin/results.py -n test001``` to get results
+4. execute ```bin/results.py -n tests/test001``` to get results
 
 Results Json ```stats.json``` output is CSV compatible in any converter.
 Also there is a graph ```stats.jpg``` created using gnuplot and ```stats.csv```.

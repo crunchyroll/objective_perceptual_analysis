@@ -1076,15 +1076,15 @@ for m in mezzanines:
             if not isfile(result_fn) or getsize(result_fn) <= 0:
                 create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-i', encode_fn, '-report',
                     '-i', mezzanine_fn, '-nostats', '-nostdin', '-threads', str(threads),
-                    '-filter_complex', '[0:v][1:v]img_hash=stats_file=%s' % result_fn, '-an', '-codec:v', 'rawvideo', '-y', '-f', 'null', '/dev/null']
+                    '-filter_complex', '[0:v][1:v]phqm=stats_file=%s' % result_fn, '-an', '-y', '-f', 'null', '/dev/null']
                 print " - calculating the %s score for encoding..." % "phqm"
-                p = Process(target=get_results, args=('vmaf', result_fn_stdout, encode_fn, create_result_cmd,))
+                p = Process(target=get_results, args=('phqm', result_fn_stdout, encode_fn, create_result_cmd,))
                 # run each metric in parallel
                 if p != None:
                     p.start()
                     processes.append(p)
             if not isfile(result_fn_json):
-                mdata_files.append("%s:%s:%s" % (result_fn, result_fn_stdout, 'psnr'))
+                mdata_files.append("%s:%s:%s" % (result_fn, result_fn_stdout, 'phqm'))
             # only do vmaf if ssim or it has been requested
             if 'ssim' in test_metrics or 'vmaf' in test_metrics:
                 result_fn_json = "%s_%s.json" % (result_base, 'vmaf')
@@ -1094,7 +1094,7 @@ for m in mezzanines:
                 if not isfile(result_fn) or getsize(result_fn) <= 0:
                     create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-i', encode_fn, '-i', mezzanine_fn, '-report',
                         '-nostats', '-nostdin', '-threads', str(threads),
-                        '-filter_complex', '[0:v][1:v]libvmaf=psnr=1:ms_ssim=1:log_fmt=json:log_path=%s' % result_fn, '-an', '-codec:v', 'rawvideo', '-y', '-f', 'null', '/dev/null']
+                        '-filter_complex', '[0:v][1:v]libvmaf=psnr=1:ms_ssim=1:log_fmt=json:log_path=%s' % result_fn, '-an', '-y', '-f', 'null', '/dev/null']
                     print " - calculating the %s score for encoding..." % "vmaf"
                     p = Process(target=get_results, args=('vmaf', result_fn_stdout, encode_fn, create_result_cmd,))
                     if p != None:
@@ -1163,10 +1163,11 @@ for m in mezzanines:
                 if len(vmaf_data["avg"]) > 0:
                     with open(result_fn_vmaf, "w") as f:
                         f.write(json.dumps(vmaf_data))
-            elif file_type == "psnr":
-                result_fn_psnr = "%s_%s.json" % (result_base, 'psnr')
+                if len(psnr_data["avg"]) > 0:
+                    with open(result_fn_psnr, "w") as f:
+                        f.write(json.dumps(psnr_data))
+            elif file_type == "phqm":
                 result_fn_phqm = "%s_%s.json" % (result_base, 'phqm')
-                psnr_data = {"avg":[]}
                 phqm_data = {"avg":[]}
                 """
                 [Parsed_img_hash_0 @ 0x7fb73b609ac0] PHQM average:1.933974 PSNR y:29.030691
@@ -1182,18 +1183,13 @@ for m in mezzanines:
                 if dline is not None:
                     parts = dline.split(' ')
                     phqm_avg = float(parts[4].split(':')[1])
-                    psnr_avg = float(parts[9].split(':')[1])
                     if debug:
-                        print "PHQM AVG: %0.3f PSNR AVG: %0.3f" % (phqm_avg, psnr_avg)
+                        print "PHQM AVG: %0.3f" % phqm_avg
                     phqm_data["avg"].append(phqm_avg)
-                    psnr_data["avg"].append(psnr_avg)
 
                 if len(phqm_data["avg"]) > 0:
                     with open(result_fn_phqm, "w") as f:
                         f.write(json.dumps(phqm_data))
-                if len(psnr_data["avg"]) > 0:
-                    with open(result_fn_psnr, "w") as f:
-                        f.write(json.dumps(psnr_data))
 
     # clean up AVI files, they are large. unless requested to keep them for subj tests
     if keep_raw:

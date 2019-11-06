@@ -76,84 +76,38 @@ details.
 
 FFmpeg Commands:
 
-Perceptual Encoding Optimization: (bitrate mode or crf mode)
-
-```./FFmpeg/ffmpeg -i <input file> -vcodec libx264 -b:v 4000k -maxrate:v 4000k -bufsize 4000k -minrate:v 4000k -vf perceptual=hash_type=phash -loglevel debug output.mp4```
-
-```./FFmpeg/ffmpeg -i <input file> -vcodec libx264 -b:v 0 -maxrate:v 4000k -bufsize 4000k -crf 29 -vf perceptual=hash_type=phash -loglevel debug output.mp4```
-
-```
-perceptual AVOptions:
-  hash_type         <string>     ..FV..... options: phash, colormoment, average (default "phash")
-  score_multiplier  <double>     ..FV..... multiply the hamming score result by this value. 2.0 by default (from 0 to 100) (default 2)
-  score_factor      <double>     ..FV..... factor to decrease compression, multiplier for bitrate, range for crf. 2.0 default (from 0 to 1000) (default 2)
-```
-
 Perceptual Hash Quality Metric: (output a stats file with psnr/mse/phqm (perceptual hash quality metric)
 
-```./FFmpeg/ffmpeg -i <encode> -i <refvideo> -filter_complex "[0:v][1:v]img_hash=hash_type=colormoment:stats_file=stats.log" -f null -```
+```./FFmpeg/ffmpeg -i <encode> -i <refvideo> -filter_complex "[0:v][1:v]phqm=hash_type=phash:stats_file=stats.log" -f null -```
 ```
-img_hash AVOptions:
-  stats_file        <string>     ..FV..... Set file where to store per-frame difference information
-  f                 <string>     ..FV..... Set file where to store per-frame difference information
-  stats_version     <int>        ..FV..... Set the format version for the stats file. (from 1 to 2) (default 1)
-  output_max        <boolean>    ..FV..... Add raw stats (max values) to the output log. (default false)
-  hash_type         <string>     ..FV..... options: phash, colormoment, average (default "phash")
-  scd_thresh        <double>     ..FV..... Scene Change Detection Threshold. 0.4 default, 0.0-1.0 (from 0 to 1) (default 0.4)
-
+phqm AVOptions:
+  stats_file        <string>     ..FV..... Set file where to store per-frame difference information.
+  f                 <string>     ..FV..... Set file where to store per-frame difference information.
+  scd_thresh        <double>     ..FV..... Scene Change Detection Threshold. (from 0 to 1) (default 0.5)
+  hash_type         <int>        ..FV..... Type of Image Hash to use from OpenCV. (from 0 to 6) (default phash)
+     average                      ..FV..... Average Hash
+     blockmean1                   ..FV..... Block Mean Hash 1
+     blockmean2                   ..FV..... Block Mean Hash 2
+     colormoment                  ..FV..... Color Moment Hash
+     marrhildreth                 ..FV..... Marr Hildreth Hash
+     phash                        ..FV..... Perceptual Hash (PHash)
+     radialvariance               ..FV..... Radial Variance Hash
 ```
 
 PHQM Scene Detection, frame ranges for each segmented scene with an avg hamming distance score per scene.
 
 ```
   # (./FFmpeg/ffmpeg -loglevel warning -i encode.mp4 -i reference.mov -nostats -nostdin \
-     -threads 12 -filter_complex [0:v][1:v]img_hash=stats_file=phqm.data -f null -)
+     -threads 12 -filter_complex [0:v][1:v]phqm=stats_file=phqm.data -f null -)
 
-[img_hash @ 0x4397900] ImgHashScene: n:1-155 hd_avg:0.3 scd:0.5
-[img_hash @ 0x4397900] ImgHashScene: n:156-167 hd_avg:0.0 scd:0.4
-[img_hash @ 0x4397900] ImgHashScene: n:168-185 hd_avg:0.2 scd:0.7
-[img_hash @ 0x4397900] ImgHashScene: n:186-249 hd_avg:0.2 scd:0.5
-[img_hash @ 0x4397900] ImgHashScene: n:250-257 hd_avg:0.2 scd:0.5
-[img_hash @ 0x4397900] ImgHashScene: n:258-340 hd_avg:0.1 scd:0.6
-[img_hash @ 0x4397900] ImgHashScene: n:341-362 hd_avg:0.4 scd:0.6
-[img_hash @ 0x4397900] ImgHashScene: n:363-429 hd_avg:0.5 scd:0.6
-[img_hash @ 0x4397900] ImgHashScene: n:430-530 hd_avg:0.1 scd:0.6
-[img_hash @ 0x4397900] ImgHashScene: n:531-544 hd_avg:0.1 scd:1.0
-[img_hash @ 0x4397900] ImgHashScene: n:545-546 hd_avg:0.0 scd:0.4
-[img_hash @ 0x4397900] ImgHashScene: n:547-590 hd_avg:0.3 scd:0.6
-[img_hash @ 0x4397900] ImgHashScene: n:591-592 hd_avg:0.5 scd:0.5
-[img_hash @ 0x4397900] ImgHashScene: n:593-606 hd_avg:0.1 scd:0.4
-[img_hash @ 0x4397900] ImgHashScene: n:607-608 hd_avg:0.0 scd:0.6
-[img_hash @ 0x4397900] ImgHashScene: n:609-610 hd_avg:0.0 scd:0.7
-[img_hash @ 0x4397900] ImgHashScene: n:611-638 hd_avg:0.2 scd:0.5
-[img_hash @ 0x4397900] ImgHashScene: n:639-658 hd_avg:0.4 scd:0.5
-[img_hash @ 0x4397900] ImgHashScene: n:659-666 hd_avg:0.1 scd:0.4
-[img_hash @ 0x4397900] ImgHashScene: n:667-672 hd_avg:0.3 scd:0.6
-[img_hash @ 0x4397900] ImgHashScene: n:673-674 hd_avg:0.5 scd:0.7
-[img_hash @ 0x4397900] ImgHashScene: n:675-676 hd_avg:0.0 scd:0.6
-[img_hash @ 0x4397900] ImgHashScene: n:677-678 hd_avg:0.0 scd:0.8
-[img_hash @ 0x4397900] ImgHashScene: n:679-680 hd_avg:0.0 scd:0.7
-[img_hash @ 0x4397900] ImgHashScene: n:681-688 hd_avg:0.1 scd:0.4
-[img_hash @ 0x4397900] ImgHashScene: n:689-694 hd_avg:0.0 scd:0.8
-[img_hash @ 0x4397900] ImgHashScene: n:695-696 hd_avg:0.0 scd:0.9
-[img_hash @ 0x4397900] ImgHashScene: n:697-706 hd_avg:0.4 scd:0.4
-[img_hash @ 0x4397900] ImgHashScene: n:707-708 hd_avg:0.5 scd:0.6
-[img_hash @ 0x4397900] ImgHashScene: n:709-714 hd_avg:0.7 scd:0.6
-[img_hash @ 0x4397900] ImgHashScene: n:715-716 hd_avg:0.0 scd:0.7
-[img_hash @ 0x4397900] ImgHashScene: n:717-748 hd_avg:0.2 scd:0.5
-[img_hash @ 0x4397900] ImgHashScene: n:749-809 hd_avg:0.3 scd:1.0
-[img_hash @ 0x4397900] ImgHashScene: n:810-819 hd_avg:0.4 scd:0.7
-[img_hash @ 0x4397900] ImgHashScene: n:820-821 hd_avg:0.5 scd:0.7
-[img_hash @ 0x4397900] ImgHashScene: n:822-823 hd_avg:0.0 scd:0.6
-[img_hash @ 0x4397900] ImgHashScene: n:824-825 hd_avg:0.5 scd:1.0
-[img_hash @ 0x4397900] ImgHashScene: n:826-827 hd_avg:0.0 scd:0.5
-[img_hash @ 0x4397900] ImgHashScene: n:828-833 hd_avg:0.0 scd:1.0
-[img_hash @ 0x4397900] ImgHashScene: n:834-838 hd_avg:0.4 scd:0.4
-[img_hash @ 0x4397900] ImgHashScene: n:839-839 hd_avg:0.0 scd:0.4
-[img_hash @ 0x4397900] ImgHashScene: n:840-871 hd_avg:0.3 scd:1.0
-[img_hash @ 0x4397900] ImgHashScene: n:872-916 hd_avg:2.6 scd:1.0
-[img_hash @ 0x4397900] ImgHashScene: n:917-962 hd_avg:0.2 scd:0.6
-[Parsed_img_hash_0 @ 0x43995c0] PHQM average:0.337688 PSNR y:47.905592 u:50.652101 v:50.989231 average:48.677526 min:42.160245 max:59.821908
+[phqm @ 0x40def00] ImgHashScene: n:1-231 hd_avg:0.861 hd_min:0.000 hd_max:6.000 scd:0.80
+[phqm @ 0x40def00] ImgHashScene: n:232-491 hd_avg:0.265 hd_min:0.000 hd_max:2.000 scd:0.57
+[phqm @ 0x40def00] ImgHashScene: n:492-541 hd_avg:0.340 hd_min:0.000 hd_max:2.000 scd:0.57
+[phqm @ 0x40def00] ImgHashScene: n:542-658 hd_avg:0.350 hd_min:0.000 hd_max:2.000 scd:0.82
+[phqm @ 0x40def00] ImgHashScene: n:659-708 hd_avg:0.420 hd_min:0.000 hd_max:2.000 scd:0.92
+[phqm @ 0x40def00] ImgHashScene: n:709-1057 hd_avg:1.009 hd_min:0.000 hd_max:6.000 scd:0.51
+[phqm @ 0x40def00] ImgHashScene: n:1058-1266 hd_avg:0.708 hd_min:0.000 hd_max:4.000 scd:0.59
+[Parsed_phqm_0 @ 0x40f1340] PHQM average:0.601282 min:0.000000 max:6.000000
 ```
 
 This is implementing a Patent by Christopher Kennedy @ Ellation / Crunchyroll:

@@ -13,7 +13,7 @@ b=1000
 printf '#!/bin/sh'
 printf "\n\n"
 printf 'bin/encode.py \\
-        -m vmaf,psnr \\
+        -m vmaf,psnr,phqm,ssim \\
         -n tests/test'
 printf $testnum
 printf ' \\

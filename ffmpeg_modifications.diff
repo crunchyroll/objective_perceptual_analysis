@@ -1,5 +1,5 @@
 diff --git a/configure b/configure
-index 34c2adb4a4..9325cc8bca 100755
+index 34c2adb..a4b6795 100755
 --- a/configure
 +++ b/configure
 @@ -254,6 +254,7 @@ External library support:
@@ -49,18 +49,16 @@ index 34c2adb4a4..9325cc8bca 100755
  libtheora_encoder_deps="libtheora"
  libtwolame_encoder_deps="libtwolame"
  libvo_amrwbenc_encoder_deps="libvo_amrwbenc"
-@@ -3487,6 +3493,10 @@ nlmeans_opencl_filter_deps="opencl"
+@@ -3487,6 +3493,8 @@ nlmeans_opencl_filter_deps="opencl"
  nnedi_filter_deps="gpl"
  ocr_filter_deps="libtesseract"
  ocv_filter_deps="libopencv"
-+perceptual_filter_deps="libopencv"
-+perceptual_filter_extralibs="-lstdc++ -lopencv_img_hash"
-+img_hash_filter_deps="libopencv"
-+img_hash_filter_extralibs="-lstdc++ -lopencv_img_hash"
++phqm_filter_deps="libopencv"
++phqm_filter_extralibs="-lstdc++ -lopencv_img_hash"
  openclsrc_filter_deps="opencl"
  overlay_opencl_filter_deps="opencl"
  overlay_qsv_filter_deps="libmfx"
-@@ -6252,6 +6262,7 @@ enabled libopus           && {
+@@ -6252,6 +6260,7 @@ enabled libopus           && {
      }
  }
  enabled libpulse          && require_pkg_config libpulse libpulse pulse/pulseaudio.h pa_context_new
@@ -68,7 +66,7 @@ index 34c2adb4a4..9325cc8bca 100755
  enabled librsvg           && require_pkg_config librsvg librsvg-2.0 librsvg-2.0/librsvg/rsvg.h rsvg_handle_render_cairo
  enabled librtmp           && require_pkg_config librtmp librtmp librtmp/rtmp.h RTMP_Socket
  enabled librubberband     && require_pkg_config librubberband "rubberband >= 1.8.1" rubberband/rubberband-c.h rubberband_new -lstdc++ && append librubberband_extralibs "-lstdc++"
-@@ -6263,6 +6274,7 @@ enabled libsoxr           && require libsoxr soxr.h soxr_create -lsoxr
+@@ -6263,6 +6272,7 @@ enabled libsoxr           && require libsoxr soxr.h soxr_create -lsoxr
  enabled libssh            && require_pkg_config libssh libssh libssh/sftp.h sftp_init
  enabled libspeex          && require_pkg_config libspeex speex speex/speex.h speex_decoder_init
  enabled libsrt            && require_pkg_config libsrt "srt >= 1.3.0" srt/srt.h srt_socket
@@ -77,7 +75,7 @@ index 34c2adb4a4..9325cc8bca 100755
  enabled libtesseract      && require_pkg_config libtesseract tesseract tesseract/capi.h TessBaseAPICreate
  enabled libtheora         && require libtheora theora/theoraenc.h th_info_init -ltheoraenc -ltheoradec -logg
 diff --git a/doc/encoders.texi b/doc/encoders.texi
-index eefd124751..2ed7053838 100644
+index eefd124..2ed7053 100644
 --- a/doc/encoders.texi
 +++ b/doc/encoders.texi
 @@ -1378,6 +1378,35 @@ makes it possible to store non-rgb pix_fmts.
@@ -117,7 +115,7 @@ index eefd124751..2ed7053838 100644
  
  libaom AV1 encoder wrapper.
 diff --git a/doc/general.texi b/doc/general.texi
-index 3c0c803449..50939f7315 100644
+index 3c0c803..50939f7 100644
 --- a/doc/general.texi
 +++ b/doc/general.texi
 @@ -243,6 +243,13 @@ FFmpeg can use the OpenJPEG libraries for decoding/encoding J2K videos.  Go to
@@ -135,7 +133,7 @@ index 3c0c803449..50939f7315 100644
  
  FFmpeg can make use of the TwoLAME library for MP2 encoding.
 diff --git a/libavcodec/Makefile b/libavcodec/Makefile
-index 3cd73fbcc6..65c9966bac 100644
+index 3cd73fb..65c9966 100644
 --- a/libavcodec/Makefile
 +++ b/libavcodec/Makefile
 @@ -988,9 +988,11 @@ OBJS-$(CONFIG_LIBOPUS_DECODER)            += libopusdec.o libopus.o     \
@@ -151,7 +149,7 @@ index 3cd73fbcc6..65c9966bac 100644
  OBJS-$(CONFIG_LIBTWOLAME_ENCODER)         += libtwolame.o
  OBJS-$(CONFIG_LIBVO_AMRWBENC_ENCODER)     += libvo-amrwbenc.o
 diff --git a/libavcodec/allcodecs.c b/libavcodec/allcodecs.c
-index d2f9a39ce5..13ef88ea2a 100644
+index d2f9a39..13ef88e 100644
 --- a/libavcodec/allcodecs.c
 +++ b/libavcodec/allcodecs.c
 @@ -703,10 +703,12 @@ extern AVCodec ff_libopenjpeg_encoder;
@@ -169,7 +167,7 @@ index d2f9a39ce5..13ef88ea2a 100644
  extern AVCodec ff_libvo_amrwbenc_encoder;
 diff --git a/libavcodec/librav1e.c b/libavcodec/librav1e.c
 new file mode 100644
-index 0000000000..cdd12a2e3c
+index 0000000..cdd12a2
 --- /dev/null
 +++ b/libavcodec/librav1e.c
 @@ -0,0 +1,596 @@
@@ -771,7 +769,7 @@ index 0000000000..cdd12a2e3c
 +};
 diff --git a/libavcodec/libsvt_av1.c b/libavcodec/libsvt_av1.c
 new file mode 100644
-index 0000000000..1523542107
+index 0000000..1523542
 --- /dev/null
 +++ b/libavcodec/libsvt_av1.c
 @@ -0,0 +1,515 @@
@@ -1291,10 +1289,10 @@ index 0000000000..1523542107
 +    .wrapper_name   = "libsvt_av1",
 +};
 diff --git a/libavcodec/libx264.c b/libavcodec/libx264.c
-index dc4b4b100d..cedcdef67b 100644
+index dc4b4b1..5527ffa 100644
 --- a/libavcodec/libx264.c
 +++ b/libavcodec/libx264.c
-@@ -195,24 +195,73 @@ static void reconfig_encoder(AVCodecContext *ctx, const AVFrame *frame)
+@@ -195,24 +195,76 @@ static void reconfig_encoder(AVCodecContext *ctx, const AVFrame *frame)
          x264_encoder_reconfig(x4->enc, &x4->params);
      }
  
@@ -1327,8 +1325,9 @@ index dc4b4b100d..cedcdef67b 100644
 +            x4->params.rc.i_vbv_max_bitrate = bitrate * 1.5;
 +            x4->params.rc.i_vbv_buffer_size = bitrate * 1.5 * 1.5;
 +            av_log(ctx, AV_LOG_DEBUG,
-+               "Perceptual: bitrate %d maxbitrate %d from %"PRIu64"\n", 
-+               x4->params.rc.i_bitrate, 
++               "Perceptual: [%0.2f] bitrate %d maxbitrate %d from %"PRIu64"\n",
++               frame->perceptual_score,
++               x4->params.rc.i_bitrate,
 +               x4->params.rc.i_vbv_max_bitrate,
 +               ctx->bit_rate / 1000);
 +
@@ -1350,13 +1349,14 @@ index dc4b4b100d..cedcdef67b 100644
 +         x4->params.rc.f_rf_constant != x4->crf)) {
 +        if (frame->perceptual_score > -1) {
 +            float crf_value = 0.0;
++
++            /* set crf value from perceptual score */
++            /* decrease compression by lowering the score by up to N CRF points */
++            crf_value = x4->crf - ((frame->perceptual_score * 100.0) / (frame->perceptual_score_factor * 2.0));
++            x4->params.rc.f_rf_constant = crf_value;
++
 +            if (ctx->rc_max_rate) {
 +                int bitrate = 0;
-+                /* set crf value from perceptual score */
-+                /* decrease compression by lowering the score by up to N CRF points */
-+                crf_value = x4->crf - ((frame->perceptual_score * 100.0) / (frame->perceptual_score_factor * 2));
-+                x4->params.rc.f_rf_constant = crf_value;
-+
 +                /* set ABR bitrate value from perceptual score */
 +                /* decrease compression by raising the avg bitrate up to N times */
 +                bitrate = (ctx->rc_max_rate / 1000) + ((frame->perceptual_score * frame->perceptual_score_factor) * (ctx->rc_max_rate / 1000.0));
@@ -1364,9 +1364,10 @@ index dc4b4b100d..cedcdef67b 100644
 +                x4->params.rc.i_vbv_buffer_size = bitrate * 1.5 * 1.5;
 +            }
 +            av_log(ctx, AV_LOG_DEBUG,
-+               "Perceptual: crf: %0.2f bitrate %d maxbitrate %d from %"PRIu64"\n", 
++               "Perceptual: [%0.2f] crf: %0.2f bitrate %d maxbitrate %d from %"PRIu64"\n",
++               frame->perceptual_score,
 +               x4->params.rc.f_rf_constant,
-+               x4->params.rc.i_bitrate, 
++               x4->params.rc.i_bitrate,
 +               x4->params.rc.i_vbv_max_bitrate,
 +               ctx->rc_max_rate / 1000);
 +
@@ -1380,19 +1381,18 @@ index dc4b4b100d..cedcdef67b 100644
  
      if (x4->params.rc.i_rc_method == X264_RC_CQP &&
 diff --git a/libavfilter/Makefile b/libavfilter/Makefile
-index 455c809b15..a51087f28f 100644
+index 455c809..c819ad6 100644
 --- a/libavfilter/Makefile
 +++ b/libavfilter/Makefile
-@@ -307,6 +307,8 @@ OBJS-$(CONFIG_NORMALIZE_FILTER)              += vf_normalize.o
- OBJS-$(CONFIG_NULL_FILTER)                   += vf_null.o
- OBJS-$(CONFIG_OCR_FILTER)                    += vf_ocr.o
- OBJS-$(CONFIG_OCV_FILTER)                    += vf_libopencv.o
-+OBJS-$(CONFIG_PERCEPTUAL_FILTER)             += vf_perceptual.o img_hash.o
-+OBJS-$(CONFIG_IMG_HASH_FILTER)               += vf_img_hash.o img_hash.o
- OBJS-$(CONFIG_OSCILLOSCOPE_FILTER)           += vf_datascope.o
- OBJS-$(CONFIG_OVERLAY_FILTER)                += vf_overlay.o framesync.o
- OBJS-$(CONFIG_OVERLAY_OPENCL_FILTER)         += vf_overlay_opencl.o opencl.o \
-@@ -489,6 +491,7 @@ OBJS-$(CONFIG_SHARED)                        += log2_tab.o
+@@ -319,6 +319,7 @@ OBJS-$(CONFIG_PALETTEUSE_FILTER)             += vf_paletteuse.o framesync.o
+ OBJS-$(CONFIG_PERMS_FILTER)                  += f_perms.o
+ OBJS-$(CONFIG_PERSPECTIVE_FILTER)            += vf_perspective.o
+ OBJS-$(CONFIG_PHASE_FILTER)                  += vf_phase.o
++OBJS-$(CONFIG_PHQM_FILTER)                   += vf_phqm.o img_hash.o
+ OBJS-$(CONFIG_PIXDESCTEST_FILTER)            += vf_pixdesctest.o
+ OBJS-$(CONFIG_PIXSCOPE_FILTER)               += vf_datascope.o
+ OBJS-$(CONFIG_PP_FILTER)                     += vf_pp.o
+@@ -489,6 +490,7 @@ OBJS-$(CONFIG_SHARED)                        += log2_tab.o
  SKIPHEADERS-$(CONFIG_QSVVPP)                 += qsvvpp.h
  SKIPHEADERS-$(CONFIG_OPENCL)                 += opencl.h
  SKIPHEADERS-$(CONFIG_VAAPI)                  += vaapi_vpp.h
@@ -1401,30 +1401,45 @@ index 455c809b15..a51087f28f 100644
  TOOLS     = graph2dot
  TESTPROGS = drawutils filtfmts formats integral
 diff --git a/libavfilter/allfilters.c b/libavfilter/allfilters.c
-index 04a3df7d56..ab565634e4 100644
+index 04a3df7..378c553 100644
 --- a/libavfilter/allfilters.c
 +++ b/libavfilter/allfilters.c
-@@ -292,6 +292,8 @@ extern AVFilter ff_vf_normalize;
- extern AVFilter ff_vf_null;
- extern AVFilter ff_vf_ocr;
- extern AVFilter ff_vf_ocv;
-+extern AVFilter ff_vf_perceptual;
-+extern AVFilter ff_vf_img_hash;
- extern AVFilter ff_vf_oscilloscope;
- extern AVFilter ff_vf_overlay;
- extern AVFilter ff_vf_overlay_opencl;
+@@ -307,6 +307,7 @@ extern AVFilter ff_vf_pixdesctest;
+ extern AVFilter ff_vf_pixscope;
+ extern AVFilter ff_vf_pp;
+ extern AVFilter ff_vf_pp7;
++extern AVFilter ff_vf_phqm;
+ extern AVFilter ff_vf_premultiply;
+ extern AVFilter ff_vf_prewitt;
+ extern AVFilter ff_vf_prewitt_opencl;
 diff --git a/libavfilter/img_hash.cpp b/libavfilter/img_hash.cpp
 new file mode 100644
-index 0000000000..e6bf32f982
+index 0000000..4d5843d
 --- /dev/null
 +++ b/libavfilter/img_hash.cpp
-@@ -0,0 +1,86 @@
-+// Christopher Kennedy 2019
-+// License: Apache 2.0
-+//
-+// Originally inspired by the information from:
-+// https://qtandopencv.blogspot.com/2016/06/introduction-to-image-hash-module-of.html
-+//
+@@ -0,0 +1,98 @@
++/*
++ * Copyright (c) 2019 Christopher Kennedy
++ *
++ * OpenCV img_hash
++ *
++ * This file is part of FFmpeg.
++ *
++ * FFmpeg is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public
++ * License as published by the Free Software Foundation; either
++ * version 2.1 of the License, or (at your option) any later version.
++ *
++ * FFmpeg is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General Public
++ * License along with FFmpeg; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
++ */
++
 +#include <opencv2/core.hpp>
 +#include <opencv2/core/ocl.hpp>
 +#include <opencv2/highgui.hpp>
@@ -1439,21 +1454,18 @@ index 0000000000..e6bf32f982
 +#include "avfilter.h"
 +}
 +
-+using namespace cv;
-+using namespace cv::img_hash;
-+using namespace std;
-+
-+// From the libopencv AVFilter
-+static void fill_iplimage_from_frame(IplImage *img, const AVFrame *frame, enum AVPixelFormat pixfmt)
++// convert from avframe to iplimage format
++static int fill_iplimage_from_frame(IplImage *img, const AVFrame *frame, enum AVPixelFormat pixfmt)
 +{
 +    IplImage *tmpimg;
-+    int depth, channels_nb;
++    int depth = IPL_DEPTH_8U, channels_nb;
 +
-+    if      (pixfmt == AV_PIX_FMT_GRAY8) { depth = IPL_DEPTH_8U;  channels_nb = 1; }
-+    else if (pixfmt == AV_PIX_FMT_BGRA)  { depth = IPL_DEPTH_8U;  channels_nb = 4; }
-+    else if (pixfmt == AV_PIX_FMT_BGR24) { depth = IPL_DEPTH_8U;  channels_nb = 3; }
-+    else if (pixfmt == AV_PIX_FMT_YUV420P) { depth = IPL_DEPTH_8U;  channels_nb = 3; }
-+    else return;
++    switch (pixfmt) {
++        case AV_PIX_FMT_GRAY8:      channels_nb = 1; break;
++        case AV_PIX_FMT_BGRA:       channels_nb = 4; break;
++        case AV_PIX_FMT_BGR24:      channels_nb = 3; break;
++        default: return -1;
++    }
 +
 +    tmpimg = cvCreateImageHeader((CvSize){frame->width, frame->height}, depth, channels_nb);
 +    *img = *tmpimg;
@@ -1461,10 +1473,12 @@ index 0000000000..e6bf32f982
 +    img->dataOrder = IPL_DATA_ORDER_PIXEL;
 +    img->origin    = IPL_ORIGIN_TL;
 +    img->widthStep = frame->linesize[0];
++
++    return 0;
 +}
 +
 +// Get the score of two Video Frames by comparing the perceptual hashes and deriving a hamming distance
-+// showing how similar they are or different. lower the score is better for most algorithms
++// showing how similar they are or different. lower score is better for most algorithms
 +extern "C" double getScore(const AVFrame *frame1, const AVFrame *frame2, enum AVPixelFormat pixfmt, int hash_type) {
 +    cv::Ptr<cv::img_hash::ImgHashBase> algo;
 +    IplImage ipl1, ipl2;
@@ -1474,80 +1488,92 @@ index 0000000000..e6bf32f982
 +    cv::Mat m2;
 +
 +    // Take FFmpeg video frame and convert into an IplImage for OpenCV
-+    fill_iplimage_from_frame(&ipl1, frame1, pixfmt);
-+    fill_iplimage_from_frame(&ipl2, frame2, pixfmt);
++    if (fill_iplimage_from_frame(&ipl1, frame1, pixfmt) != 0 ||
++        fill_iplimage_from_frame(&ipl2, frame2, pixfmt) != 0)
++        return DBL_MAX; // Return an invalid value if either fails
++
 +    // Convert an IplImage to an Mat Image for OpenCV (newer format)
 +    m1 = cv::cvarrToMat(&ipl1);
 +    m2 = cv::cvarrToMat(&ipl2);
 +
 +    // substantiate the hash type algorithm
-+    if (hash_type == COLORMOMENT) {
-+        algo = cv::img_hash::ColorMomentHash::create();
-+    } else if (hash_type == AVERAGE) {
-+        algo = cv::img_hash::AverageHash::create();
-+    } else if (hash_type == BLOCKMEAN1) {
-+        //BlockMeanHash support mode 0 and mode 1, they associate to 
-+        //    //mode 1 and mode 2 of PHash library
-+        algo = cv::img_hash::BlockMeanHash::create(0);
-+    } else if (hash_type == BLOCKMEAN2) {
-+        algo = cv::img_hash::BlockMeanHash::create(1);
-+    } else if (hash_type == MARRHILDRETH) {
-+        algo = cv::img_hash::MarrHildrethHash::create();
-+    } else if (hash_type == RADIALVARIANCE) {
-+        algo = cv::img_hash::RadialVarianceHash::create();
-+    } else { // Default to PHash
-+        algo = cv::img_hash::PHash::create();
++    switch (hash_type) {
++        case PHASH:             algo = cv::img_hash::PHash::create();               break;
++        case AVERAGE:           algo = cv::img_hash::AverageHash::create();         break;
++        case MARRHILDRETH:      algo = cv::img_hash::MarrHildrethHash::create();    break;
++        case RADIALVARIANCE:    algo = cv::img_hash::RadialVarianceHash::create();  break;
++        // BlockMeanHash support mode 0 and mode 1, they associate to
++        // mode 1 and mode 2 of PHash library
++        case BLOCKMEAN1:        algo = cv::img_hash::BlockMeanHash::create(0);      break;
++        case BLOCKMEAN2:        algo = cv::img_hash::BlockMeanHash::create(1);      break;
++        case COLORMOMENT:       algo = cv::img_hash::ColorMomentHash::create();     break;
 +    }
++
 +    // Compute the hash
 +    algo->compute(m1, h1);
 +    algo->compute(m2, h2);
++
 +    // Compare the hashes and return the hamming distance
 +    return algo->compare(h1, h2);
 +}
-+
 diff --git a/libavfilter/img_hash.h b/libavfilter/img_hash.h
 new file mode 100644
-index 0000000000..c916766647
+index 0000000..76f55c3
 --- /dev/null
 +++ b/libavfilter/img_hash.h
-@@ -0,0 +1,31 @@
-+// Christopher Kennedy 2019
-+// License: Apache 2.0
-+//
-+// Tutorial and code from
-+// https://qtandopencv.blogspot.com/2016/06/introduction-to-image-hash-module-of.html
-+//
+@@ -0,0 +1,46 @@
++/*
++ * Copyright (c) 2019 Christopher Kennedy
++ *
++ * PHQM Perceptual Hash Quality Metric
++ *
++ * This file is part of FFmpeg.
++ *
++ * FFmpeg is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public
++ * License as published by the Free Software Foundation; either
++ * version 2.1 of the License, or (at your option) any later version.
++ *
++ * FFmpeg is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General Public
++ * License along with FFmpeg; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
++ */
++
 +#ifndef AVFILTER_IMG_HASH_H
 +#define AVFILTER_IMG_HASH_H
 +
 +#include "avfilter.h"
 +
-+#ifdef __cplusplus
++#if defined(__cplusplus)
 +extern "C"
 +{
 +#endif
 +
-+#define PHASH 0
-+#define COLORMOMENT 1
-+#define AVERAGE 2
-+#define MARRHILDRETH 3
-+#define RADIALVARIANCE 4
-+#define BLOCKMEAN1 5
-+#define BLOCKMEAN2 6
++#define AVERAGE 0
++#define BLOCKMEAN1 1
++#define BLOCKMEAN2 2
++#define COLORMOMENT 3
++#define MARRHILDRETH 4
++#define PHASH 5
++#define RADIALVARIANCE 6
 +
 +double getScore(const AVFrame *frame1, const AVFrame *frame2, enum AVPixelFormat pixfmt, int hash_type);
-+#ifdef __cplusplus
++#if defined(__cplusplus)
 +}
 +#endif
 +
-+
 +#endif
-diff --git a/libavfilter/vf_img_hash.c b/libavfilter/vf_img_hash.c
+diff --git a/libavfilter/vf_phqm.c b/libavfilter/vf_phqm.c
 new file mode 100644
-index 0000000000..f35010d088
+index 0000000..3bdca4f
 --- /dev/null
-+++ b/libavfilter/vf_img_hash.c
-@@ -0,0 +1,513 @@
++++ b/libavfilter/vf_phqm.c
+@@ -0,0 +1,370 @@
 +/*
 + * Copyright (c) 2019 Christopher Kennedy
 + *
@@ -1572,9 +1598,10 @@ index 0000000000..f35010d088
 +
 +/**
 + * @file
-+ * PHQM: Caculate the Image Hash Hamming Difference between two input videos.
++ * PHQM: Calculate the Image Hash Hamming Difference between two input videos.
 + */
 +
++#include <float.h>
 +#include "libavutil/avstring.h"
 +#include "libavutil/opt.h"
 +#include "libavutil/pixdesc.h"
@@ -1583,114 +1610,51 @@ index 0000000000..f35010d088
 +#include "formats.h"
 +#include "framesync.h"
 +#include "internal.h"
-+#include "psnr.h"
 +#include "video.h"
 +
 +#include "img_hash.h"
 +#include "scene_sad.h"
 +
-+typedef struct ImgHashContext {
++typedef struct PHQMContext {
 +    const AVClass *class;
 +    FFFrameSync fs;
-+    double shd, hd, min_hd, max_hd, smin_hd, smax_hd, mse, min_mse, max_mse, mse_comp[4];
++    double shd, hd, min_hd, max_hd, smin_hd, smax_hd;
 +    uint64_t nb_shd;
 +    uint64_t nb_frames;
 +    FILE *stats_file;
 +    char *stats_file_str;
-+    int stats_version;
-+    char *hash_type;
-+    int hash_type_i;
-+    int stats_header_written;
-+    int stats_add_max;
-+    int max[4], average_max;
-+    int is_rgb;
-+    uint8_t rgba_map[4];
-+    char comps[4];
-+    int nb_components;
-+    int planewidth[4];
-+    int planeheight[4];
-+    double planeweight[4];
-+    PSNRDSPContext dsp;
++    int hash_type;
 +    ff_scene_sad_fn sad;            ///< Sum of the absolute difference function (scene detect only)
-+    double prev_mafd;               ///< previous MAFD                           (scene detect only)
-+    AVFrame *prev_picref;           ///< previous frame                          (scene detect only)
++    double prev_mafd_ref;               ///< previous MAFD                           (scene detect only)
++    double prev_mafd_enc;               ///< previous MAFD                           (scene detect only)
++    AVFrame *prev_pic_ref;           ///< ref previous frame                          (scene detect only)
++    AVFrame *prev_pic_enc;           ///< enc previous frame                          (scene detect only)
 +    double scd_thresh;
-+    double scene_score;
-+} ImgHashContext;
++    double scene_score_ref;
++    double scene_score_enc;
++    double prev_hamm_ref;
++    double prev_hamm_enc;
++} PHQMContext;
 +
-+#define OFFSET(x) offsetof(ImgHashContext, x)
++#define OFFSET(x) offsetof(PHQMContext, x)
 +#define FLAGS AV_OPT_FLAG_FILTERING_PARAM|AV_OPT_FLAG_VIDEO_PARAM
 +
-+static const AVOption img_hash_options[] = {
-+    {"stats_file", "Set file where to store per-frame difference information", OFFSET(stats_file_str), AV_OPT_TYPE_STRING, {.str=NULL}, 0, 0, FLAGS },
-+    {"f",          "Set file where to store per-frame difference information", OFFSET(stats_file_str), AV_OPT_TYPE_STRING, {.str=NULL}, 0, 0, FLAGS },
-+    {"stats_version", "Set the format version for the stats file.",               OFFSET(stats_version),  AV_OPT_TYPE_INT,    {.i64=1},    1, 2, FLAGS },
-+    {"scd_thresh", "Scene Change Detection Threshold. 0.5 default, 0.0-1.0",    OFFSET(scd_thresh),  AV_OPT_TYPE_DOUBLE,    {.dbl=0.5},    0, 1, FLAGS },
-+    {"output_max",  "Add raw stats (max values) to the output log.",            OFFSET(stats_add_max), AV_OPT_TYPE_BOOL, {.i64=0}, 0, 1, FLAGS},
-+    { "hash_type", "options: phash, colormoment, average", OFFSET(hash_type), AV_OPT_TYPE_STRING, {.str = "phash"}, .flags = FLAGS },
++static const AVOption phqm_options[] = {
++    { "stats_file", "Set file where to store per-frame difference information.", OFFSET(stats_file_str), AV_OPT_TYPE_STRING, {.str=NULL}, 0, 0, FLAGS },
++    { "f",          "Set file where to store per-frame difference information.", OFFSET(stats_file_str), AV_OPT_TYPE_STRING, {.str=NULL}, 0, 0, FLAGS },
++    { "scd_thresh", "Scene Change Detection Threshold.",                         OFFSET(scd_thresh),     AV_OPT_TYPE_DOUBLE, {.dbl=0.5},  0, 1, FLAGS },
++    { "hash_type",  "Type of Image Hash to use from OpenCV.",                    OFFSET(hash_type),      AV_OPT_TYPE_INT,    {.i64 = PHASH}, 0, 6, FLAGS, "hash_type" },
++    {     "average",        "Average Hash",             0, AV_OPT_TYPE_CONST, {.i64 = AVERAGE},        0, 0, FLAGS, "hash_type" },
++    {     "blockmean1",     "Block Mean Hash 1",        0, AV_OPT_TYPE_CONST, {.i64 = BLOCKMEAN1},     0, 0, FLAGS, "hash_type" },
++    {     "blockmean2",     "Block Mean Hash 2",        0, AV_OPT_TYPE_CONST, {.i64 = BLOCKMEAN2},     0, 0, FLAGS, "hash_type" },
++    {     "colormoment",    "Color Moment Hash",        0, AV_OPT_TYPE_CONST, {.i64 = COLORMOMENT},    0, 0, FLAGS, "hash_type" },
++    {     "marrhildreth",   "Marr Hildreth Hash",       0, AV_OPT_TYPE_CONST, {.i64 = MARRHILDRETH},   0, 0, FLAGS, "hash_type" },
++    {     "phash",          "Perceptual Hash (PHash)",  0, AV_OPT_TYPE_CONST, {.i64 = PHASH},          0, 0, FLAGS, "hash_type" },
++    {     "radialvariance", "Radial Variance Hash",     0, AV_OPT_TYPE_CONST, {.i64 = RADIALVARIANCE}, 0, 0, FLAGS, "hash_type" },
 +    { NULL }
 +};
 +
-+FRAMESYNC_DEFINE_CLASS(img_hash, ImgHashContext, fs);
-+
-+static inline unsigned pow_2(unsigned base)
-+{
-+    return base*base;
-+}
-+
-+static inline double get_psnr(double mse, uint64_t nb_frames, int max)
-+{
-+    return 10.0 * log10(pow_2(max) / (mse / nb_frames));
-+}
-+
-+static uint64_t sse_line_8bit(const uint8_t *main_line,  const uint8_t *ref_line, int outw)
-+{
-+    int j;
-+    unsigned m2 = 0;
-+
-+    for (j = 0; j < outw; j++)
-+        m2 += pow_2(main_line[j] - ref_line[j]);
-+
-+    return m2;
-+}
-+
-+static uint64_t sse_line_16bit(const uint8_t *_main_line, const uint8_t *_ref_line, int outw)
-+{
-+    int j;
-+    uint64_t m2 = 0;
-+    const uint16_t *main_line = (const uint16_t *) _main_line;
-+    const uint16_t *ref_line = (const uint16_t *) _ref_line;
-+
-+    for (j = 0; j < outw; j++)
-+        m2 += pow_2(main_line[j] - ref_line[j]);
-+
-+    return m2;
-+}
-+
-+static inline
-+void compute_images_mse(ImgHashContext *s,
-+                        const uint8_t *main_data[4], const int main_linesizes[4],
-+                        const uint8_t *ref_data[4], const int ref_linesizes[4],
-+                        int w, int h, double mse[4])
-+{
-+    int i, c;
-+
-+    for (c = 0; c < s->nb_components; c++) {
-+        const int outw = s->planewidth[c];
-+        const int outh = s->planeheight[c];
-+        const uint8_t *main_line = main_data[c];
-+        const uint8_t *ref_line = ref_data[c];
-+        const int ref_linesize = ref_linesizes[c];
-+        const int main_linesize = main_linesizes[c];
-+        uint64_t m = 0;
-+        for (i = 0; i < outh; i++) {
-+            m += s->dsp.sse_line(main_line, ref_line, outw);
-+            ref_line += ref_linesize;
-+            main_line += main_linesize;
-+        }
-+        mse[c] = m / (double)(outw * outh);
-+    }
-+}
++FRAMESYNC_DEFINE_CLASS(phqm, PHQMContext, fs);
 +
 +static void set_meta(AVDictionary **metadata, const char *key, char comp, float d)
 +{
@@ -1705,38 +1669,64 @@ index 0000000000..f35010d088
 +    }
 +}
 +
-+static double get_scene_score(AVFilterContext *ctx, AVFrame *frame)
++static void get_scene_score(AVFilterContext *ctx, AVFrame *ref, AVFrame *enc)
 +{
-+    double ret = 0;
-+    ImgHashContext *s = ctx->priv;
-+    AVFrame *prev_picref = s->prev_picref;
++    PHQMContext *s = ctx->priv;
++    AVFrame *prev_pic_ref = s->prev_pic_ref;
++    AVFrame *prev_pic_enc = s->prev_pic_enc;
 +
-+    if (prev_picref &&
-+        frame->height == prev_picref->height &&
-+        frame->width  == prev_picref->width) {
++    /* reference */
++    if (prev_pic_ref &&
++        ref->height == prev_pic_ref->height &&
++        ref->width  == prev_pic_ref->width) {
 +        uint64_t sad;
 +        double mafd, diff;
 +
-+        s->sad(prev_picref->data[0], prev_picref->linesize[0], frame->data[0], frame->linesize[0], frame->width * 3, frame->height, &sad);
++        /* scene change sad score */
++        s->sad(prev_pic_ref->data[0], prev_pic_ref->linesize[0], ref->data[0], ref->linesize[0], ref->width * 3, ref->height, &sad);
 +        emms_c();
-+        mafd = (double)sad / (frame->width * 3 * frame->height);
-+        diff = fabs(mafd - s->prev_mafd);
-+        ret  = av_clipf(FFMIN(mafd, diff) / 100., 0, 1);
-+        s->prev_mafd = mafd;
-+        av_frame_free(&prev_picref);
++        mafd = (double)sad / (ref->width * 3 * ref->height);
++        diff = fabs(mafd - s->prev_mafd_ref);
++        s->scene_score_ref  = av_clipf(FFMIN(mafd, diff) / 100., 0, 1);
++        s->prev_mafd_ref = mafd;
++
++        /* get prev/current frame hamming difference */
++        s->prev_hamm_ref = getScore(s->prev_pic_ref, ref, ref->format, s->hash_type);
++
++        av_frame_free(&prev_pic_ref);
 +    }
-+    s->prev_picref = av_frame_clone(frame);
-+    return ret;
++    s->prev_pic_ref = av_frame_clone(ref);
++
++    if (prev_pic_enc &&
++        enc->height == prev_pic_enc->height &&
++        enc->width  == prev_pic_enc->width) {
++        uint64_t sad;
++        double mafd, diff;
++
++        /* scene change sad score */
++        s->sad(prev_pic_enc->data[0], prev_pic_enc->linesize[0], enc->data[0], enc->linesize[0], enc->width * 3, enc->height, &sad);
++        emms_c();
++        mafd = (double)sad / (enc->width * 3 * enc->height);
++        diff = fabs(mafd - s->prev_mafd_enc);
++        s->scene_score_enc  = av_clipf(FFMIN(mafd, diff) / 100., 0, 1);
++        s->prev_mafd_enc = mafd;
++
++        /* get prev/current frame hamming difference */
++        s->prev_hamm_enc = getScore(s->prev_pic_enc, enc, enc->format, s->hash_type);
++
++        av_frame_free(&prev_pic_enc);
++    }
++    s->prev_pic_enc = av_frame_clone(enc);
 +}
 +
 +static int do_phqm(FFFrameSync *fs)
 +{
 +    AVFilterContext *ctx = fs->parent;
-+    ImgHashContext *s = ctx->priv;
++    PHQMContext *s = ctx->priv;
 +    AVFrame *master, *ref;
-+    double comp_mse[4], mse = 0, hd = 0;
-+    int ret, j, c;
-+    double hd_limit = 1000000;
++    double hd = 0.;
++    int ret;
++    double hd_limit = 1000000.;
 +    AVDictionary **metadata;
 +
 +    ret = ff_framesync_dualinput_get(fs, &master, &ref);
@@ -1746,62 +1736,48 @@ index 0000000000..f35010d088
 +        return ff_filter_frame(ctx->outputs[0], master);
 +    metadata = &master->metadata;
 +
-+    compute_images_mse(s, (const uint8_t **)master->data, master->linesize,
-+                          (const uint8_t **)ref->data, ref->linesize,
-+                          master->width, master->height, comp_mse);
-+
-+    for (j = 0; j < s->nb_components; j++)
-+        mse += comp_mse[j] * s->planeweight[j];
-+
-+    s->min_mse = FFMIN(s->min_mse, mse);
-+    s->max_mse = FFMAX(s->max_mse, mse);
-+
-+    s->mse += mse;
-+    for (j = 0; j < s->nb_components; j++)
-+        s->mse_comp[j] += comp_mse[j];
 +    s->nb_frames++;
 +
-+    for (j = 0; j < s->nb_components; j++) {
-+        c = s->is_rgb ? s->rgba_map[j] : j;
-+        set_meta(metadata, "lavfi.psnr.mse.", s->comps[j], comp_mse[c]);
-+        set_meta(metadata, "lavfi.psnr.psnr.", s->comps[j], get_psnr(comp_mse[c], 1, s->max[c]));
-+    }
-+    set_meta(metadata, "lavfi.psnr.mse_avg", 0, mse);
-+    set_meta(metadata, "lavfi.psnr.psnr_avg", 0, get_psnr(mse, 1, s->average_max));
-+
 +    /* scene change detection score */
-+    s->scene_score = get_scene_score(ctx, ref);
-+    if (s->scene_score >= s->scd_thresh && s->nb_shd >= 48) {
++    get_scene_score(ctx, ref, master);
++    if (s->scene_score_ref >= s->scd_thresh && s->nb_shd >= 48) {
 +        av_log(s, AV_LOG_WARNING, "ImgHashScene: n:%"PRId64"-%"PRId64" hd_avg:%0.3lf hd_min:%0.3lf hd_max:%0.3lf scd:%0.2lf\n",
-+               (s->nb_frames - s->nb_shd), s->nb_frames - 1, (s->shd / s->nb_shd), s->smin_hd, s->smax_hd, s->scene_score);
-+        s->shd = 0;
++               (s->nb_frames - s->nb_shd), s->nb_frames - 1, (s->shd / s->nb_shd), s->smin_hd, s->smax_hd, s->scene_score_ref);
++        s->shd = 0.;
 +        s->nb_shd = 0;
-+        s->smin_hd = 0;
-+        s->smax_hd = 0;
++        s->smin_hd = 0.;
++        s->smax_hd = 0.;
 +    }
++
++    /* frame perceptual score, normalize to percentage, read by x264 for crf/vbr */
++    master->perceptual_score           = ref->perceptual_score        = .01 * FFMIN((s->prev_hamm_ref * 2.0), 100);
++    master->perceptual_score_factor    = ref->perceptual_score_factor = 2.0;
++    set_meta(metadata, "lavfi.phqm.hamm", 0, s->prev_hamm_ref);
 +
 +    /* limit the highest value so we cut off at perceptual difference match */
-+    if (s->hash_type_i == PHASH || s->hash_type_i == AVERAGE)
-+        hd_limit = 5;
-+    else if (s->hash_type_i == MARRHILDRETH)
-+        hd_limit = 30;
-+    else if (s->hash_type_i == RADIALVARIANCE)
-+        hd_limit = 0.9;
-+    else if (s->hash_type_i == BLOCKMEAN1)
-+        hd_limit = 12;
-+    else if (s->hash_type_i == BLOCKMEAN2)
-+        hd_limit = 48;
-+    else if (s->hash_type_i == COLORMOMENT)
-+        hd_limit = 8;
++    switch (s->hash_type) {
++        case PHASH:
++        case AVERAGE:           hd_limit = 5;   break;
++        case MARRHILDRETH:      hd_limit = 30;  break;
++        case RADIALVARIANCE:    hd_limit = 0.9; break;
++        case BLOCKMEAN1:        hd_limit = 12;  break;
++        case BLOCKMEAN2:        hd_limit = 48;  break;
++        case COLORMOMENT:       hd_limit = 8;   break;
++    }
 +
 +    /* get ref / enc perceptual hashes and calc hamming distance difference value */
-+    hd = getScore(ref, master, ref->format, s->hash_type_i);
++    hd = getScore(ref, master, ref->format, s->hash_type);
++    if (hd == DBL_MAX) {
++        av_log(s, AV_LOG_ERROR, "Failure with handling pix_fmt of AVFrame for conversion to IPLimage.\n");
++        return AVERROR(EINVAL);
++    }
 +    s->hd += FFMIN(hd, hd_limit);
++    set_meta(metadata, "lavfi.phqm.phqm", 0, hd);
 +
 +    /* scene hamming distance avg */
 +    s->shd += FFMIN(hd, hd_limit);
 +    s->nb_shd++;
-+    av_log(s, AV_LOG_DEBUG, "ImgHashFrame: hd:%0.3lf scd:%0.2lf\n", hd, s->scene_score);
++    av_log(s, AV_LOG_DEBUG, "ImgHashFrame: hd:%0.3lf scd:%0.2lf\n", hd, s->scene_score_ref);
 +
 +    s->min_hd = FFMIN(s->min_hd, hd);
 +    s->max_hd = FFMAX(s->max_hd, hd);
@@ -1809,45 +1785,9 @@ index 0000000000..f35010d088
 +    s->smax_hd = FFMAX(s->smax_hd, hd);
 +
 +    if (s->stats_file) {
-+        if (s->stats_version == 2 && !s->stats_header_written) {
-+            fprintf(s->stats_file, "psnr_log_version:2 fields:n");
-+            fprintf(s->stats_file, ",mse_avg");
-+            for (j = 0; j < s->nb_components; j++) {
-+                fprintf(s->stats_file, ",mse_%c", s->comps[j]);
-+            }
-+            fprintf(s->stats_file, ",psnr_avg");
-+            for (j = 0; j < s->nb_components; j++) {
-+                fprintf(s->stats_file, ",psnr_%c", s->comps[j]);
-+            }
-+            if (s->stats_add_max) {
-+                fprintf(s->stats_file, ",max_avg");
-+                for (j = 0; j < s->nb_components; j++) {
-+                    fprintf(s->stats_file, ",max_%c", s->comps[j]);
-+                }
-+            }
-+            fprintf(s->stats_file, "\n");
-+            s->stats_header_written = 1;
-+        }
 +        fprintf(s->stats_file,
-+                "n:%"PRId64" phqm_avg:%0.3f phqm_min:%0.3f phqm_max:%0.3f scd:%0.2f mse_avg:%0.2f ",
-+                s->nb_frames, hd, s->min_hd, s->max_hd, s->scene_score, mse);
-+        for (j = 0; j < s->nb_components; j++) {
-+            c = s->is_rgb ? s->rgba_map[j] : j;
-+            fprintf(s->stats_file, "mse_%c:%0.2f ", s->comps[j], comp_mse[c]);
-+        }
-+        fprintf(s->stats_file, "psnr_avg:%0.2f ", get_psnr(mse, 1, s->average_max));
-+        for (j = 0; j < s->nb_components; j++) {
-+            c = s->is_rgb ? s->rgba_map[j] : j;
-+            fprintf(s->stats_file, "psnr_%c:%0.2f ", s->comps[j],
-+                    get_psnr(comp_mse[c], 1, s->max[c]));
-+        }
-+        if (s->stats_version == 2 && s->stats_add_max) {
-+            fprintf(s->stats_file, "max_avg:%d ", s->average_max);
-+            for (j = 0; j < s->nb_components; j++) {
-+                c = s->is_rgb ? s->rgba_map[j] : j;
-+                fprintf(s->stats_file, "max_%c:%d ", s->comps[j], s->max[c]);
-+            }
-+        }
++                "n:%"PRId64" phqm:%0.3f phqm_min:%0.3f phqm_max:%0.3f sad:%0.2f ref_hamm:%0.2f enc_hamm:%0.2f",
++                s->nb_frames, hd, s->min_hd, s->max_hd, s->scene_score_ref, s->prev_hamm_ref, s->prev_hamm_enc);
 +        fprintf(s->stats_file, "\n");
 +    }
 +
@@ -1856,17 +1796,9 @@ index 0000000000..f35010d088
 +
 +static av_cold int init(AVFilterContext *ctx)
 +{
-+    ImgHashContext *s = ctx->priv;
-+
-+    s->min_mse = +INFINITY;
-+    s->max_mse = -INFINITY;
++    PHQMContext *s = ctx->priv;
 +
 +    if (s->stats_file_str) {
-+        if (s->stats_version < 2 && s->stats_add_max) {
-+            av_log(ctx, AV_LOG_ERROR,
-+                "stats_add_max was specified but stats_version < 2.\n" );
-+            return AVERROR(EINVAL);
-+        }
 +        if (!strcmp(s->stats_file_str, "-")) {
 +            s->stats_file = stdout;
 +        } else {
@@ -1882,27 +1814,6 @@ index 0000000000..f35010d088
 +        }
 +    }
 +
-+    if (s->hash_type) {
-+        if (!strcmp(s->hash_type, "phash"))
-+            s->hash_type_i = PHASH;
-+        else if (!strcmp(s->hash_type, "colormoment")) {
-+            s->hash_type_i = COLORMOMENT;
-+        } else if (!strcmp(s->hash_type, "average"))
-+            s->hash_type_i = AVERAGE;
-+        else if (!strcmp(s->hash_type, "marrhildreth"))
-+            s->hash_type_i = MARRHILDRETH;
-+        else if (!strcmp(s->hash_type, "radialvariance"))
-+            s->hash_type_i = RADIALVARIANCE;
-+        else if (!strcmp(s->hash_type, "blockmean1"))
-+            s->hash_type_i = BLOCKMEAN1;
-+        else if (!strcmp(s->hash_type, "blockmean2"))
-+            s->hash_type_i = BLOCKMEAN2;
-+        else {
-+            av_log(s, AV_LOG_ERROR, "Bad hash_type given %s\n", s->hash_type);
-+            return AVERROR(EINVAL);
-+        }
-+    }
-+
 +    s->sad = ff_scene_sad_get_fn(8);
 +    if (!s->sad)
 +        return AVERROR(EINVAL);
@@ -1913,22 +1824,36 @@ index 0000000000..f35010d088
 +
 +static int query_formats(AVFilterContext *ctx)
 +{
-+    static const enum AVPixelFormat pix_fmts[] = {
-+        AV_PIX_FMT_YUV420P, AV_PIX_FMT_BGR24, AV_PIX_FMT_GRAY8, AV_PIX_FMT_NONE
++    PHQMContext *s = ctx->priv;
++    AVFilterFormats *fmts_list = NULL;
++    static const enum AVPixelFormat gray8_pix_fmts[] = {
++        AV_PIX_FMT_GRAY8,
++        AV_PIX_FMT_NONE
 +    };
-+    return ff_set_common_formats(ctx, ff_make_format_list(pix_fmts));
++    static const enum AVPixelFormat bgr24_pix_fmts[] = {
++        AV_PIX_FMT_BGR24,
++        AV_PIX_FMT_NONE
++    };
++    static const enum AVPixelFormat bgra_pix_fmts[] = {
++        AV_PIX_FMT_BGRA,
++        AV_PIX_FMT_NONE
++    };
++
++    switch (s->hash_type) {
++        case COLORMOMENT: fmts_list = ff_make_format_list(bgr24_pix_fmts); break;
++        case MARRHILDRETH: fmts_list = ff_make_format_list(bgra_pix_fmts); break;
++        /* all other hashes take the gray8 format */
++        default: fmts_list = ff_make_format_list(gray8_pix_fmts); break;
++    }
++    if (!fmts_list)
++        return AVERROR(ENOMEM);
++    return ff_set_common_formats(ctx, fmts_list);
 +}
 +
 +static int config_input_ref(AVFilterLink *inlink)
 +{
-+    const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(inlink->format);
 +    AVFilterContext *ctx  = inlink->dst;
-+    ImgHashContext *s = ctx->priv;
-+    double average_max;
-+    unsigned sum;
-+    int j;
 +
-+    s->nb_components = desc->nb_components;
 +    if (ctx->inputs[0]->w != ctx->inputs[1]->w ||
 +        ctx->inputs[0]->h != ctx->inputs[1]->h) {
 +        av_log(ctx, AV_LOG_ERROR, "Width and height of input videos must be same.\n");
@@ -1939,42 +1864,13 @@ index 0000000000..f35010d088
 +        return AVERROR(EINVAL);
 +    }
 +
-+    s->max[0] = (1 << desc->comp[0].depth) - 1;
-+    s->max[1] = (1 << desc->comp[1].depth) - 1;
-+    s->max[2] = (1 << desc->comp[2].depth) - 1;
-+    s->max[3] = (1 << desc->comp[3].depth) - 1;
-+
-+    s->is_rgb = ff_fill_rgba_map(s->rgba_map, inlink->format) >= 0;
-+    s->comps[0] = s->is_rgb ? 'r' : 'y' ;
-+    s->comps[1] = s->is_rgb ? 'g' : 'u' ;
-+    s->comps[2] = s->is_rgb ? 'b' : 'v' ;
-+    s->comps[3] = 'a';
-+
-+    s->planeheight[1] = s->planeheight[2] = AV_CEIL_RSHIFT(inlink->h, desc->log2_chroma_h);
-+    s->planeheight[0] = s->planeheight[3] = inlink->h;
-+    s->planewidth[1]  = s->planewidth[2]  = AV_CEIL_RSHIFT(inlink->w, desc->log2_chroma_w);
-+    s->planewidth[0]  = s->planewidth[3]  = inlink->w;
-+    sum = 0;
-+    for (j = 0; j < s->nb_components; j++)
-+        sum += s->planeheight[j] * s->planewidth[j];
-+    average_max = 0;
-+    for (j = 0; j < s->nb_components; j++) {
-+        s->planeweight[j] = (double) s->planeheight[j] * s->planewidth[j] / sum;
-+        average_max += s->max[j] * s->planeweight[j];
-+    }
-+    s->average_max = lrint(average_max);
-+
-+    s->dsp.sse_line = desc->comp[0].depth > 8 ? sse_line_16bit : sse_line_8bit;
-+    if (ARCH_X86)
-+        ff_psnr_init_x86(&s->dsp, desc->comp[0].depth);
-+
 +    return 0;
 +}
 +
 +static int config_output(AVFilterLink *outlink)
 +{
 +    AVFilterContext *ctx = outlink->src;
-+    ImgHashContext *s = ctx->priv;
++    PHQMContext *s = ctx->priv;
 +    AVFilterLink *mainlink = ctx->inputs[0];
 +    int ret;
 +
@@ -1994,40 +1890,27 @@ index 0000000000..f35010d088
 +
 +static int activate(AVFilterContext *ctx)
 +{
-+    ImgHashContext *s = ctx->priv;
++    PHQMContext *s = ctx->priv;
 +    return ff_framesync_activate(&s->fs);
 +}
 +
 +static av_cold void uninit(AVFilterContext *ctx)
 +{
-+    ImgHashContext *s = ctx->priv;
++    PHQMContext *s = ctx->priv;
 +
-+    if (s->nb_frames > 0) {
-+        int j;
-+        char buf[256];
-+
-+        buf[0] = 0;
-+        for (j = 0; j < s->nb_components; j++) {
-+            int c = s->is_rgb ? s->rgba_map[j] : j;
-+            av_strlcatf(buf, sizeof(buf), " %c:%f", s->comps[j],
-+                        get_psnr(s->mse_comp[c], s->nb_frames, s->max[c]));
-+        }
-+        av_log(ctx, AV_LOG_WARNING, "PHQM average:%f PSNR%s average:%f min:%f max:%f\n",
-+               s->hd / s->nb_frames,
-+               buf,
-+               get_psnr(s->mse, s->nb_frames, s->average_max),
-+               get_psnr(s->max_mse, 1, s->average_max),
-+               get_psnr(s->min_mse, 1, s->average_max));
-+    }
++    if (s->nb_frames > 0)
++        av_log(ctx, AV_LOG_WARNING, "PHQM average:%f min:%f max:%f\n",
++               s->hd / s->nb_frames, s->min_hd, s->max_hd);
 +
 +    ff_framesync_uninit(&s->fs);
 +
 +    if (s->stats_file && s->stats_file != stdout)
 +        fclose(s->stats_file);
-+    av_frame_free(&s->prev_picref);
++    av_frame_free(&s->prev_pic_ref);
++    av_frame_free(&s->prev_pic_enc);
 +}
 +
-+static const AVFilterPad img_hash_inputs[] = {
++static const AVFilterPad phqm_inputs[] = {
 +    {
 +        .name         = "main",
 +        .type         = AVMEDIA_TYPE_VIDEO,
@@ -2039,7 +1922,7 @@ index 0000000000..f35010d088
 +    { NULL }
 +};
 +
-+static const AVFilterPad img_hash_outputs[] = {
++static const AVFilterPad phqm_outputs[] = {
 +    {
 +        .name          = "default",
 +        .type          = AVMEDIA_TYPE_VIDEO,
@@ -2048,187 +1931,21 @@ index 0000000000..f35010d088
 +    { NULL }
 +};
 +
-+AVFilter ff_vf_img_hash= {
-+    .name          = "img_hash",
++AVFilter ff_vf_phqm= {
++    .name          = "phqm",
 +    .description   = NULL_IF_CONFIG_SMALL("PHQM: Calculate the Perceptual Hash Hamming Difference between two video streams."),
-+    .preinit       = img_hash_framesync_preinit,
++    .preinit       = phqm_framesync_preinit,
 +    .init          = init,
 +    .uninit        = uninit,
 +    .query_formats = query_formats,
 +    .activate      = activate,
-+    .priv_size     = sizeof(ImgHashContext),
-+    .priv_class    = &img_hash_class,
-+    .inputs        = img_hash_inputs,
-+    .outputs       = img_hash_outputs,
-+};
-diff --git a/libavfilter/vf_perceptual.c b/libavfilter/vf_perceptual.c
-new file mode 100644
-index 0000000000..be67a48b7b
---- /dev/null
-+++ b/libavfilter/vf_perceptual.c
-@@ -0,0 +1,160 @@
-+/*
-+ * PERCEPTUAL FILTER: Chris Kennedy (C) 2019
-+ *
-+ * Perceptual scoring frame matching
-+ *
-+ * Tags decoded frames with a perceptual score for the x264
-+ * encoder to use.
-+ *
-+ * License: Apache 2.0
-+ *
-+ */
-+
-+/**
-+ * @file
-+ * perceptual: Perceptual Scoring
-+ */
-+
-+#include "libavutil/adler32.h"
-+#include "libavutil/avstring.h"
-+#include "libavutil/common.h"
-+#include "libavutil/file.h"
-+#include "libavutil/opt.h"
-+#include "libavutil/imgutils.h"
-+#include "libavutil/pixdesc.h"
-+#include "libavutil/timestamp.h"
-+#include "libavfilter/lswsutils.h"
-+#include "avfilter.h"
-+#include "formats.h"
-+#include "internal.h"
-+#include "video.h"
-+#include "img_hash.h"
-+
-+typedef struct {
-+    const AVClass *class;
-+    char *hash_type;
-+    double score_multiplier;
-+    double score_factor;
-+    int hash_type_i;
-+    uint64_t frame_count; // frame counter/number
-+    AVFrame *lastframe;
-+
-+    void *priv; // private structure for filter, std FFmpeg API
-+} PerceptualContext;
-+
-+// decides color space raw frame format used via standard LibAV API
-+static int query_formats(AVFilterContext *ctx)
-+{
-+    static const enum AVPixelFormat pix_fmts[] = {
-+        AV_PIX_FMT_YUV420P, AV_PIX_FMT_BGR24, AV_PIX_FMT_GRAY8, AV_PIX_FMT_NONE
-+    };
-+    return ff_set_common_formats(ctx, ff_make_format_list(pix_fmts));
-+}
-+
-+static av_cold int init(AVFilterContext *ctx)
-+{
-+    PerceptualContext *perceptual = ctx->priv;
-+
-+    if (!(perceptual->priv = av_mallocz(sizeof(PerceptualContext))))
-+        return AVERROR(ENOMEM);
-+
-+    if (perceptual->hash_type) {
-+        if (!strcmp(perceptual->hash_type, "phash"))
-+            perceptual->hash_type_i = PHASH;
-+        else if (!strcmp(perceptual->hash_type, "colormoment")) {
-+            perceptual->hash_type_i = COLORMOMENT;
-+            perceptual->score_multiplier = 1.0;
-+        } else if (!strcmp(perceptual->hash_type, "average"))
-+            perceptual->hash_type_i = AVERAGE;
-+        else if (!strcmp(perceptual->hash_type, "marrhildreth"))
-+            perceptual->hash_type_i = MARRHILDRETH;
-+        else if (!strcmp(perceptual->hash_type, "radialvariance"))
-+            perceptual->hash_type_i = RADIALVARIANCE;
-+        else if (!strcmp(perceptual->hash_type, "blockmean1"))
-+            perceptual->hash_type_i = BLOCKMEAN1;
-+        else if (!strcmp(perceptual->hash_type, "blockmean2"))
-+            perceptual->hash_type_i = BLOCKMEAN2;
-+        else {
-+            av_log(perceptual, AV_LOG_ERROR, "Bad hash_type given %s\n", perceptual->hash_type);
-+            return AVERROR(ENOMEM);
-+        }
-+    }
-+    return 0;
-+}
-+
-+static av_cold void uninit(AVFilterContext *ctx)
-+{
-+    PerceptualContext *perceptual = ctx->priv;
-+
-+    av_free(perceptual->priv);
-+}
-+
-+static int filter_frame(AVFilterLink *inlink, AVFrame *in)
-+{
-+    AVFilterContext *ctx = inlink->dst;
-+    AVFilterLink *outlink= inlink->dst->outputs[0];
-+    PerceptualContext *perceptual = ctx->priv;
-+    double score = 0;
-+
-+    perceptual->frame_count++;
-+
-+    /* compare last frame with this current frame */
-+    if (perceptual->frame_count > 1) {
-+        score = getScore(perceptual->lastframe, in, inlink->format, perceptual->hash_type_i);
-+        av_log(perceptual, AV_LOG_DEBUG, "Perceptual: %s hamming score %0.1lf\n", perceptual->hash_type, score);
-+
-+        /* mark frame, normalize to percentage */
-+        in->perceptual_score = .01 * FFMIN((score * perceptual->score_multiplier), 100);
-+        in->perceptual_score_factor = perceptual->score_factor;
-+
-+        av_frame_free(&perceptual->lastframe);
-+    }
-+    /* save last frame */
-+    perceptual->lastframe = av_frame_clone(in);
-+
-+    av_log(perceptual, AV_LOG_DEBUG, "Perceptual: %%%0.1lf frame change\n", in->perceptual_score * 100);
-+
-+    return ff_filter_frame(outlink, in);
-+}
-+
-+#define OFFSET(x) offsetof(PerceptualContext, x)
-+#define FLAGS AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_FILTERING_PARAM
-+static const AVOption perceptual_options[] = {
-+    { "hash_type", "options: phash, colormoment, average", OFFSET(hash_type), AV_OPT_TYPE_STRING, {.str = "phash"}, .flags = FLAGS },
-+    { "score_multiplier", "multiply the hamming score result by this value. 2.0 by default", OFFSET(score_multiplier),
-+        AV_OPT_TYPE_DOUBLE, {.dbl = 2.0}, 0, 100, .flags = FLAGS },
-+    { "score_factor", "factor to decrease compression, multiplier for bitrate, range for crf. 2.0 default", OFFSET(score_factor),
-+        AV_OPT_TYPE_DOUBLE, {.dbl = 2.0}, 0, 1000, .flags = FLAGS },
-+    { NULL }
-+};
-+
-+AVFILTER_DEFINE_CLASS(perceptual);
-+
-+static const AVFilterPad avfilter_vf_perceptual_inputs[] = {
-+    {
-+        .name         = "default",
-+        .type         = AVMEDIA_TYPE_VIDEO,
-+        .filter_frame = filter_frame,
-+    },
-+    { NULL }
-+};
-+
-+static const AVFilterPad avfilter_vf_perceptual_outputs[] = {
-+    {
-+        .name = "default",
-+        .type = AVMEDIA_TYPE_VIDEO,
-+    },
-+    { NULL }
-+};
-+
-+AVFilter ff_vf_perceptual = {
-+    .name          = "perceptual",
-+    .description   = NULL_IF_CONFIG_SMALL("Perceptual Scoring Filter"),
-+    .priv_size     = sizeof(PerceptualContext),
-+    .priv_class    = &perceptual_class,
-+    .query_formats = query_formats,
-+    .init          = init,
-+    .uninit        = uninit,
-+    .inputs        = avfilter_vf_perceptual_inputs,
-+    .outputs       = avfilter_vf_perceptual_outputs,
++    .priv_size     = sizeof(PHQMContext),
++    .priv_class    = &phqm_class,
++    .inputs        = phqm_inputs,
++    .outputs       = phqm_outputs,
 +};
 diff --git a/libavformat/mpegenc.c b/libavformat/mpegenc.c
-index 43ebc46e0e..f6aa705e96 100644
+index 43ebc46..f6aa705 100644
 --- a/libavformat/mpegenc.c
 +++ b/libavformat/mpegenc.c
 @@ -984,7 +984,7 @@ static int remove_decoded_packets(AVFormatContext *ctx, int64_t scr)
@@ -2250,7 +1967,7 @@ index 43ebc46e0e..f6aa705e96 100644
                  ignore_constraints = 1;
              }
 diff --git a/libavutil/frame.c b/libavutil/frame.c
-index dcf1fc3d17..94e7644d1f 100644
+index dcf1fc3..94e7644 100644
 --- a/libavutil/frame.c
 +++ b/libavutil/frame.c
 @@ -163,6 +163,8 @@ FF_ENABLE_DEPRECATION_WARNINGS
@@ -2281,7 +1998,7 @@ index dcf1fc3d17..94e7644d1f 100644
      ret = frame_copy_props(dst, src, 0);
      if (ret < 0)
 diff --git a/libavutil/frame.h b/libavutil/frame.h
-index 5d3231e7bb..c9df011aaa 100644
+index 5d3231e..c9df011 100644
 --- a/libavutil/frame.h
 +++ b/libavutil/frame.h
 @@ -672,6 +672,13 @@ typedef struct AVFrame {
