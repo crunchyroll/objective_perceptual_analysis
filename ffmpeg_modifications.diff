@@ -1570,10 +1570,10 @@ index 0000000..76f55c3
 +#endif
 diff --git a/libavfilter/vf_phqm.c b/libavfilter/vf_phqm.c
 new file mode 100644
-index 0000000..3bdca4f
+index 0000000..aa3f004
 --- /dev/null
 +++ b/libavfilter/vf_phqm.c
-@@ -0,0 +1,370 @@
+@@ -0,0 +1,374 @@
 +/*
 + * Copyright (c) 2019 Christopher Kennedy
 + *
@@ -1624,7 +1624,8 @@ index 0000000..3bdca4f
 +    FILE *stats_file;
 +    char *stats_file_str;
 +    int hash_type;
-+    ff_scene_sad_fn sad;            ///< Sum of the absolute difference function (scene detect only)
++    ff_scene_sad_fn sad_ref;            ///< Sum of the absolute difference function (scene detect only)
++    ff_scene_sad_fn sad_enc;            ///< Sum of the absolute difference function (scene detect only)
 +    double prev_mafd_ref;               ///< previous MAFD                           (scene detect only)
 +    double prev_mafd_enc;               ///< previous MAFD                           (scene detect only)
 +    AVFrame *prev_pic_ref;           ///< ref previous frame                          (scene detect only)
@@ -1683,7 +1684,7 @@ index 0000000..3bdca4f
 +        double mafd, diff;
 +
 +        /* scene change sad score */
-+        s->sad(prev_pic_ref->data[0], prev_pic_ref->linesize[0], ref->data[0], ref->linesize[0], ref->width * 3, ref->height, &sad);
++        s->sad_ref(prev_pic_ref->data[0], prev_pic_ref->linesize[0], ref->data[0], ref->linesize[0], ref->width * 3, ref->height, &sad);
 +        emms_c();
 +        mafd = (double)sad / (ref->width * 3 * ref->height);
 +        diff = fabs(mafd - s->prev_mafd_ref);
@@ -1704,7 +1705,7 @@ index 0000000..3bdca4f
 +        double mafd, diff;
 +
 +        /* scene change sad score */
-+        s->sad(prev_pic_enc->data[0], prev_pic_enc->linesize[0], enc->data[0], enc->linesize[0], enc->width * 3, enc->height, &sad);
++        s->sad_enc(prev_pic_enc->data[0], prev_pic_enc->linesize[0], enc->data[0], enc->linesize[0], enc->width * 3, enc->height, &sad);
 +        emms_c();
 +        mafd = (double)sad / (enc->width * 3 * enc->height);
 +        diff = fabs(mafd - s->prev_mafd_enc);
@@ -1814,8 +1815,11 @@ index 0000000..3bdca4f
 +        }
 +    }
 +
-+    s->sad = ff_scene_sad_get_fn(8);
-+    if (!s->sad)
++    s->sad_ref = ff_scene_sad_get_fn(8);
++    if (!s->sad_ref)
++        return AVERROR(EINVAL);
++    s->sad_enc = ff_scene_sad_get_fn(8);
++    if (!s->sad_enc)
 +        return AVERROR(EINVAL);
 +
 +    s->fs.on_event = do_phqm;
