@@ -47,8 +47,27 @@ svtav1libmac:
 	make -j8 && \
 	sudo make install
 
+svtvp9libmac:
+	cd SVT-VP9/Build && \
+	cmake3 .. -G"Unix Makefiles" \
+	-DCMAKE_BUILD_TYPE=Release && \
+	make -j8 && \
+	sudo make install
+
 svtav1lib:
 	cd SVT-AV1/Build && \
+	cmake3 .. -G"Unix Makefiles" \
+	-DCMAKE_BUILD_TYPE=Release \
+	-DCMAKE_CXX_FLAGS="-I/usr/local/include -L/usr/local/lib" \
+	-DCMAKE_C_FLAGS="-I/usr/local/include -L/usr/local/lib" \
+	-DCMAKE_CXX_COMPILER=/usr/local/bin/g++ \
+	-DCMAKE_CC_COMPILER=/usr/local/bin/gcc \
+	-DCMAKE_C_COMPILER=/usr/local/bin/gcc && \
+	make -j8 && \
+	sudo make install
+
+svtvp9lib:
+	cd SVT-VP9/Build && \
 	cmake3 .. -G"Unix Makefiles" \
 	-DCMAKE_BUILD_TYPE=Release \
 	-DCMAKE_CXX_FLAGS="-I/usr/local/include -L/usr/local/lib" \
@@ -78,7 +97,7 @@ vmaflib:
 
 ffmpegbin:
 	cd FFmpeg && \
-	./configure --prefix=/usr --enable-libx264 --enable-libvpx --enable-gpl --enable-libopencv --enable-version3 --enable-libvmaf --enable-libfreetype --enable-fontconfig --enable-libass --enable-libaom --enable-librav1e --enable-libdav1d --enable-libsvtav1 && \
+	./configure --prefix=/usr --enable-libx264 --enable-libvpx --enable-gpl --enable-libopencv --enable-version3 --enable-libvmaf --enable-libfreetype --enable-fontconfig --enable-libass --enable-libaom --enable-librav1e --enable-libdav1d --enable-libsvtav1 --enable-libsvtvp9 && \
 	make clean && \
 	make -j8
 

@@ -93,6 +93,13 @@ if [ ! -d "SVT-AV1" ]; then
     cd ../
 fi
 
+if [ ! -d "SVT-VP9" ]; then
+    git clone https://github.com/OpenVisualCloud/SVT-VP9.git
+    cd SVT-VP9
+    # TODO find stable version
+    cd ../
+fi
+
 ## Setup rav1e AV1
 if [ ! -f /usr/local/lib/librav1e.a ]; then
     sudo cargo install cargo-c || echo "Already installed cargo-c"
@@ -102,6 +109,11 @@ fi
 ## Setup Intel SVT-AV1
 if [ ! -f "/usr/local/lib/pkgconfig/SvtAv1Dec.pc" ]; then
   make svtav1libmac
+fi
+
+# Setup SVT-VP9
+if [ ! -f "/usr/local/lib/pkgconfig/SvtVp9Enc.pc" ]; then
+    make svtvp9libmac
 fi
 
 

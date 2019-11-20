@@ -101,6 +101,13 @@ if [ ! -d "SVT-AV1" ]; then
     cd ../
 fi
 
+if [ ! -d "SVT-VP9" ]; then
+    git clone https://github.com/OpenVisualCloud/SVT-VP9.git
+    cd SVT-VP9
+    # TODO find stable version
+    cd ../
+fi
+
 if [ ! -d "dav1d" ]; then
     git clone https://code.videolan.org/videolan/dav1d.git
     cd dav1d
@@ -272,6 +279,12 @@ if [ ! -f "/usr/local/lib/pkgconfig/SvtAv1Dec.pc" ]; then
     make svtav1lib
     sudo cp -f SVT-AV1/Build/SvtAv1Enc.pc /usr/share/pkgconfig/
     sudo cp -f SVT-AV1/Build/SvtAv1Dec.pc /usr/share/pkgconfig/
+fi
+
+# Setup SVT-VP9
+if [ ! -f "/usr/local/lib/pkgconfig/SvtVp9Enc.pc" ]; then
+    make svtvp9lib
+    sudo cp -f SVT-VP9/Build/SvtVp9Enc.pc /usr/share/pkgconfig/
 fi
 
 ## Setup rav1e AV1
