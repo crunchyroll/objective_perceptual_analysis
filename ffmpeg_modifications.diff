@@ -2069,10 +2069,10 @@ index 0000000..76f55c3
 +#endif
 diff --git a/libavfilter/vf_phqm.c b/libavfilter/vf_phqm.c
 new file mode 100644
-index 0000000..aa3f004
+index 0000000..84ff512
 --- /dev/null
 +++ b/libavfilter/vf_phqm.c
-@@ -0,0 +1,374 @@
+@@ -0,0 +1,379 @@
 +/*
 + * Copyright (c) 2019 Christopher Kennedy
 + *
@@ -2118,6 +2118,7 @@ index 0000000..aa3f004
 +    const AVClass *class;
 +    FFFrameSync fs;
 +    double shd, hd, min_hd, max_hd, smin_hd, smax_hd;
++    double hft, sft;
 +    uint64_t nb_shd;
 +    uint64_t nb_frames;
 +    FILE *stats_file;
@@ -2241,9 +2242,11 @@ index 0000000..aa3f004
 +    /* scene change detection score */
 +    get_scene_score(ctx, ref, master);
 +    if (s->scene_score_ref >= s->scd_thresh && s->nb_shd >= 48) {
-+        av_log(s, AV_LOG_WARNING, "ImgHashScene: n:%"PRId64"-%"PRId64" hd_avg:%0.3lf hd_min:%0.3lf hd_max:%0.3lf scd:%0.2lf\n",
-+               (s->nb_frames - s->nb_shd), s->nb_frames - 1, (s->shd / s->nb_shd), s->smin_hd, s->smax_hd, s->scene_score_ref);
++        av_log(s, AV_LOG_WARNING, "ImgHashScene: n:%"PRId64"-%"PRId64" hd_avg:%0.3lf hd_min:%0.3lf hd_max:%0.3lf scd:%0.2lf hft:%0.3lf sft:%0.3lf\n",
++               (s->nb_frames - s->nb_shd), s->nb_frames - 1, (s->shd / s->nb_shd), s->smin_hd, s->smax_hd, s->scene_score_ref, (s->hft / s->nb_shd), (s->sft / s->nb_shd));
 +        s->shd = 0.;
++        s->sft = 0.;
++        s->hft = 0.;
 +        s->nb_shd = 0;
 +        s->smin_hd = 0.;
 +        s->smax_hd = 0.;
@@ -2276,6 +2279,8 @@ index 0000000..aa3f004
 +
 +    /* scene hamming distance avg */
 +    s->shd += FFMIN(hd, hd_limit);
++    s->hft += s->prev_hamm_ref;
++    s->sft += s->scene_score_ref;
 +    s->nb_shd++;
 +    av_log(s, AV_LOG_DEBUG, "ImgHashFrame: hd:%0.3lf scd:%0.2lf\n", hd, s->scene_score_ref);
 +

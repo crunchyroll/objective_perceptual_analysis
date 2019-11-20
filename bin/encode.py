@@ -164,7 +164,7 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
     if isfile(encode_fn):
         remove(encode_fn)
 
-    if encoders == "SvtAv1EncApp":
+    if encoders == "SvtAv1EncApp" or encoders == "SvtVp9EncApp":
         mezzanine_fifo = "%s_ref.yuv" % encode_fn.replace('.', '_')
         encode_out = "%s_enc.ivf" % encode_fn.replace('.', '_')
         eprocesses = []
@@ -196,6 +196,8 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
                 else:
                     create_encode_cmd = create_encode_cmd + test_args
                     create_encode_cmd = create_encode_cmd + ['-input-stat-file', pass_log_fn]
+            else:
+                    create_encode_cmd = create_encode_cmd + test_args
 
             create_encode_cmd = create_encode_cmd + ['-lp', str(threads)]
             create_encode_cmd = create_encode_cmd + ['-w', str(mezz_width), '-h', str(mezz_height),
@@ -276,7 +278,7 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
             remove(encode_out)
 
         # Exit
-        print "Done with SVT-AV1 Encoding"
+        print "Done with %s Encoding" % encoders
         return
 
     if rate_control == "twopass":

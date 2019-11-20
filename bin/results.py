@@ -179,9 +179,14 @@ for m in mezzanines:
                                 phqm_avg = float(parts[5].split(':')[1])
                                 phqm_min = 0.0
                                 phqm_max = 0.0
-                                if len(parts) >= 9:
+                                sft = 0.0
+                                hft = 0.0
+                                if len(parts) >= 8:
                                     phqm_min = float(parts[6].split(':')[1])
                                     phqm_max = float(parts[7].split(':')[1])
+                                if len(parts) >= 11:
+                                    hft = float(parts[9].split(':')[1])
+                                    sft = float(parts[10].split(':')[1])
                                 vmaf_total = 0.0
                                 psnr_total = 0.0
                                 ms_ssim_total = 0.0
@@ -210,6 +215,8 @@ for m in mezzanines:
                                 section["vmaf_avg"] = vmaf_avg
                                 section["ssim_avg"] = ms_ssim_avg
                                 section["psnr_avg"] = psnr_avg
+                                section["sft"] = sft
+                                section["hft"] = hft
                                 sections.append(section)
                         # write combined metrics to a json file for scd
                         with open(phqm_scd, "w") as f:
@@ -224,9 +231,9 @@ for m in mezzanines:
                 sections = json.load(scd_data)
                 video_files = []
                 for i, s in enumerate(sections):
-                    mdetail = "%03d). %06d-%06d hamm:%0.3f min:%0.2f max:%0.2f phqm:%0.2f vmaf:%0.2f psnr:%0.2f ssim:%0.2f" % (i,
+                    mdetail = "%03d). %06d-%06d hamm:%0.3f min:%0.2f max:%0.2f phqm:%0.2f vmaf:%0.2f psnr:%0.2f ssim:%0.2f sft:%0.3f hft:%0.3f" % (i,
                             s["start_frame"], s["end_frame"],
-                            s["hamm_avg"], s["hamm_min"], s["hamm_max"], s["phqm_avg"], s["vmaf_avg"], s["psnr_avg"], s["ssim_avg"])
+                            s["hamm_avg"], s["hamm_min"], s["hamm_max"], s["phqm_avg"], s["vmaf_avg"], s["psnr_avg"], s["ssim_avg"], s["sft"], s["hft"])
                     scenes.append(mdetail)
                     image_dir_base = preview_dir + "/" + ebase + "_" + "%06d-%06d" % (s["start_frame"], s["end_frame"])
                     image_dir_period = image_dir_base + "/" + "images"
