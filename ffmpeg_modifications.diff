@@ -2069,10 +2069,10 @@ index 0000000..76f55c3
 +#endif
 diff --git a/libavfilter/vf_phqm.c b/libavfilter/vf_phqm.c
 new file mode 100644
-index 0000000..84ff512
+index 0000000..c50a14f
 --- /dev/null
 +++ b/libavfilter/vf_phqm.c
-@@ -0,0 +1,379 @@
+@@ -0,0 +1,382 @@
 +/*
 + * Copyright (c) 2019 Christopher Kennedy
 + *
@@ -2118,7 +2118,7 @@ index 0000000..84ff512
 +    const AVClass *class;
 +    FFFrameSync fs;
 +    double shd, hd, min_hd, max_hd, smin_hd, smax_hd;
-+    double hft, sft;
++    double hft, sft, phd, psad;
 +    uint64_t nb_shd;
 +    uint64_t nb_frames;
 +    FILE *stats_file;
@@ -2275,6 +2275,8 @@ index 0000000..84ff512
 +        return AVERROR(EINVAL);
 +    }
 +    s->hd += FFMIN(hd, hd_limit);
++    s->phd += s->prev_hamm_ref;
++    s->psad += s->scene_score_ref;
 +    set_meta(metadata, "lavfi.phqm.phqm", 0, hd);
 +
 +    /* scene hamming distance avg */
@@ -2282,7 +2284,7 @@ index 0000000..84ff512
 +    s->hft += s->prev_hamm_ref;
 +    s->sft += s->scene_score_ref;
 +    s->nb_shd++;
-+    av_log(s, AV_LOG_DEBUG, "ImgHashFrame: hd:%0.3lf scd:%0.2lf\n", hd, s->scene_score_ref);
++    av_log(s, AV_LOG_DEBUG, "ImgHashFrame: hd:%0.3lf sad:%0.2lf hamm:%0.3lf\n", hd, s->scene_score_ref, s->prev_hamm_ref);
 +
 +    s->min_hd = FFMIN(s->min_hd, hd);
 +    s->max_hd = FFMAX(s->max_hd, hd);
@@ -2407,8 +2409,9 @@ index 0000000..84ff512
 +    PHQMContext *s = ctx->priv;
 +
 +    if (s->nb_frames > 0)
-+        av_log(ctx, AV_LOG_WARNING, "PHQM average:%f min:%f max:%f\n",
-+               s->hd / s->nb_frames, s->min_hd, s->max_hd);
++        av_log(ctx, AV_LOG_WARNING, "PHQM average:%f min:%f max:%f hamm:%f sad:%f\n",
++               s->hd / s->nb_frames, s->min_hd, s->max_hd,
++               s->phd / s->nb_frames, s->psad / s->nb_frames);
 +
 +    ff_framesync_uninit(&s->fs);
 +
