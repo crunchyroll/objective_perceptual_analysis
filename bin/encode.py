@@ -1170,7 +1170,9 @@ for m in mezzanines:
                         f.write(json.dumps(psnr_data))
             elif file_type == "phqm":
                 result_fn_phqm = "%s_%s.json" % (result_base, 'phqm')
+                result_fn_pfhd = "%s_%s.json" % (result_base, 'pfhd')
                 phqm_data = {"avg":[]}
+                pfhd_data = {"avg":[]}
                 """
                 [Parsed_img_hash_0 @ 0x7fb73b609ac0] PHQM average:1.933974 PSNR y:29.030691
                     u:36.543688 v:36.685639 average:30.428417 min:20.791527 max:49.168489
@@ -1185,13 +1187,20 @@ for m in mezzanines:
                 if dline is not None:
                     parts = dline.split(' ')
                     phqm_avg = float(parts[4].split(':')[1])
+                    pfhd_avg = float(parts[7].split(':')[1])
                     if debug:
                         print "PHQM AVG: %0.3f" % phqm_avg
+                        print "PFHD AVG: %0.3f" % pfhd_avg
                     phqm_data["avg"].append(phqm_avg)
+                    pfhd_data["avg"].append(pfhd_avg)
 
                 if len(phqm_data["avg"]) > 0:
                     with open(result_fn_phqm, "w") as f:
                         f.write(json.dumps(phqm_data))
+
+                if len(pfhd_data["avg"]) > 0:
+                    with open(result_fn_pfhd, "w") as f:
+                        f.write(json.dumps(pfhd_data))
 
     # clean up AVI files, they are large. unless requested to keep them for subj tests
     if keep_raw:
