@@ -101,6 +101,12 @@ ffmpegbin:
 	make clean && \
 	make -j8
 
+ffmpegbinmac:
+	cd FFmpeg && \
+	./configure --prefix=/usr --enable-libx264 --enable-libvpx --enable-gpl --enable-libopencv --enable-version3 --enable-libvmaf --enable-libfreetype --enable-fontconfig --enable-libass --enable-libaom --enable-librav1e --enable-libdav1d --enable-libsvtav1 && \
+	make clean && \
+	make -j8
+
 install:
 	cd FFmpeg && \
 	sudo make install

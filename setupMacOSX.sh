@@ -113,7 +113,8 @@ fi
 
 # Setup SVT-VP9
 if [ ! -f "/usr/local/lib/pkgconfig/SvtVp9Enc.pc" ]; then
-    make svtvp9libmac
+    #make svtvp9libmac
+    echo "Skipping SVT-VP9, currently doesn't build on MacOS"
 fi
 
 
@@ -129,7 +130,7 @@ fi
 ## Setup FFmpeg
 if [ ! -f FFmpeg/ffmpeg ]; then
     export PKG_CONFIG_PATH="/usr/local/opt/opencv@3/lib/pkgconfig"
-    make ffmpegbin
+    make ffmpegbinmac
 fi
 
 # build tools
