@@ -2069,7 +2069,7 @@ index 0000000..76f55c3
 +#endif
 diff --git a/libavfilter/vf_phqm.c b/libavfilter/vf_phqm.c
 new file mode 100644
-index 0000000..c50a14f
+index 0000000..a7b73cf
 --- /dev/null
 +++ b/libavfilter/vf_phqm.c
 @@ -0,0 +1,382 @@
@@ -2275,8 +2275,8 @@ index 0000000..c50a14f
 +        return AVERROR(EINVAL);
 +    }
 +    s->hd += FFMIN(hd, hd_limit);
-+    s->phd += s->prev_hamm_ref;
-+    s->psad += s->scene_score_ref;
++    s->phd += FFMIN(s->prev_hamm_ref, hd_limit);
++    s->psad += FFMIN(s->scene_score_ref, hd_limit);
 +    set_meta(metadata, "lavfi.phqm.phqm", 0, hd);
 +
 +    /* scene hamming distance avg */
