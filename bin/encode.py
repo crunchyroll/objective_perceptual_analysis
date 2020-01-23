@@ -978,46 +978,45 @@ for m in mezzanines:
         else:
             print " Encode exists"
 
-        # get encode information
-        if not isfile(encode_data_fn) or getsize(encode_data_fn) <=0:
-            # create data file in json with encode stats
-            # get filesize, bitrate, framerate, duration, vcodec
-            filesize = getsize(encode_fn)
-            params = "--Inform=General;%Duration%,%OverallBitRate%"
-            cmd = ['mediainfo', params, encode_fn]
-            print " - extracting metadata from format..."
-            stdout = subprocess.check_output(cmd)
-            data_string = "".join([line for line in stdout if
-                            ((ord(line) >= 32 and ord(line) < 128) or ord(line) == 10 or ord(line) == 13)]).strip()
-            duration = -1
-            print "reading media stats: %s" % data_string
-            if data_string != ',':
-                duration = "%0.3f" % float(data_string.split(',')[0])
-            if duration < 1:
-                print "Error reading media stats: '%s' doesn't contain duration,bitrate bad encoding!!!" % data_string
-                # increment test label
-                test_label_idx += 1
-                continue
-            bitrate = "%s" % data_string.split(',')[1].strip()
-            data = {}
-            data['video'] = {}
-            data['video']['filesize'] = filesize
-            data['video']['duration'] = float(duration) / 1000.0
-            data['video']['vbitrate'] = int(bitrate) / 1000
-            params = "--Inform=Video;%FrameRate%,%Height%,%Width%"
-            cmd = ['mediainfo', params, encode_fn]
-            print " - extracting metadata from video..."
-            stdout = subprocess.check_output(cmd)
-            data_string = "".join([line for line in stdout if
-                            ((ord(line) >= 32 and ord(line) < 128) or ord(line) == 10 or ord(line) == 13)]).strip()
-            framerate = float(data_string.split(',')[0])
-            height = int(data_string.split(',')[1])
-            width = int(data_string.split(',')[2])
-            data['video']['framerate'] = framerate
-            data['video']['height'] = height
-            data['video']['width'] = width
-            with open(encode_data_fn, "w") as f:
-                f.write(json.dumps(data))
+        #if not isfile(encode_data_fn) or getsize(encode_data_fn) <=0:
+        # create data file in json with encode stats
+        # get filesize, bitrate, framerate, duration, vcodec
+        filesize = getsize(encode_fn)
+        params = "--Inform=General;%Duration%,%OverallBitRate%"
+        cmd = ['mediainfo', params, encode_fn]
+        print " - extracting metadata from format..."
+        stdout = subprocess.check_output(cmd)
+        data_string = "".join([line for line in stdout if
+                        ((ord(line) >= 32 and ord(line) < 128) or ord(line) == 10 or ord(line) == 13)]).strip()
+        duration = -1
+        print "reading media stats: %s" % data_string
+        if data_string != ',':
+            duration = "%0.3f" % float(data_string.split(',')[0])
+        if duration < 1:
+            print "Error reading media stats: '%s' doesn't contain duration,bitrate bad encoding!!!" % data_string
+            # increment test label
+            test_label_idx += 1
+            continue
+        bitrate = "%s" % data_string.split(',')[1].strip()
+        data = {}
+        data['video'] = {}
+        data['video']['filesize'] = filesize
+        data['video']['duration'] = float(duration) / 1000.0
+        data['video']['vbitrate'] = int(bitrate) / 1000
+        params = "--Inform=Video;%FrameRate%,%Height%,%Width%"
+        cmd = ['mediainfo', params, encode_fn]
+        print " - extracting metadata from video..."
+        stdout = subprocess.check_output(cmd)
+        data_string = "".join([line for line in stdout if
+                        ((ord(line) >= 32 and ord(line) < 128) or ord(line) == 10 or ord(line) == 13)]).strip()
+        framerate = float(data_string.split(',')[0])
+        height = int(data_string.split(',')[1])
+        width = int(data_string.split(',')[2])
+        data['video']['framerate'] = framerate
+        data['video']['height'] = height
+        data['video']['width'] = width
+        with open(encode_data_fn, "w") as f:
+            f.write(json.dumps(data))
 
         # decode raw yuv versions of encodes if we are using MSU tools
         if use_msu or keep_raw:
@@ -1078,7 +1077,8 @@ for m in mezzanines:
             if not isfile(result_fn) or getsize(result_fn) <= 0:
                 create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-i', encode_fn, '-report',
                     '-i', mezzanine_fn, '-nostats', '-nostdin', '-threads', str(threads),
-                    '-filter_complex', '[0:v]scale=h=1080:w=1920:flags=bicubic[enc]; [1:v]scale=h=1080:w=1920:flags=bicubic[ref]; [enc][ref]phqm=stats_file=%s' % result_fn, '-an', '-y', '-f', 'null', '/dev/null']
+                    '-filter_complex', '[0:v]scale=h=%d:w=%d:flags=bicubic[enc]; [1:v]scale=h=%d:w=%d:flags=bicubic[ref]; [enc][ref]phqm=stats_file=%s' % (height, width, height, width,
+                                                                                                                                        result_fn), '-an', '-y', '-f', 'null', '/dev/null']
                 print " - calculating the %s score for encoding..." % "phqm"
                 p = Process(target=get_results, args=('phqm', result_fn_stdout, encode_fn, create_result_cmd,))
                 # run each metric in parallel
@@ -1096,7 +1096,7 @@ for m in mezzanines:
                 if not isfile(result_fn) or getsize(result_fn) <= 0:
                     create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-i', encode_fn, '-i', mezzanine_fn, '-report',
                         '-nostats', '-nostdin', '-threads', str(threads),
-                        '-filter_complex', '[0:v]scale=h=1080:w=1920:flags=bicubic[enc]; [1:v]scale=h=1080:w=1920:flags=bicubic[ref]; [enc][ref]libvmaf=psnr=1:ms_ssim=1:log_fmt=json:log_path=%s' % result_fn, '-an', '-y', '-f', 'null', '/dev/null']
+                        '-filter_complex', '[0:v]scale=h=%d:w=%d:flags=bicubic[enc]; [1:v]scale=h=%d:w=%d:flags=bicubic[ref]; [enc][ref]libvmaf=psnr=1:ms_ssim=1:log_fmt=json:log_path=%s' % (height, width, height, width, result_fn), '-an', '-y', '-f', 'null', '/dev/null']
                     print " - calculating the %s score for encoding..." % "vmaf"
                     p = Process(target=get_results, args=('vmaf', result_fn_stdout, encode_fn, create_result_cmd,))
                     if p != None:
