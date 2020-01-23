@@ -80,6 +80,11 @@ for m in mezzanines:
         # remove extensions, both .json and _data
         ebase = "%s" % splitext(splitext(es)[0])[0]
         elabel = ebase[len(mbase):]
+        if len(elabel[1:].split('_')) > 2:
+            if debug:
+                print "Warning: Wrong encode status file for %s: %s" % (mbase, es)
+                print "\t- %s, %s, %s, %s" % (m, ebase, mbase, elabel[1:])
+            continue
         n, l = elabel[1:].split('_')
         # turn alphabet character into an index number for human readable label
         if len(l) == 3:
