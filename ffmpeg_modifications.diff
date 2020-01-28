@@ -2591,3 +2591,75 @@ index 5d3231e..c9df011 100644
  } AVFrame;
  
  #if FF_API_FRAME_GET_SET
+diff --git a/libavcodec/libsvt_av1.c b/libavcodec/libsvt_av1.c
+index 1523542..4984816 100644
+--- a/libavcodec/libsvt_av1.c
++++ b/libavcodec/libsvt_av1.c
+@@ -48,6 +48,8 @@ typedef struct SvtContext {
+     EbBufferHeaderType         *in_buf;
+     int                         raw_size;
+ 
++    AVBufferPool* pool;
++
+     EOS_STATUS eos_flag;
+ 
+     // User options.
+@@ -118,6 +120,7 @@ static void free_buffer(SvtContext *svt_enc)
+         av_freep(&in_data);
+         av_freep(&svt_enc->in_buf);
+     }
++    av_buffer_pool_uninit(&svt_enc->pool);
+ }
+ 
+ static int alloc_buffer(EbSvtAv1EncConfiguration *config, SvtContext *svt_enc)
+@@ -138,14 +141,18 @@ static int alloc_buffer(EbSvtAv1EncConfiguration *config, SvtContext *svt_enc)
+     if (!svt_enc->in_buf)
+         return AVERROR(ENOMEM);
+ 
+-    in_data  = av_mallocz(sizeof(*in_data));
+-    if (!in_data)
++    svt_enc->in_buf->p_buffer  = (unsigned char *)av_mallocz(sizeof(*in_data));
++    if (!svt_enc->in_buf->p_buffer)
+         return AVERROR(ENOMEM);
+-    svt_enc->in_buf->p_buffer  = (unsigned char *)in_data;
+ 
+     svt_enc->in_buf->size        = sizeof(*svt_enc->in_buf);
+     svt_enc->in_buf->p_app_private  = NULL;
+ 
++    svt_enc->pool = av_buffer_pool_init(svt_enc->raw_size, NULL);
++    if (!svt_enc->pool) {
++        return AVERROR(ENOMEM);
++    }
++
+     return 0;
+ 
+ }
+@@ -348,18 +355,24 @@ static int eb_receive_packet(AVCodecContext *avctx, AVPacket *pkt)
+     EbBufferHeaderType *headerPtr;
+     EbErrorType svt_ret;
+     int ret = 0, pict_type;
++    AVBufferRef* ref;
+ 
+     if (svt_enc->eos_flag == EOS_RECEIVED)
+         return AVERROR_EOF;
+ 
+-    if ((ret = ff_alloc_packet2(avctx, pkt, svt_enc->raw_size, 0)) < 0) {
+-        av_log(avctx, AV_LOG_ERROR, "Failed to allocate output packet.\n");
+-        return ret;
+-    }
+     svt_ret = eb_svt_get_packet(svt_enc->svt_handle, &headerPtr, svt_enc->eos_flag);
+     if (svt_ret == EB_NoErrorEmptyQueue)
+         return AVERROR(EAGAIN);
+ 
++    ref = av_buffer_pool_get(svt_enc->pool);
++    if (!ref) {
++        av_log(avctx, AV_LOG_ERROR, "Failed to allocate output packet.\n");
++        eb_svt_release_out_buffer(&headerPtr);
++        return AVERROR(ENOMEM);
++    }
++    pkt->buf = ref;
++    pkt->data = ref->data;
++
+     memcpy(pkt->data, headerPtr->p_buffer, headerPtr->n_filled_len);
+     pkt->size = headerPtr->n_filled_len;
+     pkt->pts  = headerPtr->pts;
