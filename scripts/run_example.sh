@@ -4,6 +4,16 @@ bin/encode.py \
         -m vmaf,psnr,phqm,ssim \
         -n tests/test000 \
         -p 16 -t "\
+01000X264H264|ffmpeg|twopass|S|mp4|-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-profile:v|high|-preset|slow|-vcodec|libx264|-bf|0|-refs|4|-b:v|1000k|-maxrate:v|1500k|-bufsize:v|3000k|-minrate:v|1000k|-tune|animation|-x264opts|rc-lookahead=48:keyint=96|-keyint_min|48|-g|96|-force_key_frames|expr:eq(mod(n,48),0)|-hide_banner|-nostats;\
+01000AOMAV1|ffmpeg|twopass|S|mp4|-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-vcodec|libaom-av1|-cpu-used|1|-strict|experimental|-b:v|1000k|-maxrate:v|1500k|-bufsize:v|3000k|-minrate:v|1000k|-keyint_min|48|-g|48|-hide_banner|-nostats|-row-mt|1;\
+01000RAV1EAV1|ffmpeg|twopass|S|mp4|-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-vcodec|librav1e|-speed|3|-b:v|1000k|-keyint_min|48|-g|48|-hide_banner|-nostats;\
+01000SVTAV1|SvtAv1EncApp|vbr||mp4|-enc-mode|3|-film-grain|0|-adaptive-quantization|0|-rc|1|-tbr|1000|-intra-period|48|-irefresh-type|1;\
+01000VPXVP9|ffmpeg|twopass|S|mp4|-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-vcodec|libvpx-vp9|-speed|0|-b:v|1000k|-maxrate:v|1500k|-bufsize:v|3000k|-minrate:v|1000k|-g|48|-hide_banner|-nostats|-row-mt|1|-tune-content|0|-tile-columns|1|-aq-mode|0|-overshoot-pct|0|-undershoot-pct|0|-auto-alt-ref|1;\
+02000X264H264|ffmpeg|twopass|S|mp4|-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-profile:v|high|-preset|slow|-vcodec|libx264|-bf|0|-refs|4|-b:v|2000k|-maxrate:v|3000k|-bufsize:v|6000k|-minrate:v|2000k|-tune|animation|-x264opts|rc-lookahead=48:keyint=96|-keyint_min|48|-g|96|-force_key_frames|expr:eq(mod(n,48),0)|-hide_banner|-nostats;\
+02000AOMAV1|ffmpeg|twopass|S|mp4|-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-vcodec|libaom-av1|-cpu-used|1|-strict|experimental|-b:v|2000k|-maxrate:v|3000k|-bufsize:v|6000k|-minrate:v|2000k|-keyint_min|48|-g|48|-hide_banner|-nostats|-row-mt|1;\
+02000RAV1EAV1|ffmpeg|twopass|S|mp4|-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-vcodec|librav1e|-speed|3|-b:v|2000k|-keyint_min|48|-g|48|-hide_banner|-nostats;\
+02000SVTAV1|SvtAv1EncApp|vbr||mp4|-enc-mode|3|-film-grain|0|-adaptive-quantization|0|-rc|1|-tbr|2000|-intra-period|48|-irefresh-type|1;\
+02000VPXVP9|ffmpeg|twopass|S|mp4|-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-vcodec|libvpx-vp9|-speed|0|-b:v|2000k|-maxrate:v|3000k|-bufsize:v|6000k|-minrate:v|2000k|-g|48|-hide_banner|-nostats|-row-mt|1|-tune-content|0|-tile-columns|1|-aq-mode|0|-overshoot-pct|0|-undershoot-pct|0|-auto-alt-ref|1;\
 03000X264H264|ffmpeg|twopass|S|mp4|-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-profile:v|high|-preset|slow|-vcodec|libx264|-bf|0|-refs|4|-b:v|3000k|-maxrate:v|4500k|-bufsize:v|9000k|-minrate:v|3000k|-tune|animation|-x264opts|rc-lookahead=48:keyint=96|-keyint_min|48|-g|96|-force_key_frames|expr:eq(mod(n,48),0)|-hide_banner|-nostats;\
 03000AOMAV1|ffmpeg|twopass|S|mp4|-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-vcodec|libaom-av1|-cpu-used|1|-strict|experimental|-b:v|3000k|-maxrate:v|4500k|-bufsize:v|9000k|-minrate:v|3000k|-keyint_min|48|-g|48|-hide_banner|-nostats|-row-mt|1;\
 03000RAV1EAV1|ffmpeg|twopass|S|mp4|-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-vcodec|librav1e|-speed|3|-b:v|3000k|-keyint_min|48|-g|48|-hide_banner|-nostats;\

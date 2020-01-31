@@ -8,7 +8,7 @@ testnum="000"
 if [ "$1" != "" ]; then
     testnum="$1"
 fi
-b=3000
+b=1000
 
 printf '#!/bin/sh'
 printf "\n\n"
