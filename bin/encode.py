@@ -60,6 +60,7 @@ ap.add_argument('-d', '--debug', dest='debug', required=False, action='store_tru
 ap.add_argument('-o', '--use_msu', dest='use_msu', required=False, action='store_true', help="Use MSU VQMT tool for obj metrics")
 ap.add_argument('-s', '--segment', dest='segment', required=False, action='store_true', help="Use parallel encoding by splitting mezz")
 ap.add_argument('-a', '--use_audio', dest='use_audio', required=False, action='store_true', help="Include Audio in encodings, default is false")
+ap.add_argument('-ac', '--audio_codec', dest='audio_codec', required=False, default='aac', help="Audio codec used in encodings, default is aac")
 ap.add_argument('-e', '--use_experimental', dest='use_experimental', required=False, action='store_true', help="Include experimental commands, -copyts -start_at_zero, -muxrate 0")
 ap.add_argument('-r', '--force_framerate', dest='force_framerate', required=False, action='store_true', help="Force FPS by -r FPS using mezzanines value")
 args = vars(ap.parse_args())
@@ -75,6 +76,7 @@ use_audio = args['use_audio']
 use_experimental = args['use_experimental']
 force_framerate = args['force_framerate']
 segment = args['segment']
+audio_codec = args['audio_codec']
 
 mezz_dir = "%s/mezzanines" % base_directory
 encode_dir = "%s/encodes" % base_directory
@@ -730,7 +732,7 @@ def prepare_encode(source_segments, audio_file, tmp_dir, video_file, mezz_fps, e
     concat_cmd = concat_cmd + ['-i', "%s" % concat_list]
 
     if use_audio:
-       concat_cmd = concat_cmd + ['-i', audio_file, '-map', '1:a']
+       concat_cmd = concat_cmd + ['-i', audio_file, '-map', '1:a', '-acodec', audio_codec]
 
     concat_cmd = concat_cmd + [
                '-map', '0:v',
