@@ -39,6 +39,7 @@ test_labels = [];
 encoders = [];
 encode_flags = [];
 encode_formats = [];
+audio_codecs = [];
 rate_controls = [];
 test_args = []
 test_metrics = []
@@ -109,7 +110,8 @@ if args['tests'] != None:
         rate_control = lparts[2]
         flags = lparts[3]
         encode_fmt = lparts[4]
-        encoder_args = lparts[5:]
+        ac = lparts[5]
+        encoder_args = lparts[6:]
         if '_' in label:
             print "Error, Test labels cannot have underscores '_' in them!"
             sys.exit(1)
@@ -119,6 +121,7 @@ if args['tests'] != None:
         test_args.append(encoder_args)
         encode_flags.append(flags)
         encode_formats.append(encode_fmt)
+        audio_codecs.append(ac)
 
 print "Running test in %s directory" % base_directory
 
@@ -706,7 +709,7 @@ def segment_source(mezzanine_fn, vcodec, video_framerate, seg_dir, video_dir, vi
 
     return segments
 
-def prepare_encode(source_segments, audio_file, tmp_dir, video_file, mezz_fps, encext):
+def prepare_encode(source_segments, audio_file, tmp_dir, video_file, mezz_fps, encext, ac):
     """
     Take list of segments, audio file, and format, concat/mux/format.
 
@@ -732,7 +735,10 @@ def prepare_encode(source_segments, audio_file, tmp_dir, video_file, mezz_fps, e
     concat_cmd = concat_cmd + ['-i', "%s" % concat_list]
 
     if use_audio:
-       concat_cmd = concat_cmd + ['-i', audio_file, '-map', '1:a', '-acodec', audio_codec]
+        audio_c = audio_codec
+        if ac != "":
+            audio_c = ac
+        concat_cmd = concat_cmd + ['-i', audio_file, '-map', '1:a', '-acodec', audio_c]
 
     concat_cmd = concat_cmd + [
                '-map', '0:v',
@@ -820,6 +826,7 @@ for m in mezzanines:
         ## - F: Force mezzanine FPS
         flags = encode_flags[test_label_idx]
         encode_format = encode_formats[test_label_idx]
+        ac = audio_codecs[test_label_idx]
 
         # Filenames 
         encode_fn = "%s/%s/%s_%s_%s.%s" % (cur_dir, encode_dir, m.split('.')[0], test_label, test_letter, encode_format)
@@ -947,7 +954,7 @@ for m in mezzanines:
 
                 # mux together encoding segments if needed
                 if segment or segment_encode:
-                    prepare_encode(source_segments, mezzanine_fn, enc_dir, encode_fn, mezz_fps, encext)
+                    prepare_encode(source_segments, mezzanine_fn, enc_dir, encode_fn, mezz_fps, encext, ac)
 
                 # mux segmented parallel encoding parts into one
                 if len(encode_segments) > 0:

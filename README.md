@@ -46,7 +46,7 @@ type: make docker
 Example using the docker image:
 - docker run --rm -v `pwd`/tests:/opaencoder/tests opaencoder sh scripts/run_example.sh
 - docker run --rm -v `pwd`/tests:/opaencoder/tests opaencoder bin/encode.py -m vmaf,psnr\
-        -n tests/test000 -p 2 -t "01000X264H264|ffmpeg|twopass|S|mp4|-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-profile:v|high|-preset|slow|-vcodec|libx264|-bf|0|-refs|4|-b:v|1000k|-maxrate:v|1500k|-bufsize:v|3000k|-minrate:v|1000k|-tune|animation|-x264opts|rc-lookahead=48:keyint=96|-keyint_min|48|-g|96|-force_key_frames|expr:eq(mod(n,48),0)|-hide_banner|-nostats"
+        -n tests/test000 -p 2 -t "01000X264H264|ffmpeg|twopass|S|mp4||-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-profile:v|high|-preset|slow|-vcodec|libx264|-bf|0|-refs|4|-b:v|1000k|-maxrate:v|1500k|-bufsize:v|3000k|-minrate:v|1000k|-tune|animation|-x264opts|rc-lookahead=48:keyint=96|-keyint_min|48|-g|96|-force_key_frames|expr:eq(mod(n,48),0)|-hide_banner|-nostats"
 
 ```
 
