@@ -811,8 +811,14 @@ for m in mezzanines:
     mezz_height = int(data_string.split(',')[2])
     mezz_width = int(data_string.split(',')[3])
     mezz_format = "%s" % data_string.split(',')[4].lower()
-    mezz_num = float(data_string.split(',')[5])
-    mezz_den = float(data_string.split(',')[6])
+    mezz_num = 0.0
+    mezz_den = 0.0
+    # not all formats have these values
+    try:
+        mezz_num = float(data_string.split(',')[5])
+        mezz_den = float(data_string.split(',')[6])
+    except Exception, e:
+        pass
     mezz_frames = int(mezz_fps * (mezz_duration / 1000)+1)
 
     print "mezzanine:\n\tcodec: %s\n\tformat: %s\n\tframerate: %f\n\tframesize: %s\n\tduration: %0.2f\n\tframes: %d" % (vcodec,
