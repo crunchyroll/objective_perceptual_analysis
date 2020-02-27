@@ -26,7 +26,7 @@ fi
 if [ ! -e /usr/local/bin/wget ]; then
     brew install wget
 fi
-if [ ! -e /usr/local/bin/nasm]; then
+if [ ! -e /usr/local/bin/nasm ]; then
     brew install nasm
 fi
 if [ ! -e /usr/local/bin/git ]; then
