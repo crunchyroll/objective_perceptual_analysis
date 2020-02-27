@@ -88,8 +88,7 @@ dav1dlib:
 rav1elib:
 	cd rav1e && \
 	sudo cargo clean && \
-	sudo chown -R $(whoami) ~/.cargo && \
-	cargo build --release && \
+	sudo cargo build --release && \
 	sudo cargo cinstall --release
 
 vmaflib:
