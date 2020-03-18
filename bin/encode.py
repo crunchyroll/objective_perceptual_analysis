@@ -295,7 +295,7 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
             # for vp9 adjust speed on first pass to 4 as recommended
             if a == "-speed":
                 fp_args[i+1] = "4"
-        create_encode_cmd = [encoders, '-loglevel', 'error', '-hide_banner', '-report',
+        create_encode_cmd = [encoders, '-loglevel', 'error', '-hide_banner',
             '-nostats', '-nostdin', '-i', mezzanine_fn] + global_args + fp_args + ['-pass', '1',
             '-an', '-passlogfile', pass_log_fn, '-f', format,
             '-threads', str(threads), '-y']
@@ -314,7 +314,7 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
         for output in execute(create_encode_cmd, encode_log_1):
             print "\r%s" % output
         # pass 2
-        create_encode_cmd = [encoders, '-loglevel', 'warning', '-hide_banner', '-report',
+        create_encode_cmd = [encoders, '-loglevel', 'warning', '-hide_banner',
             '-nostats', '-nostdin', '-i', mezzanine_fn] + global_args + test_args + ['-pass', '2',
             '-passlogfile', pass_log_fn,
             '-f', format,
@@ -348,7 +348,7 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
             print "---"
 
         ## FFmpeg Encoding
-        create_encode_cmd = [encoders, '-loglevel', 'warning', '-hide_banner', '-nostats', '-nostdin', '-report',
+        create_encode_cmd = [encoders, '-loglevel', 'warning', '-hide_banner', '-nostats', '-nostdin',
             '-i', mezzanine_fn] + global_args + test_args + ['-threads', str(threads), '-f', format]
         # force framerate
         if test_force_framerate:
@@ -484,7 +484,7 @@ def concat_video_segments(first, second, seg_dir, index, format, ext):
         file.write("file '%s'\n" % first)
         file.write("file '%s'\n" % second)
     concat_cmd = [ffmpeg_bin,
-               '-f', 'concat', '-safe', '0', '-i', "%s" % concat_list, '-report',
+               '-f', 'concat', '-safe', '0', '-i', "%s" % concat_list,
                '-f', format,
                '-codec', 'copy',
                '-copyts',
@@ -662,7 +662,7 @@ def segment_source(mezzanine_fn, vcodec, video_framerate, seg_dir, video_dir, vi
     # https://trac.ffmpeg.org/ticket/1979
     if vcodec == 'mpeg4' or vcodec == 'xvid':
         cmd.extend(['-fflags', '+genpts'])
-    cmd.extend(['-i', mezzanine_fn, '-codec', 'copy', '-report',
+    cmd.extend(['-i', mezzanine_fn, '-codec', 'copy',
                '-map', '0:v',
                '-an', '-dn', '-sn',
                '-f', 'ssegment',
@@ -731,7 +731,7 @@ def prepare_encode(source_segments, audio_file, tmp_dir, video_file, mezz_fps, e
     # Combine encoded segements back into one single video file
     analyzeduration = min(2147480000, int((total_duration / 2.0) * 1000000.0))
     concat_cmd = [ffmpeg_bin , '-analyzeduration', str(analyzeduration),
-               '-f', 'concat', '-safe', '0', '-y', '-report']
+               '-f', 'concat', '-safe', '0', '-y']
     concat_cmd = concat_cmd + ['-i', "%s" % concat_list]
 
     if use_audio:
@@ -1090,7 +1090,7 @@ for m in mezzanines:
             print " - %s" % result_fn
             # get psnr and perceptual difference metrics
             if not isfile(result_fn) or getsize(result_fn) <= 0:
-                create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-i', encode_fn, '-report',
+                create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-i', encode_fn,
                     '-i', mezzanine_fn, '-nostats', '-nostdin', '-threads', str(threads),
                     '-filter_complex', '[0:v]scale=h=%d:w=%d:flags=bicubic[enc]; [1:v]scale=h=%d:w=%d:flags=bicubic[ref]; [enc][ref]phqm=stats_file=%s' % (height, width, height, width,
                                                                                                                                         result_fn), '-an', '-y', '-f', 'null', '/dev/null']
@@ -1109,7 +1109,7 @@ for m in mezzanines:
                 result_fn_stdout = "%s_%s.stdout" % (result_base, 'vmaf')
                 print " - %s" % result_fn
                 if not isfile(result_fn) or getsize(result_fn) <= 0:
-                    create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-i', encode_fn, '-i', mezzanine_fn, '-report',
+                    create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-i', encode_fn, '-i', mezzanine_fn,
                         '-nostats', '-nostdin', '-threads', str(threads),
                         '-filter_complex', '[0:v]scale=h=%d:w=%d:flags=bicubic[enc]; [1:v]scale=h=%d:w=%d:flags=bicubic[ref]; [enc][ref]libvmaf=psnr=1:ms_ssim=1:log_fmt=json:log_path=%s' % (height, width, height, width, result_fn), '-an', '-y', '-f', 'null', '/dev/null']
                     print " - calculating the %s score for encoding..." % "vmaf"
