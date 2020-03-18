@@ -52,11 +52,16 @@ fi
 if [ ! -e /usr/include/fontconfig ]; then
     sudo yum -y -q install fontconfig-devel
 fi
+# pip for python3
+if [ ! -e /usr/bin/pip3 ]; then
+    sudo yum -y -q install python3-pip
+fi
 if [ ! -e /usr/bin/meson ]; then
+    sudo python3 -m pip install meson
     sudo yum -y -q install meson
 fi
-if [ ! -e /usr/bin/nija ]; then
-    sudo yum -y -q install ninja-build
+if [ ! -e /usr/local/bin/nija ]; then
+    sudo python3 -m pip install ninja
 fi
 
 ## get opencv and opencv_contrib
@@ -126,13 +131,16 @@ fi
 if [ ! -d "FFmpeg" ]; then
     git clone https://git.ffmpeg.org/ffmpeg.git FFmpeg
     cd FFmpeg
-    git checkout remotes/origin/release/4.2
+    git checkout d99f3dc6b211509d9f6bbb82bbb59bff86a9e3a5
     cat ../ffmpeg_modifications.diff | patch -p1
     cd ../
 fi
 
 if [ ! -d "vmaf" ]; then
     git clone -b v1.3.15 https://github.com/Netflix/vmaf.git vmaf
+    #if [ ! -f /usr/include/stdatomic.h ]; then
+        #sudo wget https://gist.githubusercontent.com/nhatminhle/5181506/raw/541482dbc61862bba8a156edaae57faa2995d791/stdatomic.h -O /usr/include/stdatomic.h
+    #fi
 fi
 
 # GCC 5.4.0 install to /usr/local/
