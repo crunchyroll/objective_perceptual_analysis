@@ -1,5 +1,5 @@
 diff --git a/configure b/configure
-index 06e3a7b..b2e6f2d 100755
+index 06e3a7b..9f548b3 100755
 --- a/configure
 +++ b/configure
 @@ -266,6 +266,7 @@ External library support:
@@ -39,7 +39,7 @@ index 06e3a7b..b2e6f2d 100755
  enabled libssh            && require_pkg_config libssh libssh libssh/sftp.h sftp_init
  enabled libspeex          && require_pkg_config libspeex speex speex/speex.h speex_decoder_init
  enabled libsrt            && require_pkg_config libsrt "srt >= 1.3.0" srt/srt.h srt_socket
-+enabled libsvtav1         && require_pkg_config libsvtav1 SvtAv1Enc EbSvtAv1Enc.h eb_init_handle
++enabled libsvtav1         && require_pkg_config libsvtav1 SvtAv1Enc EbSvtAv1Enc.h svt_av1_enc_init_handle
  enabled libtensorflow     && require libtensorflow tensorflow/c/c_api.h TF_Version -ltensorflow
  enabled libtesseract      && require_pkg_config libtesseract tesseract tesseract/capi.h TessBaseAPICreate
  enabled libtheora         && require libtheora theora/theoraenc.h th_info_init -ltheoraenc -ltheoradec -logg
@@ -69,10 +69,10 @@ index f4cf180..5ff2e60 100644
  extern AVCodec ff_libvo_amrwbenc_encoder;
 diff --git a/libavcodec/libsvt_av1.c b/libavcodec/libsvt_av1.c
 new file mode 100644
-index 0000000..2c6299d
+index 0000000..5f1d8e0
 --- /dev/null
 +++ b/libavcodec/libsvt_av1.c
-@@ -0,0 +1,528 @@
+@@ -0,0 +1,548 @@
 +/*
 +* Scalable Video Technology for AV1 encoder library plugin
 +*
@@ -122,6 +122,7 @@ index 0000000..2c6299d
 +
 +    EbBufferHeaderType         *in_buf;
 +    int                         raw_size;
++    int                         max_tu_size;
 +
 +    AVBufferPool* pool;
 +
@@ -222,11 +223,6 @@ index 0000000..2c6299d
 +
 +    svt_enc->in_buf->size        = sizeof(*svt_enc->in_buf);
 +    svt_enc->in_buf->p_app_private  = NULL;
-+
-+    svt_enc->pool = av_buffer_pool_init(svt_enc->raw_size, NULL);
-+    if (!svt_enc->pool) {
-+        return AVERROR(ENOMEM);
-+    }
 +
 +    return 0;
 +
@@ -339,7 +335,7 @@ index 0000000..2c6299d
 +
 +    svt_enc->eos_flag = EOS_NOT_REACHED;
 +
-+    svt_ret = eb_init_handle(&svt_enc->svt_handle, svt_enc, &svt_enc->enc_params);
++    svt_ret = svt_av1_enc_init_handle(&svt_enc->svt_handle, svt_enc, &svt_enc->enc_params);
 +    if (svt_ret != EB_ErrorNone) {
 +        return svt_print_error(avctx, svt_ret, "Error init encoder handle");
 +    }
@@ -350,14 +346,14 @@ index 0000000..2c6299d
 +        return ret;
 +    }
 +
-+    svt_ret = eb_svt_enc_set_parameter(svt_enc->svt_handle, &svt_enc->enc_params);
++    svt_ret = svt_av1_enc_set_parameter(svt_enc->svt_handle, &svt_enc->enc_params);
 +    if (svt_ret != EB_ErrorNone) {
 +        return svt_print_error(avctx, svt_ret, "Error setting encoder parameters");
 +    }
 +
-+    svt_ret = eb_init_encoder(svt_enc->svt_handle);
++    svt_ret = svt_av1_enc_init(svt_enc->svt_handle);
 +    if (svt_ret != EB_ErrorNone) {
-+        eb_deinit_handle(svt_enc->svt_handle);
++        svt_av1_enc_deinit_handle(svt_enc->svt_handle);
 +        svt_enc->svt_handle = NULL;
 +        return svt_print_error(avctx, svt_ret, "Error init encoder");
 +    }
@@ -365,7 +361,7 @@ index 0000000..2c6299d
 +    if (avctx->flags & AV_CODEC_FLAG_GLOBAL_HEADER) {
 +        EbBufferHeaderType *headerPtr = NULL;
 +
-+        svt_ret = eb_svt_enc_stream_header(svt_enc->svt_handle, &headerPtr);
++        svt_ret = svt_av1_enc_stream_header(svt_enc->svt_handle, &headerPtr);
 +        if (svt_ret != EB_ErrorNone) {
 +            return svt_print_error(avctx, svt_ret, "Error when build stream header");
 +        }
@@ -380,7 +376,7 @@ index 0000000..2c6299d
 +
 +        memcpy(avctx->extradata, headerPtr->p_buffer, avctx->extradata_size);
 +
-+        svt_ret = eb_svt_release_enc_stream_header(headerPtr);
++        svt_ret = svt_av1_enc_stream_header_release(headerPtr);
 +        if (svt_ret != EB_ErrorNone) {
 +            return svt_print_error(avctx, svt_ret, "Error when destroy stream header");
 +        }
@@ -407,7 +403,7 @@ index 0000000..2c6299d
 +        headerPtrLast.p_buffer     = NULL;
 +        headerPtrLast.flags      = EB_BUFFERFLAG_EOS;
 +
-+        eb_svt_enc_send_picture(svt_enc->svt_handle, &headerPtrLast);
++        svt_av1_enc_send_picture(svt_enc->svt_handle, &headerPtrLast);
 +        svt_enc->eos_flag = EOS_SENT;
 +        av_log(avctx, AV_LOG_DEBUG, "Finish sending frames!!!\n");
 +        return 0;
@@ -419,9 +415,33 @@ index 0000000..2c6299d
 +    headerPtr->p_app_private  = NULL;
 +    headerPtr->pts          = frame->pts;
 +
-+    eb_svt_enc_send_picture(svt_enc->svt_handle, headerPtr);
++    svt_av1_enc_send_picture(svt_enc->svt_handle, headerPtr);
 +
 +    return 0;
++}
++
++static AVBufferRef* get_output_ref(AVCodecContext *avctx, SvtContext  *svt_enc, int filled_len)
++{
++    if (filled_len > svt_enc->max_tu_size) {
++        const int MAX_FRAMES = 8;
++        int max_tu_size;
++        if (filled_len > svt_enc->raw_size * MAX_FRAMES) {
++            av_log(avctx, AV_LOG_ERROR, "something wrong in libsvtav1, the tu size > %d raw frame size.\n", MAX_FRAMES);
++            return NULL;
++        }
++        max_tu_size = 1 << av_ceil_log2(filled_len);
++        av_buffer_pool_uninit(&svt_enc->pool);
++        svt_enc->pool = av_buffer_pool_init(max_tu_size, NULL);
++        if (!svt_enc->pool) {
++            return NULL;
++        }
++        svt_enc->max_tu_size = max_tu_size;
++    }
++    if (!svt_enc->pool) {
++         av_log(avctx, AV_LOG_ERROR, "bug, no buffer pool.\n");
++         return NULL;
++    }
++    return av_buffer_pool_get(svt_enc->pool);
 +}
 +
 +static int eb_receive_packet(AVCodecContext *avctx, AVPacket *pkt)
@@ -435,14 +455,14 @@ index 0000000..2c6299d
 +    if (svt_enc->eos_flag == EOS_RECEIVED)
 +        return AVERROR_EOF;
 +
-+    svt_ret = eb_svt_get_packet(svt_enc->svt_handle, &headerPtr, svt_enc->eos_flag);
++    svt_ret = svt_av1_enc_get_packet(svt_enc->svt_handle, &headerPtr, svt_enc->eos_flag);
 +    if (svt_ret == EB_NoErrorEmptyQueue)
 +        return AVERROR(EAGAIN);
 +
-+    ref = av_buffer_pool_get(svt_enc->pool);
++    ref = get_output_ref(avctx, svt_enc, headerPtr->n_filled_len);
 +    if (!ref) {
 +        av_log(avctx, AV_LOG_ERROR, "Failed to allocate output packet.\n");
-+        eb_svt_release_out_buffer(&headerPtr);
++        svt_av1_enc_release_out_buffer(&headerPtr);
 +        return AVERROR(ENOMEM);
 +    }
 +    pkt->buf = ref;
@@ -470,7 +490,7 @@ index 0000000..2c6299d
 +
 +    ff_side_data_set_encoder_stats(pkt, headerPtr->qp * FF_QP2LAMBDA, NULL, 0, pict_type);
 +
-+    eb_svt_release_out_buffer(&headerPtr);
++    svt_av1_enc_release_out_buffer(&headerPtr);
 +
 +    return ret;
 +}
@@ -481,8 +501,8 @@ index 0000000..2c6299d
 +
 +    if (svt_enc) {
 +        if (svt_enc->svt_handle) {
-+            eb_deinit_encoder(svt_enc->svt_handle);
-+            eb_deinit_handle(svt_enc->svt_handle);
++            svt_av1_enc_deinit(svt_enc->svt_handle);
++            svt_av1_enc_deinit_handle(svt_enc->svt_handle);
 +        }
 +
 +        free_buffer(svt_enc);
