@@ -24,6 +24,5 @@ set ytics 1
 
 # 1     2       3       4       5       6       7       8
 # test  pfhd    phqm    vmaf    ssim    psnr    bitrate speed
-set title "stats"
-set title "stats"
+set title "__TITLE__"
 plot "stats.csv" using ($4):xtic(1) title "VMAF" ls 2, "stats.csv" using 3 title "PHQM" ls 6, "stats.csv" using 6 title "PSNR" ls 7, "stats.csv" using ($7/100) title "Bitrate" ls 5, "stats.csv" using ($8/60) title "Speed" ls 4

@@ -473,11 +473,13 @@ with open("%s/stats.csv" % base_directory, "w") as f:
     f.write("%s" % body)
 
 # copy gnuplot config template into the test base directory
-gpdata = ""
+gpdata = []
 with open("stats.gp", "r") as f:
-    gpdata = f.read()
+    gpdata = f.readlines()
 with open("%s/stats.gp" % base_directory, "w") as f:
-    f.write("%s" % gpdata)
+    for l in gpdata:
+        l = l.replace("__TITLE__", "%s" % base_directory)
+        f.write("%s" % l)
 
 if len(results) > 0:
     subprocess.call(['gnuplot', '--persist', "stats.gp"], cwd="%s" % base_directory)
