@@ -800,7 +800,7 @@ for m in mezzanines:
                     ((ord(line) >= 32 and ord(line) < 128) or ord(line) == 10 or ord(line) == 13)]).strip()
     mezz_duration = float(data_string.split(',')[0])
 
-    params = "--Inform=Video;%CodecID%,%FrameRate%,%Height%,%Width%,%Format%,%FrameRate_Num%,%FrameRate_Den%"
+    params = "--Inform=Video;%CodecID%,%FrameRate%,%Height%,%Width%,%Format%,%FrameRate_Num%,%FrameRate_Den%,%FrameRate_Maximum%"
     cmd = ['mediainfo', params, mezzanine_fn]
     print " - extracting metadata from video..."
     stdout = subprocess.check_output(cmd)
@@ -808,6 +808,9 @@ for m in mezzanines:
                     ((ord(line) >= 32 and ord(line) < 128) or ord(line) == 10 or ord(line) == 13)]).strip()
     vcodec = "%s" % data_string.split(',')[0].lower()
     mezz_fps = float(data_string.split(',')[1])
+    mezz_fps_max = data_string.split(',')[7]
+    if mezz_fps_max != "":
+        mezz_fps = float(mezz_fps_max)
     mezz_height = int(data_string.split(',')[2])
     mezz_width = int(data_string.split(',')[3])
     mezz_format = "%s" % data_string.split(',')[4].lower()
