@@ -124,7 +124,7 @@ fi
 if [ ! -d "FFmpeg" ]; then
     git clone https://git.ffmpeg.org/ffmpeg.git FFmpeg
     cd FFmpeg
-    git checkout remotes/origin/release/4.2
+    git checkout n4.3.1
     cat ../ffmpeg_modifications.diff | patch -p1
     cd ../
 fi
