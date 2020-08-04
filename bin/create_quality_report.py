@@ -93,7 +93,7 @@ if debug:
 print "<html><title>Encode Quality Comparison %s</title>" % base_directory
 print "<head><style>table, th, td, h1, caption { border: 3px solid #ff6600; padding: 5px; border-collapse: collapse; vertical-align: top; color: white; }\nbody { color: white; background-color: black; }\na:link, a:visited { color: yellow; }</style></head>"
 print "<body>"
-print "<table><caption style=\"background-color: #eeeeee; \"><h1><a style=\"color: blue; \" href=\"%s/%s/stats.json\">Encode Quality Comparsion (%s)</a></h1>" % (storage_urlbase, base_directory, base_directory)
+print "<table><caption style=\"background-color: #000000; \"><h1><a style=\"color: #eeeeee; \" href=\"%s/%s/stats.json\">Encode Quality Comparsion (%s)</a></h1>" % (storage_urlbase, base_directory, base_directory)
 print "<a href=\"%s/%s/stats.jpg\"><img src=\"%s/%s/stats.jpg\" width=640 height=380></a></caption>" % (storage_urlbase, base_directory, storage_urlbase, base_directory)
 print "<tr><th style=\"background-color:#ff6600;color:#000000\">Encode</th><th style=\"background-color:#ff6600;color:#000000\">scenes</th></tr>"
 for encode, data in sorted(encode_list.iteritems()):
