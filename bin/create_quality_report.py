@@ -90,8 +90,12 @@ if debug:
     print "Encode List: %s" % json.dumps(encode_list, indent=4)
 
 
-print "<html><title>Encode Quality Comparison %s</title><body><table border=1><caption><h1>Encode Quality Comparsion (%s)</h1></caption>" % (base_directory, base_directory)
-print "<tr><th>Encode</th><th>scenes</th></tr>"
+print "<html><title>Encode Quality Comparison %s</title>" % base_directory
+print "<head><style>table, th, td, h1, caption { border: 3px solid #ff6600; padding: 5px; border-collapse: collapse; vertical-align: top; color: white; }\nbody { color: white; background-color: black; }\na:link, a:visited { color: yellow; }</style></head>"
+print "<body>"
+print "<table><caption style=\"background-color: #eeeeee; \"><h1><a style=\"color: blue; \" href=\"%s/%s/stats.json\">Encode Quality Comparsion (%s)</a></h1>" % (storage_urlbase, base_directory, base_directory)
+print "<a href=\"%s/%s/stats.jpg\"><img src=\"%s/%s/stats.jpg\" width=640 height=380></a></caption>" % (storage_urlbase, base_directory, storage_urlbase, base_directory)
+print "<tr><th style=\"background-color:#ff6600;color:#000000\">Encode</th><th style=\"background-color:#ff6600;color:#000000\">scenes</th></tr>"
 for encode, data in sorted(encode_list.iteritems()):
     if debug:
         print "Encode: %s" % encode
@@ -100,13 +104,15 @@ for encode, data in sorted(encode_list.iteritems()):
         print "Metrics: %s" % data["metrics"]
 
     print "<tr>"
-    print "<td><strong>Encode: %s</strong><hr><strong>Reference: (%s) %s</strong><hr><strong>Stats: %s</strong><hr><strong>Metrics: %s</strong></td><td><ol>" % (encode,
-                                                                                                                                           reference_label, data["reference"], data["stats"], data["metrics"])
+    print "<td><table><tr td style=\"vertical-align:top\"><td><strong>Encode: (%s)</strong></td><td>%s</td></tr><tr><td><strong>Reference: (%s)</strong></td><td>%s</td></tr><tr><td><strong>Stats:</strong></td><td>%s</td></tr><tr><td><strong>Metrics:</strong></td><td>%s</td></tr></table></td><td><table>" % (data["label"], encode,
+                                                                reference_label, data["reference"], data["stats"], data["metrics"])
     for scene in data["scenes"]:
         start_frame, end_frame = scene.split(" ")[0].split("-")
         framerate = 29.976
         position = int(float(start_frame) / framerate)
         duration = int(float(int(end_frame) - int(start_frame)) / framerate)
+        vmaf_score = float(scene.split(" ")[5].split(":")[1])
+
         # %s?leftVideoUrl=%s&rightVideoUrl=%s&hideSourceSelector=1&hideHelp=1&position=10&duration=10
         if debug:
             print "Scene: %s" % scene
@@ -116,8 +122,26 @@ for encode, data in sorted(encode_list.iteritems()):
                                                                                                            position, duration)
         if debug:
             print "Url: %s" % url
-        print "<li><strong>%d-%d)</strong> <a href=%s>%s</a></li>" % (position, position+duration, url, scene)
-    print "</ol></td></tr>"
+        bcolor = "green"
+        fcolor = "black"
+        lcolor = "blue"
+        if vmaf_score < 75.0:
+            bcolor = "black"
+            fcolor = "white"
+            lcolor = "yellow"
+        elif vmaf_score < 80.0:
+            bcolor = "red"
+            fcolor = "white"
+            lcolor = "yellow"
+        elif vmaf_score < 90.0:
+            bcolor = "orange"
+        elif vmaf_score < 95.0:
+            bcolor = "yellow"
+            lcolor = "red"
+        print "<tr><td style=\"background-color:%s;color:%s\"><strong>%d-%ds [%0.2f%%]:</strong> <a style=\"color:%s;visited:%s\" href=%s>%s</a></td></tr>" % (bcolor,
+                                                                                                                                 fcolor, position, position+duration,
+                                                                                                                                 vmaf_score, lcolor, lcolor, url, ": ".join(scene.split(" ")[1:8]))
+    print "</table></td></tr>"
 
 print "</table></html>\n"
 
