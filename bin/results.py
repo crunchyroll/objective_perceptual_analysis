@@ -71,7 +71,7 @@ for m in mezzanines:
         print "\nMezzanine %s:" % mbase
 
     fkey = mbase
-    result_key_spacer = "%s-1000" % (fkey[:32])
+    result_key_spacer = "%s-1000" % (fkey)
     result[result_key_spacer] = {}
 
     # grab encode stats list for this mezzanine
@@ -342,7 +342,8 @@ for m in mezzanines:
                     ssim = float(score)
                 elif label == 'psnr':
                     psnr = float(score)
-        result_key = "%s-%s_%s" % (fkey[:32], str("%0.3f" % vmaf).replace('.','-'), elabel[1:])
+        #result_key = "%s-%s_%s" % (fkey, str("%0.3f" % vmaf).replace('.','-'), elabel[1:])
+        result_key = "%s_%s" % (fkey, elabel[1:])
         result[result_key] = {}
 
         print " %s:" % result_key
