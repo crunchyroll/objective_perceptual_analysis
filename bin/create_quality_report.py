@@ -104,6 +104,10 @@ for encode, data in sorted(encode_list.iteritems()):
         print "Metrics: %s" % data["metrics"]
 
     print "<tr>"
+    if "reference" not in data:
+        data["reference"] = "Not Finished Yet"
+    if "scenes" not in data:
+        data["scenes"] = []
     print "<td><table><tr td style=\"vertical-align:top\"><td><strong>Encode: (%s)</strong></td><td>%s</td></tr><tr><td><strong>Reference: (%s)</strong></td><td>%s</td></tr><tr><td><strong>Stats:</strong></td><td>%s</td></tr><tr><td><strong>Metrics:</strong></td><td>%s</td></tr></table></td><td><table>" % (data["label"], encode,
                                                                 reference_label, data["reference"], data["stats"], data["metrics"])
     for scene in data["scenes"]:
