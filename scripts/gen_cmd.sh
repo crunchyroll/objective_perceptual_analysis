@@ -27,7 +27,7 @@ while [ $b -le 8000 ]; do
         b=$(expr $b + 1000)
         continue
     fi
-    printf "\n%05dAOMAV1|ffmpeg|twopass|S|mp4||-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-vcodec|libaom-av1|-cpu-used|1|-strict|experimental|-b:v|%dk|-maxrate:v|%0.0fk|-bufsize:v|%0.0fk|-minrate:v|%dk|-keyint_min|48|-g|48|-hide_banner|-nostats|-row-mt|1;\\" $b $b $(echo "$b * 1.5" | bc -l) $(echo "$b * 3" | bc -l) $b
+    printf "\n%05dAOMAV1|ffmpeg|twopass|S|mp4||-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-vcodec|libaom-av1|-cpu-used|4|-strict|experimental|-b:v|%dk|-maxrate:v|%0.0fk|-bufsize:v|%0.0fk|-minrate:v|%dk|-keyint_min|48|-g|48|-hide_banner|-nostats|-row-mt|1;\\" $b $b $(echo "$b * 1.5" | bc -l) $(echo "$b * 3" | bc -l) $b
     printf "\n%05dRAV1EAV1|ffmpeg|twopass|S|mp4||-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-vcodec|librav1e|-speed|3|-b:v|%dk|-keyint_min|48|-g|48|-hide_banner|-nostats;\\" $b $b
     # ffmpeg patch seems to have bugs
     printf "\n%05dSVTAV1|ffmpeg|vbr||mp4||-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-vcodec|libsvt_av1|-preset|3|-b:v|%dk|-maxrate:v|%0.0fk|-bufsize:v|%0.0fk|-minrate:v|%dk|-rc|vbr|-keyint_min|48|-g|48|-hide_banner|-nostats;\\" $b $b $(echo "$b * 1.5" | bc -l) $(echo "$b * 3" | bc -l) $b
