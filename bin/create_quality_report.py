@@ -116,7 +116,7 @@ for encode, data in sorted(encode_list.iteritems()):
         # %s?leftVideoUrl=%s&rightVideoUrl=%s&hideSourceSelector=1&hideHelp=1&position=10&duration=10
         if debug:
             print "Scene: %s" % scene
-        url = "%s?leftVideoUrl=%s&rightVideoUrl=%s&hideSourceSelector=1&hideHelp=1&position=%d&duration=%d" % (vivict_urlbase,
+        url = "%s?leftVideoUrl=%s&rightVideoUrl=%s&hideSourceSelector=1&hideHelp=1&position=%d&duration=%d&score=0&quality=1" % (vivict_urlbase,
                                                                                                            "%s/%s/%s" % (storage_urlbase, "%s/encodes" % base_directory, "%s.mp4" % encode),
                                                                                                            "%s/%s/%s" % (storage_urlbase, "%s/encodes" % base_directory, data["reference"]),
                                                                                                            position, duration)
