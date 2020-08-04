@@ -121,8 +121,8 @@ for encode, data in sorted(encode_list.iteritems()):
         if debug:
             print "Scene: %s" % scene
         url = "%s?leftVideoUrl=%s&rightVideoUrl=%s&hideSourceSelector=1&hideHelp=1&position=%d&duration=%d&score=0&quality=" % (vivict_urlbase,
-                                                                                                           "%s/%s/%s" % (storage_urlbase, "%s/encodes" % base_directory, "%s.mp4" % encode),
                                                                                                            "%s/%s/%s" % (storage_urlbase, "%s/encodes" % base_directory, data["reference"]),
+                                                                                                           "%s/%s/%s" % (storage_urlbase, "%s/encodes" % base_directory, "%s.mp4" % encode),
                                                                                                            position, duration)
         if debug:
             print "Url: %s" % url
