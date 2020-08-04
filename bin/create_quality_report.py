@@ -105,11 +105,14 @@ for encode, data in sorted(encode_list.iteritems()):
 
     print "<tr>"
     if "reference" not in data:
-        data["reference"] = "Not Finished Yet"
+        data["reference"] = "Not-Finished-Yet"
     if "scenes" not in data:
         data["scenes"] = []
-    print "<td><table><tr td style=\"vertical-align:top\"><td><strong>Encode: (%s)</strong></td><td>%s</td></tr><tr><td><strong>Reference: (%s)</strong></td><td>%s</td></tr><tr><td><strong>Stats:</strong></td><td>%s</td></tr><tr><td><strong>Metrics:</strong></td><td>%s</td></tr></table></td><td><table>" % (data["label"], encode,
-                                                                reference_label, data["reference"], data["stats"], data["metrics"])
+    print "<td><table><tr td style=\"vertical-align:top\">"
+    print "<td><strong>Encode: (%s)</strong></td>" % data["label"]
+    print "<td><a href=%s>%s</a></td></tr><tr>" % ("%s?leftVideoUrl=%s&rightVideoUrl=%s&hideSourceSelector=1&hideHelp=1&score=0&quality=" % (vivict_urlbase, "%s/%s/%s" % (storage_urlbase, "%s/encodes" % base_directory, data["reference"]), "%s/%s/%s" % (storage_urlbase, "%s/encodes" % base_directory, "%s.mp4" % encode)), encode)
+    print "<td><strong>Reference: (%s)</strong></td><td>%s</td></tr><tr>" % (reference_label, data["reference"])
+    print "<td><strong>Stats:</strong></td><td>%s</td></tr><tr><td><strong>Metrics:</strong></td><td>%s</td></tr></table></td><td><table>" % (data["stats"], data["metrics"])
     for scene in data["scenes"]:
         start_frame, end_frame = scene.split(" ")[0].split("-")
         framerate = 29.976
