@@ -43,6 +43,7 @@ audio_codecs = [];
 rate_controls = [];
 test_args = []
 test_metrics = []
+test_resolutions = []
 threads = 2
 debug = False
 use_msu = False
@@ -111,7 +112,8 @@ if args['tests'] != None:
         flags = lparts[3]
         encode_fmt = lparts[4]
         ac = lparts[5]
-        encoder_args = lparts[6:]
+        resolution = lparts[6]
+        encoder_args = lparts[7:]
         if '_' in label:
             print "Error, Test labels cannot have underscores '_' in them!"
             sys.exit(1)
@@ -122,6 +124,7 @@ if args['tests'] != None:
         encode_flags.append(flags)
         encode_formats.append(encode_fmt)
         audio_codecs.append(ac)
+        test_resolutions.append(resolution)
 
 print "Running test in %s directory" % base_directory
 
@@ -164,7 +167,7 @@ def get_results(test_metric, result_fn, encode_video_fn, create_result_cmd):
 
 def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
                  global_args, encoders, pass_log_fn, threads, idx,
-                 mezz_fps, format, test_force_framerate, mezz_height, mezz_width, mezz_num, mezz_den, mezz_frames):
+                 mezz_fps, format, test_force_framerate, mezz_height, mezz_width, mezz_num, mezz_den, mezz_frames, resolution):
     # cleanup any failed encodings
     if isfile(encode_fn):
         remove(encode_fn)
@@ -256,6 +259,8 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
                  '-f', format, '-vcodec', 'copy']
         if format == 'mp4':
             cmd.extend(['-movflags', '+faststart'])
+        if resolution != "":
+            cmd.extend(['-vf', "scale=h=1080:w=-1:flags=bicubic"])
         cmd.extend([encode_fn])
         p = Process(name="MUX: %s" % mezzanine_fn, target=execute, args=(cmd, mp4_log))
         # run process in parallel
@@ -834,6 +839,7 @@ for m in mezzanines:
         ## - S: Segment Encode
         ## - F: Force mezzanine FPS
         flags = encode_flags[test_label_idx]
+        resolution = test_resolutions[test_label_idx]
         encode_format = encode_formats[test_label_idx]
         ac = audio_codecs[test_label_idx]
 
@@ -920,7 +926,7 @@ for m in mezzanines:
                             p = Process(name=encode_segment, target=encode_video, args=(mezzanine_segment, encode_segment,
                                             rate_control, test_args[test_label_idx], global_args,
                                             encoders[test_label_idx], pass_log_fn, seg_threads, (idx+1),
-                                            mezz_fps, segencfmt, test_force_framerate, mezz_height, mezz_width, mezz_num, mezz_den, mezz_frames))
+                                            mezz_fps, segencfmt, test_force_framerate, mezz_height, mezz_width, mezz_num, mezz_den, mezz_frames, resolution))
                             # run each encode in parallel
                             if p != None:
                                 p.start()
@@ -932,7 +938,7 @@ for m in mezzanines:
                     p = Process(name=encode_fn, target=encode_video, args=(mezzanine_fn, encode_fn,
                                     rate_control, test_args[test_label_idx], global_args,
                                     encoders[test_label_idx], pass_log_fn, threads, 1,
-                                    mezz_fps, encext, test_force_framerate, mezz_height, mezz_width, mezz_num, mezz_den, mezz_frames))
+                                    mezz_fps, encext, test_force_framerate, mezz_height, mezz_width, mezz_num, mezz_den, mezz_frames, resolution))
                     # run encode
                     if p != None:
                         p.start()
