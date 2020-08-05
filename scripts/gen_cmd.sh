@@ -44,7 +44,7 @@ for resolution in 1080 720 480; do
             continue
         fi
         printf "\n%04dp%05dkAOMAV1|ffmpeg|twopass|S|mp4||%d|-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-vcodec|libaom-av1|-cpu-used|4|-strict|experimental|-b:v|%dk|-maxrate:v|%0.0fk|-bufsize:v|%0.0fk|-minrate:v|%dk|-keyint_min|48|-g|48|-hide_banner|-nostats|-row-mt|1;\\" $resolution $b $resolution $b $(echo "$b * 1.5" | bc -l) $(echo "$b * 3" | bc -l) $b
-        printf "\n%05dRAV1EAV1|ffmpeg|twopass|S|mp4||%d|-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-vcodec|librav1e|-speed|3|-b:v|%dk|-keyint_min|48|-g|48|-hide_banner|-nostats;\\" $resolution $b $resolution $b
+        printf "\n%05dRAV1EAV1|ffmpeg|twopass|S|mp4||%d|-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-vcodec|librav1e|-speed|4|-b:v|%dk|-keyint_min|48|-g|48|-hide_banner|-nostats;\\" $resolution $b $resolution $b
         # ffmpeg patch seems to have bugs
         printf "\n%04dp%05dSVTAV1|ffmpeg|vbr||mp4||%d|-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-vcodec|libsvt_av1|-preset|3|-b:v|%dk|-maxrate:v|%0.0fk|-bufsize:v|%0.0fk|-minrate:v|%dk|-rc|vbr|-keyint_min|48|-g|48|-hide_banner|-nostats;\\" $resolution $b $resolution $b $(echo "$b * 1.5" | bc -l) $(echo "$b * 3" | bc -l) $b
 
