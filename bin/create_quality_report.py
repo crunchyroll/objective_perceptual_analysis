@@ -64,7 +64,7 @@ for r in results.splitlines():
                         # skip .dotfiles
                         continue
                 #print "encode: %s label: %s" % (encode, label)
-                if REFERENCE_LABEL in e and encode[0:len(encode)-(len(label))] in e and e[len(e)-4:] == ".mp4":
+                if reference_label in e and encode[0:len(encode)-(len(label))] in e and e[len(e)-4:] == ".mp4":
                     reference_encode = e
                     encode_list[encode]["reference"] = e
                     encode_list[encode]["encode_file"] = encode_file
