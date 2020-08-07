@@ -127,23 +127,32 @@ for encode, data in sorted(encode_list.iteritems()):
     if "reference" not in data:
         data["reference"] = "Not-Finished-Yet"
 
-    is_good = True
+    lowest_vmaf = total_vmaf_score
     if "scenes" not in data:
         data["scenes"] = []
     else:
         for scene in data["scenes"]:
             vmaf_score = float(scene.split(" ")[5].split(":")[1])
-            if vmaf_score < minimum_quality:
-                is_good = False
-    if total_vmaf_score < minimum_quality:
-        is_good = False
-    bcolor = "red"
+            # get lowest VMAF scene
+            if vmaf_score < lowest_vmaf:
+                lowest_vmaf = vmaf_score
+    bcolor = "green"
     fcolor = "black"
-    if is_good:
-        bcolor = "green"
-        fcolor = "black"
+    if total_vmaf_score < (minimum_quality - 10):
+        bcolor = "purple"
+        fcolor = "white"
+    elif total_vmaf_score < (minimum_quality - 10):
+        bcolor = "red"
+        fcolor = "white"
+    elif total_vmaf_score < (minimum_quality - 5):
+        bcolor = "orange"
+    elif total_vmaf_score < minimum_quality:
+        bcolor = "yellow"
+    elif lowest_vmaf < minimum_quality:
+        # avg total score ok but individual scenes not ok
+        bcolor = "yellow"
     print "<td><table><tr style=\"vertical-align:top\">"
-    print "<td style=\"background-color:%s;color:%s\"><strong>Encode: (%s)</strong></td>" % (bcolor, fcolor, data["label"])
+    print "<td style=\"background-color:%s;color:%s\"><strong>[%0.2f%%] Encode: (%s)</strong></td>" % (bcolor, fcolor, total_vmaf_score, data["label"])
     print "<td><a href=%s>%s</a></td></tr><tr>" % ("%s?leftVideoUrl=%s&rightVideoUrl=%s&hideSourceSelector=1&hideHelp=1&score=0&quality=" % (vivict_urlbase, "%s/%s/%s" % (storage_urlbase, "%s/encodes" % base_directory, data["reference"]), "%s/%s/%s" % (storage_urlbase, "%s/encodes" % base_directory, "%s.mp4" % encode)), encode)
     print "<td><strong>Reference: (%s)</strong></td><td>%s</td></tr><tr>" % (reference_label, data["reference"])
     # {"video": {"framerate": 23.976, "vbitrate": 102, "height": 240, "width": 427, "filesize": 1397598, "duration": 109.485}}
@@ -170,7 +179,7 @@ for encode, data in sorted(encode_list.iteritems()):
         fcolor = "black"
         lcolor = "blue"
         if vmaf_score < (minimum_quality - 10):
-            bcolor = "black"
+            bcolor = "purple"
             fcolor = "white"
             lcolor = "yellow"
         elif vmaf_score < (minimum_quality - 10):
