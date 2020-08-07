@@ -259,8 +259,6 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
                  '-f', format, '-vcodec', 'copy']
         if format == 'mp4':
             cmd.extend(['-movflags', '+faststart'])
-        if resolution != "":
-            cmd.extend(['-vf', "scale=h=1080:w=-1:flags=bicubic"])
         cmd.extend([encode_fn])
         p = Process(name="MUX: %s" % mezzanine_fn, target=execute, args=(cmd, mp4_log))
         # run process in parallel
@@ -304,6 +302,8 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
             '-nostats', '-nostdin', '-i', mezzanine_fn] + global_args + fp_args + ['-pass', '1',
             '-an', '-passlogfile', pass_log_fn, '-f', format,
             '-threads', str(threads), '-y']
+        if resolution != "":
+            create_encode_cmd.extend(['-vf', "scale=h=%s:w=-1:flags=bicubic" % resolution])
         # force framerate
         if test_force_framerate:
             create_encode_cmd = create_encode_cmd + ['-r', "%f" % mezz_fps]
@@ -324,6 +324,8 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
             '-passlogfile', pass_log_fn,
             '-f', format,
             '-threads', str(threads)]
+        if resolution != "":
+            create_encode_cmd.extend(['-vf', "scale=h=%s:w=-1:flags=bicubic" % resolution])
         # turn off audio if not asked for
         if not use_audio:
             create_encode_cmd = create_encode_cmd + ['-an']
@@ -355,6 +357,8 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
         ## FFmpeg Encoding
         create_encode_cmd = [encoders, '-loglevel', 'warning', '-hide_banner', '-nostats', '-nostdin',
             '-i', mezzanine_fn] + global_args + test_args + ['-threads', str(threads), '-f', format]
+        if resolution != "":
+            create_encode_cmd.extend(['-vf', "scale=h=%s:w=-1:flags=bicubic" % resolution])
         # force framerate
         if test_force_framerate:
             create_encode_cmd = create_encode_cmd + ['-r', "%f" % mezz_fps]

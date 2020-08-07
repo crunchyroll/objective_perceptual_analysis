@@ -89,6 +89,7 @@ for r in results.splitlines():
 if debug:
     print "Encode List: %s" % json.dumps(encode_list, indent=4)
 
+quality_good = []
 
 print "<html><title>Encode Quality Comparison %s</title>" % base_directory
 print "<head><style>table, th, td, h1, caption { border: 3px solid #ff6600; padding: 5px; border-collapse: collapse; vertical-align: top; color: white; }\nbody { color: white; background-color: black; }\na:link, a:visited { color: yellow; }</style></head>"
@@ -113,6 +114,7 @@ for encode, data in sorted(encode_list.iteritems()):
     print "<td><a href=%s>%s</a></td></tr><tr>" % ("%s?leftVideoUrl=%s&rightVideoUrl=%s&hideSourceSelector=1&hideHelp=1&score=0&quality=" % (vivict_urlbase, "%s/%s/%s" % (storage_urlbase, "%s/encodes" % base_directory, data["reference"]), "%s/%s/%s" % (storage_urlbase, "%s/encodes" % base_directory, "%s.mp4" % encode)), encode)
     print "<td><strong>Reference: (%s)</strong></td><td>%s</td></tr><tr>" % (reference_label, data["reference"])
     print "<td><strong>Stats:</strong></td><td>%s</td></tr><tr><td><strong>Metrics:</strong></td><td>%s</td></tr></table></td><td><table>" % (data["stats"], data["metrics"])
+    vmaf_good = True
     for scene in data["scenes"]:
         start_frame, end_frame = scene.split(" ")[0].split("-")
         framerate = 29.976
@@ -145,10 +147,31 @@ for encode, data in sorted(encode_list.iteritems()):
         elif vmaf_score < 95.0:
             bcolor = "yellow"
             lcolor = "red"
+        if vmaf_score < 95:
+            vmaf_good = False
         print "<tr><td style=\"background-color:%s;color:%s\"><strong>%d-%ds [%0.2f%%]:</strong> <a style=\"color:%s;visited:%s\" href=%s>%s</a></td></tr>" % (bcolor,
                                                                                                                                  fcolor, position, position+duration,
                                                                                                                                  vmaf_score, lcolor, lcolor, url, ": ".join(scene.split(" ")[1:8]))
     print "</table></td></tr>"
+    if vmaf_good:
+        quality_good.append(data["label"])
 
-print "</table></html>\n"
+print "</table>"
+
+print "<br>"
+print "<table>"
+print "<caption><h1>Encodes that pass Quality levels</h1></caption>"
+levels = {}
+for q in quality_good:
+    if q[:3] not in levels and reference_label not in q:
+        print "<tr><td><h2>%s<h2></td></tr>" % q
+        levels[q[:3]] = q
+print "</table>"
+
+good_qualities = ""
+for k, l in levels.iteritems():
+    good_qualities = "%s\\n - %s" % (good_qualities, l)
+print "<script>alert(\"Qualities that pass:\\n%s\")</script>" % good_qualities
+
+print "</body></html>\n"
 
