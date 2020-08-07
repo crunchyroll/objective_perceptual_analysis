@@ -22,6 +22,8 @@ ap.add_argument('-v', '--vivict_urlbase', dest='vivict_urlbase', default=VIVICT_
 ap.add_argument('-s', '--storage_urlbase', dest='storage_urlbase', default=STORAGE_URLBASE, required=False, help="Web server with videos accessible")
 ap.add_argument('-r', '--reference_label', dest='reference_label', default=REFERENCE_LABEL, required=False, help="Reference label to use for comparisons")
 ap.add_argument('-d', '--debug', dest='debug', required=False, action='store_true', help="Debug")
+ap.add_argument('-q', '--quality', dest='quality', required=False, default=95.0, help="VMAF Quality Percentage minimum, 95.0 is the default")
+ap.add_argument('-e', '--exclude', dest='exclude', required=False, action='store_true', help="Exclude low quality, only show ones that pass minimum")
 args = vars(ap.parse_args())
 
 base_directory = args['directory']
@@ -29,6 +31,8 @@ vivict_urlbase = args['vivict_urlbase']
 storage_urlbase = args['storage_urlbase']
 reference_label = args['reference_label']
 debug = args['debug']
+minimum_quality = float(args['quality'])
+exclude_quality = args['exclude']
 
 encode_dir = "%s/encodes" % base_directory
 encodes = [f for f in listdir(encode_dir)]
@@ -108,6 +112,9 @@ for encode, data in sorted(encode_list.iteritems()):
     metrics_json = json.loads(data["metrics"])
     total_vmaf_score = float(metrics_json["vmaf"])
     data["vmaf"] = total_vmaf_score
+    # check if this matches our minimum quality expectations
+    if exclude_quality and total_vmaf_score < minimum_quality:
+        continue
     if debug:
         print "Encode: %s" % encode
         print "Mezzanine: %s" % data["reference"]
@@ -126,9 +133,9 @@ for encode, data in sorted(encode_list.iteritems()):
     else:
         for scene in data["scenes"]:
             vmaf_score = float(scene.split(" ")[5].split(":")[1])
-            if vmaf_score < 95.0:
+            if vmaf_score < minimum_quality:
                 is_good = False
-    if total_vmaf_score < 95.0:
+    if total_vmaf_score < minimum_quality:
         is_good = False
     bcolor = "red"
     fcolor = "black"
@@ -162,26 +169,26 @@ for encode, data in sorted(encode_list.iteritems()):
         bcolor = "green"
         fcolor = "black"
         lcolor = "blue"
-        if vmaf_score < 75.0:
+        if vmaf_score < (minimum_quality - 10):
             bcolor = "black"
             fcolor = "white"
             lcolor = "yellow"
-        elif vmaf_score < 80.0:
+        elif vmaf_score < (minimum_quality - 10):
             bcolor = "red"
             fcolor = "white"
             lcolor = "yellow"
-        elif vmaf_score < 90.0:
+        elif vmaf_score < (minimum_quality - 5):
             bcolor = "orange"
-        elif vmaf_score < 95.0:
+        elif vmaf_score < minimum_quality:
             bcolor = "yellow"
             lcolor = "red"
-        if vmaf_score < 95:
+        if vmaf_score < minimum_quality:
             vmaf_good = False
         print "<tr><td style=\"background-color:%s;color:%s\"><strong>%d-%ds [%0.2f%%]:</strong> <a style=\"color:%s;visited:%s\" href=%s>%s</a></td></tr>" % (bcolor,
                                                                                                                                  fcolor, position, position+duration,
                                                                                                                                  vmaf_score, lcolor, lcolor, url, ": ".join(scene.split(" ")[1:8]))
     print "</table></td></tr>"
-    if vmaf_good and data["vmaf"] >= 95.0:
+    if vmaf_good and data["vmaf"] >= minimum_quality:
         quality_good.append(data["label"])
 
 print "</table>"
