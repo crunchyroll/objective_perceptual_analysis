@@ -348,7 +348,7 @@ for m in mezzanines:
 
         print " %s:" % result_key
         print "  Encode [%s]:" % elabel
-        print "    Stats: {bitrate: %d, filesize: %d, duration: %0.2f}" % (bitrate, filesize, duration)
+        print "    Stats: {\"bitrate\": %d, \"filesize\": %d, \"duration\": %0.2f}" % (bitrate, filesize, duration)
         # pick out specific codec values we are testing
         result[result_key]['bitrate'] = bitrate
         result[result_key]['filesize'] = filesize
@@ -357,7 +357,7 @@ for m in mezzanines:
         result[result_key]['label'] = hlabel
 
         phqm_normalized = min(100, (100 - (min(phqm, 5) * 20.0)))
-        print "   Metrics: {speed: %0.2f, pfhd: %0.2f hamm: %0.2f phqm: %0.2f vmaf: %0.2f, ssim: %0.2f, psnr: %0.2f}" % (speed,
+        print "   Metrics: {\"speed\": %0.2f, \"pfhd\": %0.2f, \"hamm\": %0.2f, \"phqm\": %0.2f, \"vmaf\": %0.2f, \"ssim\": %0.2f, \"psnr\": %0.2f}" % (speed,
                                 pfhd, phqm, phqm_normalized, vmaf, ssim, psnr)
         for s in scenes:
             print "    %s" % s

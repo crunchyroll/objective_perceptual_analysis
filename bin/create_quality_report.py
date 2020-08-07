@@ -4,6 +4,7 @@ import argparse
 from os import getcwd
 from os import listdir
 from os import environ
+from os import path
 import subprocess
 import json
 
@@ -101,7 +102,9 @@ for encode, data in sorted(encode_list.iteritems()):
     if debug:
         print "Encode: %s" % encode
         print "Mezzanine: %s" % data["reference"]
+        # {bitrate: 778, filesize: 10649765, duration: 109.48}
         print "Stats: %s" % data["stats"]
+        #   {speed: 416.00, pfhd: 1.97 hamm: 1.66 phqm: 66.79 vmaf: 96.08, ssim: 1.00, psnr: 47.33}
         print "Metrics: %s" % data["metrics"]
 
     print "<tr>"
@@ -113,11 +116,18 @@ for encode, data in sorted(encode_list.iteritems()):
     print "<td><strong>Encode: (%s)</strong></td>" % data["label"]
     print "<td><a href=%s>%s</a></td></tr><tr>" % ("%s?leftVideoUrl=%s&rightVideoUrl=%s&hideSourceSelector=1&hideHelp=1&score=0&quality=" % (vivict_urlbase, "%s/%s/%s" % (storage_urlbase, "%s/encodes" % base_directory, data["reference"]), "%s/%s/%s" % (storage_urlbase, "%s/encodes" % base_directory, "%s.mp4" % encode)), encode)
     print "<td><strong>Reference: (%s)</strong></td><td>%s</td></tr><tr>" % (reference_label, data["reference"])
-    print "<td><strong>Stats:</strong></td><td>%s</td></tr><tr><td><strong>Metrics:</strong></td><td>%s</td></tr></table></td><td><table>" % (data["stats"], data["metrics"])
+    # {"video": {"framerate": 23.976, "vbitrate": 102, "height": 240, "width": 427, "filesize": 1397598, "duration": 109.485}}
+    metadata_file = "%s/encodes/%s.mp4_data.json" % (base_directory, encode)
+    metadata = "None"
+    if path.isfile(metadata_file):
+        with open(metadata_file, 'r') as mf:
+            metadata = mf.read()
+    print "<td><strong>Mediainfo: </strong></td><td>%s</td></tr><tr>" % (json.dumps(json.loads(metadata), indent=4).replace("\n", "<br>").replace(" ", "&nbsp;"))
+    print "<td><strong>Stats:</strong></td><td>%s</td></tr><tr><td><strong>Metrics:</strong></td><td>%s</td></tr></table></td><td><table>" % (json.dumps(json.loads(data["stats"]), indent=4).replace("\n", "<br>").replace(" ", "&nbsp;"), json.dumps(json.loads(data["metrics"]), indent=4).replace("\n", "<br>").replace(" ", "&nbsp;"))
     vmaf_good = True
     for scene in data["scenes"]:
         start_frame, end_frame = scene.split(" ")[0].split("-")
-        framerate = 29.976
+        framerate = 23.976
         position = int(float(start_frame) / framerate)
         duration = int(float(int(end_frame) - int(start_frame)) / framerate)
         vmaf_score = float(scene.split(" ")[5].split(":")[1])
