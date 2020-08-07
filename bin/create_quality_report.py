@@ -107,6 +107,7 @@ for encode, data in sorted(encode_list.iteritems()):
     metadata_json = json.loads(metadata)
     metrics_json = json.loads(data["metrics"])
     total_vmaf_score = float(metrics_json["vmaf"])
+    data["vmaf"] = total_vmaf_score
     if debug:
         print "Encode: %s" % encode
         print "Mezzanine: %s" % data["reference"]
@@ -180,7 +181,7 @@ for encode, data in sorted(encode_list.iteritems()):
                                                                                                                                  fcolor, position, position+duration,
                                                                                                                                  vmaf_score, lcolor, lcolor, url, ": ".join(scene.split(" ")[1:8]))
     print "</table></td></tr>"
-    if vmaf_good:
+    if vmaf_good and data["vmaf"] >= 95.0:
         quality_good.append(data["label"])
 
 print "</table>"
