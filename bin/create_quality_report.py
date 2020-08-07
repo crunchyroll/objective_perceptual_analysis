@@ -94,7 +94,7 @@ for r in results.splitlines():
 if debug:
     print "Encode List: %s" % json.dumps(encode_list, indent=4)
 
-quality_good = []
+quality_good = {}
 
 print "<html><title>Encode Quality Comparison %s</title>" % base_directory
 print "<head><style>table, th, td, h1, caption { border: 3px solid #ff6600; padding: 5px; border-collapse: collapse; vertical-align: top; color: white; }\nbody { color: white; background-color: black; }\na:link, a:visited { color: yellow; }</style></head>"
@@ -188,8 +188,10 @@ for encode, data in sorted(encode_list.iteritems()):
                                                                                                                                  fcolor, position, position+duration,
                                                                                                                                  vmaf_score, lcolor, lcolor, url, ": ".join(scene.split(" ")[1:8]))
     print "</table></td></tr>"
+    if data["reference"] not in quality_good:
+        quality_good[data["reference"]] = []
     if vmaf_good and data["vmaf"] >= minimum_quality:
-        quality_good.append(data["label"])
+        quality_good[data["reference"]].append(data["label"])
 
 print "</table>"
 
@@ -197,14 +199,22 @@ print "<br>"
 print "<table>"
 print "<caption><h1>Encodes that pass Quality levels</h1></caption>"
 levels = {}
-for q in quality_good:
-    if q[:3] not in levels and reference_label not in q:
-        print "<tr><td><h2>%s<h2></td></tr>" % q
-        levels[q[:3]] = q
+for k, v in sorted(quality_good.iteritems(), reverse = True):
+    print "<tr><table><tr><th><h1>Mezzanine: %s</h1></th></tr>" % k
+    for q in sorted(v, reverse = False):
+        if k + ":" + q[:3] not in levels and reference_label not in q:
+            print "<tr><td style=\"background-color:green;color:black\"><h2>PASS: %s<h2></td></tr>" % q
+            levels[k + ":" + q[:3]] = q
+    print "</table></tr>"
 print "</table>"
 
 good_qualities = ""
-for k, l in levels.iteritems():
+last_mezz = ""
+for k, l in sorted(levels.iteritems(), reverse = True):
+    mezz, br = k.split(":")
+    if last_mezz != mezz:
+        last_mezz = mezz
+        good_qualities = "%s\\nMezzanine: %s" % (good_qualities, last_mezz)
     good_qualities = "%s\\n - %s" % (good_qualities, l)
 print "<script>alert(\"Qualities that pass:\\n%s\")</script>" % good_qualities
 
