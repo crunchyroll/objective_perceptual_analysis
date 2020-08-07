@@ -97,7 +97,7 @@ if debug:
 quality_good = {}
 
 print "<html><title>Encode Quality Comparison %s</title>" % base_directory
-print "<head><style>table, th, td, h1, caption { border: 3px solid #ff6600; padding: 5px; border-collapse: collapse; vertical-align: top; color: white; }\nbody { color: white; background-color: black; }\na:link, a:visited { color: yellow; }</style></head>"
+print "<head><style>table, th, td, h1, caption { border: 3px solid #ff6600; padding: 5px; border-collapse: collapse; vertical-align: top; color: white; white-space:nowrap; }\nbody { color: white; background-color: black; }\na:link, a:visited { color: yellow; }</style></head>"
 print "<body>"
 print "<table><caption style=\"background-color: #000000; \"><h1><a style=\"color: #eeeeee; \" href=\"%s/%s/stats.json\">Encode Quality Comparsion (%s)</a></h1>" % (storage_urlbase, base_directory, base_directory)
 print "<a href=\"%s/%s/stats.jpg\"><img src=\"%s/%s/stats.jpg\" width=640 height=380></a></caption>" % (storage_urlbase, base_directory, storage_urlbase, base_directory)
@@ -196,7 +196,7 @@ for encode, data in sorted(encode_list.iteritems()):
 print "</table>"
 
 print "<br>"
-print "<table>"
+print "<table style=\"white-space:nowrap\">"
 print "<caption><h1>Encodes that pass Quality levels</h1></caption>"
 levels = {}
 for k, v in sorted(quality_good.iteritems(), reverse = True):
