@@ -24,6 +24,7 @@ ap.add_argument('-r', '--reference_label', dest='reference_label', default=REFER
 ap.add_argument('-d', '--debug', dest='debug', required=False, action='store_true', help="Debug")
 ap.add_argument('-q', '--quality', dest='quality', required=False, default=95.0, help="VMAF Quality Percentage minimum, 95.0 is the default")
 ap.add_argument('-e', '--exclude', dest='exclude', required=False, action='store_true', help="Exclude low quality, only show ones that pass minimum")
+ap.add_argument('-is', '--ignore_scenes', dest='ignore_scenes', required=False, action='store_true', help="Ignore scene scores when judging quality for bitrate ladder inclusion")
 args = vars(ap.parse_args())
 
 base_directory = args['directory']
@@ -33,6 +34,7 @@ reference_label = args['reference_label']
 debug = args['debug']
 minimum_quality = float(args['quality'])
 exclude_quality = args['exclude']
+ignore_scenes = not args['ignore_scenes']
 
 encode_dir = "%s/encodes" % base_directory
 encodes = [f for f in listdir(encode_dir)]
@@ -199,7 +201,7 @@ for encode, data in sorted(encode_list.iteritems()):
     print "</table></td></tr>"
     if data["reference"] not in quality_good:
         quality_good[data["reference"]] = []
-    if vmaf_good and data["vmaf"] >= minimum_quality:
+    if (vmaf_good or ignore_scenes) and data["vmaf"] >= minimum_quality:
         quality_good[data["reference"]].append(data["label"])
 
 print "</table>"
