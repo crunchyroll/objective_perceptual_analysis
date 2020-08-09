@@ -202,7 +202,7 @@ for encode, data in sorted(encode_list.iteritems()):
     if data["reference"] not in quality_good:
         quality_good[data["reference"]] = []
     if (vmaf_good or ignore_scenes) and data["vmaf"] >= minimum_quality:
-        quality_good[data["reference"]].append(data["label"])
+        quality_good[data["reference"]].append(data["label"] + "_VMAF_[%0.2f]" % data["vmaf"])
 
 print "</table>"
 

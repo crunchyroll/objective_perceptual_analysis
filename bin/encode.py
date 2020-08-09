@@ -66,6 +66,7 @@ ap.add_argument('-ac', '--audio_codec', dest='audio_codec', required=False, defa
 ap.add_argument('-e', '--use_experimental', dest='use_experimental', required=False, action='store_true', help="Include experimental commands, -copyts -start_at_zero, -muxrate 0")
 ap.add_argument('-r', '--force_framerate', dest='force_framerate', required=False, action='store_true', help="Force FPS by -r FPS using mezzanines value")
 ap.add_argument('-qd', '--quality_discovery', dest='quality_discovery', required=False, action='store_true', help="Discovery best quality resolution of test cases bitrates")
+ap.add_argument('-rl', '--reference_label', dest='reference_label', required=False, default='1080p08000kX264H264', help="Encoding Label to use for reference encoding in quality testing")
 args = vars(ap.parse_args())
 
 keep_raw = args['keep_raw']
@@ -81,6 +82,7 @@ force_framerate = args['force_framerate']
 segment = args['segment']
 audio_codec = args['audio_codec']
 quality_discovery = args['quality_discovery']
+reference_label = args['reference_label']
 
 mezz_dir = "%s/mezzanines" % base_directory
 encode_dir = "%s/encodes" % base_directory
@@ -875,7 +877,7 @@ for m in mezzanines:
                     if float(data["avg"][0]) >= 95.0:
                         good_resolutions[resolution] = float(data["avg"][0])
 
-        if quality_discovery and good_resolutions[resolution] >= 95.0:
+        if quality_discovery and reference_label not in test_label and good_resolutions[resolution] >= 95.0:
             print "Using previous cached vmaf avg of %0.2f for Quality check %s" % (good_resolutions[resolution], test_label)
             if test_letter2 == 'Z':
                 test_letter = test_letter1 + test_letter2 + test_letter3
@@ -1224,8 +1226,8 @@ for m in mezzanines:
                 if len(vmaf_data["avg"]) > 0:
                     with open(result_fn_vmaf, "w") as f:
                         f.write(json.dumps(vmaf_data))
-                    if vmaf_data["avg"] >= 95.0:
-                        good_resolutions[resolution] = vmaf_data["avg"]
+                    if vmaf_data["avg"][0] >= 95.0:
+                        good_resolutions[resolution] = vmaf_data["avg"][0]
                 if len(psnr_data["avg"]) > 0:
                     with open(result_fn_psnr, "w") as f:
                         f.write(json.dumps(psnr_data))
