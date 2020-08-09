@@ -875,7 +875,7 @@ for m in mezzanines:
                     if float(data["avg"][0]) >= 95.0:
                         good_resolutions[resolution] = float(data["avg"][0])
 
-        if quality_discovery and good_resolutions[resolution] != 0.0:
+        if quality_discovery and good_resolutions[resolution] >= 95.0:
             print "Using previous cached vmaf avg of %0.2f for Quality check %s" % (good_resolutions[resolution], test_label)
             if test_letter2 == 'Z':
                 test_letter = test_letter1 + test_letter2 + test_letter3
@@ -1225,7 +1225,7 @@ for m in mezzanines:
                     with open(result_fn_vmaf, "w") as f:
                         f.write(json.dumps(vmaf_data))
                     if vmaf_data["avg"] >= 95.0:
-                        good_resolutions[resolution] = 1
+                        good_resolutions[resolution] = vmaf_data["avg"]
                 if len(psnr_data["avg"]) > 0:
                     with open(result_fn_psnr, "w") as f:
                         f.write(json.dumps(psnr_data))

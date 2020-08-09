@@ -14,7 +14,7 @@ printf '#!/bin/sh'
 printf "\n\n"
 printf 'bin/encode.py \\
         -m vmaf,psnr,phqm,ssim \\
-        -n tests/test'
+        -n tests/test -qd'
 printf $testnum
 printf ' \\
         -p '
