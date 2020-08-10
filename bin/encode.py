@@ -868,28 +868,29 @@ for m in mezzanines:
         # skip resolutions after we have found a good vmaf
         if resolution not in good_resolutions:
             good_resolutions[resolution] = 0.0
-        if isfile(result_fn_vmaf):
-            # read previous vmaf avg
-            # {"avg": [98.066008]}
-            with open(result_fn_vmaf, 'r') as f:
-                data = json.loads(f.read())
-                if "avg" in data:
-                    if float(data["avg"][0]) >= 95.0:
-                        good_resolutions[resolution] = float(data["avg"][0])
+        if reference_label != test_label:
+            if isfile(result_fn_vmaf):
+                # read previous vmaf avg
+                # {"avg": [98.066008]}
+                with open(result_fn_vmaf, 'r') as f:
+                    data = json.loads(f.read())
+                    if "avg" in data:
+                        if float(data["avg"][0]) >= 95.0:
+                            good_resolutions[resolution] = float(data["avg"][0])
 
-        if quality_discovery and reference_label not in test_label and good_resolutions[resolution] >= 95.0:
-            print "Using previous cached vmaf avg of %0.2f for Quality check %s" % (good_resolutions[resolution], test_label)
-            if test_letter2 == 'Z':
-                test_letter = test_letter1 + test_letter2 + test_letter3
-                test_letter3 = chr(ord(test_letter3) + 1).upper()
-            elif test_letter1 == 'Z':
-                test_letter = test_letter1 + test_letter2
-                test_letter2 = chr(ord(test_letter2) + 1).upper()
-            else:
-                test_letter1 = chr(ord(test_letter1) + 1).upper()
-                test_letter = test_letter1
-            test_label_idx += 1
-            continue
+            if quality_discovery and good_resolutions[resolution] >= 95.0:
+                print "Using previous cached vmaf avg of %0.2f for Quality check %s" % (good_resolutions[resolution], test_label)
+                if test_letter2 == 'Z':
+                    test_letter = test_letter1 + test_letter2 + test_letter3
+                    test_letter3 = chr(ord(test_letter3) + 1).upper()
+                elif test_letter1 == 'Z':
+                    test_letter = test_letter1 + test_letter2
+                    test_letter2 = chr(ord(test_letter2) + 1).upper()
+                else:
+                    test_letter1 = chr(ord(test_letter1) + 1).upper()
+                    test_letter = test_letter1
+                test_label_idx += 1
+                continue
 
         # Encode mezzanine
         if not isfile(encode_fn) or getsize(encode_fn) <= 0:
@@ -1226,8 +1227,6 @@ for m in mezzanines:
                 if len(vmaf_data["avg"]) > 0:
                     with open(result_fn_vmaf, "w") as f:
                         f.write(json.dumps(vmaf_data))
-                    if vmaf_data["avg"][0] >= 95.0:
-                        good_resolutions[resolution] = vmaf_data["avg"][0]
                 if len(psnr_data["avg"]) > 0:
                     with open(result_fn_psnr, "w") as f:
                         f.write(json.dumps(psnr_data))
