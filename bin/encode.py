@@ -1227,6 +1227,9 @@ for m in mezzanines:
                 if len(vmaf_data["avg"]) > 0:
                     with open(result_fn_vmaf, "w") as f:
                         f.write(json.dumps(vmaf_data))
+                    if reference_label != test_label:
+                        if float(vmaf_data["avg"][0]) >= 95.0:
+                            good_resolutions[resolution] = float(data["avg"][0])
                 if len(psnr_data["avg"]) > 0:
                     with open(result_fn_psnr, "w") as f:
                         f.write(json.dumps(psnr_data))
