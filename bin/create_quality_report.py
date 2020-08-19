@@ -102,6 +102,7 @@ print "<html><title>Encode Quality Comparison %s</title>" % base_directory
 print "<head><style>table, th, td, h1, caption { border: 3px solid #ff6600; padding: 5px; border-collapse: collapse; vertical-align: top; color: white; white-space:nowrap; }\nbody { color: white; background-color: black; }\na:link, a:visited { color: yellow; }</style></head>"
 print "<body>"
 print "<table><caption style=\"background-color: #000000; \"><h1><a style=\"color: #eeeeee; \" href=\"%s/%s/stats.json\">Encode Quality Comparsion (%s)</a></h1>" % (storage_urlbase, base_directory, base_directory)
+print "<a href=\"ladders.json\">Bitrate Ladders Raw Json Data</a><br><hr>"
 print "<a href=\"%s/%s/stats.jpg\"><img src=\"%s/%s/stats.jpg\" width=640 height=380></a></caption>" % (storage_urlbase, base_directory, storage_urlbase, base_directory)
 print "<tr><th style=\"background-color:#ff6600;color:#000000\">Encode</th><th style=\"background-color:#ff6600;color:#000000\">scenes</th></tr>"
 for encode, data in sorted(encode_list.iteritems()):
@@ -210,12 +211,23 @@ print "<br>"
 print "<table style=\"white-space:nowrap\">"
 print "<caption><h1>Encodes that pass Quality levels</h1></caption>"
 levels = {}
+ladder_file = "%s/ladders.json" % base_directory
+ladder_json = {}
 for k, v in sorted(quality_good.iteritems(), reverse = True):
+    if k not in ladder_json:
+        ladder_json[k.rsplit("_", 1)[0]] = {}
     print "<tr><table><tr><th><h1>Mezzanine: %s</h1></th></tr>" % k
     for q in sorted(v, reverse = False):
         if k + ":" + q[:3] not in levels and reference_label not in q:
             print "<tr><td style=\"background-color:green;color:black\"><h2>PASS: %s<h2></td></tr>" % q
             levels[k + ":" + q[:3]] = q
+            res = int(q[0:4])
+            br = int(q[5:10])
+            codec = q[11:].split("_VMAF_")[0].split("_")[0]
+            ladder_json[k.rsplit("_", 1)[0]][res] = {}
+            ladder_json[k.rsplit("_", 1)[0]][res]["bitrate"] = br
+            ladder_json[k.rsplit("_", 1)[0]][res]["codec"] = codec
+            ladder_json[k.rsplit("_", 1)[0]][res]["vmaf"] = float(q.split("_VMAF_")[1].replace("[","").replace("]",""))
     print "</table></tr>"
 print "</table>"
 
@@ -227,7 +239,9 @@ for k, l in sorted(levels.iteritems(), reverse = True):
         last_mezz = mezz
         good_qualities = "%s\\nMezzanine: %s" % (good_qualities, last_mezz)
     good_qualities = "%s\\n - %s" % (good_qualities, l)
-print "<script>alert(\"Qualities that pass:\\n%s\")</script>" % good_qualities
+
+with open(ladder_file, 'w') as f:
+    f.write(json.dumps(ladder_json, sort_keys=True))
 
 print "</body></html>\n"
 

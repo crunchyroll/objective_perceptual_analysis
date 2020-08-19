@@ -14,8 +14,9 @@ printf '#!/bin/sh'
 printf "\n\n"
 printf 'bin/encode.py \\
         -m vmaf,psnr,phqm,ssim \\
-        -n tests/test -qd -rl 1080p08000kX264H264'
+        -n tests/test'
 printf $testnum
+printf ' -qd -rl 1080p08000kX264H264'
 printf ' \\
         -p '
 printf "%d" $(nproc)
