@@ -114,6 +114,8 @@ for encode, data in sorted(encode_list.iteritems()):
     metadata_json = json.loads(metadata)
     metrics_json = json.loads(data["metrics"])
     total_vmaf_score = float(metrics_json["vmaf"])
+    total_pfhd_score = float(metrics_json["pfhd"])
+    data["pfhd"] = total_pfhd_score
     data["vmaf"] = total_vmaf_score
     # check if this matches our minimum quality expectations
     if exclude_quality and total_vmaf_score < minimum_quality:
@@ -203,7 +205,7 @@ for encode, data in sorted(encode_list.iteritems()):
     if data["reference"] not in quality_good:
         quality_good[data["reference"]] = []
     if (vmaf_good or ignore_scenes) and data["vmaf"] >= minimum_quality:
-        quality_good[data["reference"]].append(data["label"] + "_VMAF_[%0.2f]" % data["vmaf"])
+        quality_good[data["reference"]].append(data["label"] + "_VMAF_[%0.2f:%0.2f]" % (data["vmaf"], data["pfhd"]))
 
 print "</table>"
 
@@ -232,7 +234,8 @@ for k, v in sorted(quality_good.iteritems(), reverse = True):
             # use codec and test label to differentiate each codec/test's bitrate ladder and vmaf score
             ladder_json[k.rsplit("_", 1)[0]][res][codec_key] = {}
             ladder_json[k.rsplit("_", 1)[0]][res][codec_key]["bitrate"] = br
-            ladder_json[k.rsplit("_", 1)[0]][res][codec_key]["vmaf"] = float(q.split("_VMAF_")[1].replace("[","").replace("]",""))
+            ladder_json[k.rsplit("_", 1)[0]][res][codec_key]["vmaf"] = float(q.split("_VMAF_")[1].replace("[","").replace("]","").split(":")[0])
+            ladder_json[k.rsplit("_", 1)[0]][res][codec_key]["pfhd"] = float(q.split("_VMAF_")[1].replace("[","").replace("]","").split(":")[1])
     print "</table></tr>"
 print "</table>"
 
