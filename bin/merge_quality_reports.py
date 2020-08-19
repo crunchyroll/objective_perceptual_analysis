@@ -37,6 +37,9 @@ for d in directories:
                         # codec information
                         # - bitrate, vmaf score
                         ladders[m][r][c] = i
+                        ladders[m][r][c]["mezzanine"] = "%s_%s_%s" % (m, c, r)
+                        ladders[m][r][c]["codec"] = "%s_%s" % (c, r)
+                        ladders[m][r][c]["resolution"] = "%s" % (r)
     else:
         print "Error, missing %s file" % ladder_file
 
