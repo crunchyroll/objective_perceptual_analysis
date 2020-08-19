@@ -215,19 +215,24 @@ ladder_file = "%s/ladders.json" % base_directory
 ladder_json = {}
 for k, v in sorted(quality_good.iteritems(), reverse = True):
     if k not in ladder_json:
+        # mezzanine indexed bitrate ladder in json
         ladder_json[k.rsplit("_", 1)[0]] = {}
     print "<tr><table><tr><th><h1>Mezzanine: %s</h1></th></tr>" % k
     for q in sorted(v, reverse = False):
         if k + ":" + q[:3] not in levels and reference_label not in q:
             print "<tr><td style=\"background-color:green;color:black\"><h2>PASS: %s<h2></td></tr>" % q
             levels[k + ":" + q[:3]] = q
-            res = int(q[0:4])
-            br = int(q[5:10])
+            # bitrate ladder levels
+            res = int(q[0:4]) # resolution
+            br = int(q[5:10]) # bitrate
             codec = q[11:].split("_VMAF_")[0].split("_")[0]
+            # mezzanine index, dict of resolutions
             ladder_json[k.rsplit("_", 1)[0]][res] = {}
-            ladder_json[k.rsplit("_", 1)[0]][res]["bitrate"] = br
-            ladder_json[k.rsplit("_", 1)[0]][res]["codec"] = codec
-            ladder_json[k.rsplit("_", 1)[0]][res]["vmaf"] = float(q.split("_VMAF_")[1].replace("[","").replace("]",""))
+            codec_key = "%s_%s" % (codec, base_directory[18:].replace("/",""))
+            # use codec and test label to differentiate each codec/test's bitrate ladder and vmaf score
+            ladder_json[k.rsplit("_", 1)[0]][res][codec_key] = {}
+            ladder_json[k.rsplit("_", 1)[0]][res][codec_key]["bitrate"] = br
+            ladder_json[k.rsplit("_", 1)[0]][res][codec_key]["vmaf"] = float(q.split("_VMAF_")[1].replace("[","").replace("]",""))
     print "</table></tr>"
 print "</table>"
 
