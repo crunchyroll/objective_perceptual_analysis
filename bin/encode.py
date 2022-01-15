@@ -307,7 +307,7 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
             '-an', '-passlogfile', pass_log_fn, '-f', format,
             '-threads', str(threads), '-y']
         if resolution != "":
-            create_encode_cmd.extend(['-vf', "scale=h=%s:w=-1:flags=bicubic" % resolution])
+            create_encode_cmd.extend(['-vf', "scale=h=%s:w=-2:flags=bicubic" % resolution])
         # force framerate
         if test_force_framerate:
             create_encode_cmd = create_encode_cmd + ['-r', "%f" % mezz_fps]
@@ -329,7 +329,7 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
             '-f', format,
             '-threads', str(threads)]
         if resolution != "":
-            create_encode_cmd.extend(['-vf', "scale=h=%s:w=-1:flags=bicubic" % resolution])
+            create_encode_cmd.extend(['-vf', "scale=h=%s:w=-2:flags=bicubic" % resolution])
         # turn off audio if not asked for
         if not use_audio:
             create_encode_cmd = create_encode_cmd + ['-an']
@@ -362,7 +362,7 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
         create_encode_cmd = [encoders, '-loglevel', 'warning', '-hide_banner', '-nostats', '-nostdin',
             '-i', mezzanine_fn] + global_args + test_args + ['-threads', str(threads), '-f', format]
         if resolution != "":
-            create_encode_cmd.extend(['-vf', "scale=h=%s:w=-1:flags=bicubic" % resolution])
+            create_encode_cmd.extend(['-vf', "scale=h=%s:w=-2:flags=bicubic" % resolution])
         # force framerate
         if test_force_framerate:
             create_encode_cmd = create_encode_cmd + ['-r', "%f" % mezz_fps]
