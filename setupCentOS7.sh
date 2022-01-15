@@ -153,9 +153,9 @@ export LD_LIBRARY_PATH=/usr/local/lib64:$LD_LIBRARY_PATH
 
 # requirement for x264
 if [ ! -f "nasm-2.14.03rc2.tar.bz2" ]; then
-    wget https://www.nasm.us/pub/nasm/releasebuilds/2.14.03rc2/nasm-2.14.03rc2.tar.bz2
-    tar xvfj nasm-2.14.03rc2.tar.bz2
-    cd nasm-2.14.03rc2
+    wget --no-check-certificate https://www.nasm.us/pub/nasm/releasebuilds/2.15.05/nasm-2.15.05.tar.bz2
+    tar xvfj nasm-2.15.05.tar.bz2
+    cd nasm-2.15.05
     ./configure --prefix=/usr
     make
     sudo make install
