@@ -89,7 +89,7 @@ rav1elib:
 	cd rav1e && \
 	sudo cargo clean && \
 	sudo cargo build --release && \
-	sudo cargo cinstall --release
+	sudo cargo install --path .
 
 vmaflib:
 	cd vmaf && \
@@ -98,7 +98,7 @@ vmaflib:
 
 ffmpegbin:
 	cd FFmpeg && \
-	./configure --prefix=/usr --enable-libx264 --enable-libvpx --enable-gpl --enable-libopencv --enable-version3 --enable-libvmaf --enable-libfreetype --enable-fontconfig --enable-libass --enable-libaom --enable-librav1e --enable-libdav1d --enable-libsvtav1 && \
+	./configure --prefix=/usr --enable-libx264 --enable-libvpx --enable-gpl --enable-libopencv --enable-version3 --enable-libvmaf --enable-libfreetype --enable-fontconfig --enable-libass --enable-libaom --enable-librav1e --enable-libsvtav1 && \
 	make clean && \
 	make -j8
 
