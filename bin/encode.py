@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3
 
 import argparse
 import json
@@ -109,7 +109,7 @@ if args['tests'] != None:
             continue # skip empty args / last ; at end
         lparts = i.split('|')
         if debug:
-            print "Got: %r" % lparts
+            print("Got: %r" % lparts)
         label = lparts[0]
         encoder = lparts[1]
         rate_control = lparts[2]
@@ -119,7 +119,7 @@ if args['tests'] != None:
         resolution = lparts[6]
         encoder_args = lparts[7:]
         if '_' in label:
-            print "Error, Test labels cannot have underscores '_' in them!"
+            print("Error, Test labels cannot have underscores '_' in them!")
             sys.exit(1)
         test_labels.append(label)
         encoders.append(encoder)
@@ -130,11 +130,11 @@ if args['tests'] != None:
         audio_codecs.append(ac)
         test_resolutions.append(resolution)
 
-print "Running test in %s directory" % base_directory
+print("Running test in %s directory" % base_directory)
 
 def execute(command, output_file = None):
     if debug:
-        print "  # (%s) " % " ".join(command)
+        print("  # (%s) " % " ".join(command))
     process = subprocess.Popen(command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                cwd="%s" % base_directory)
 
@@ -162,9 +162,9 @@ def get_results(test_metric, result_fn, encode_video_fn, create_result_cmd):
     try:
         for output in execute(create_result_cmd, result_fn):
             # collect output for file storage
-            print "%s" % output
-    except Exception, e:
-        print "Failure getting %s metric: %s" % (test_metric, e)
+            print("%s" % output)
+    except Exception as e:
+        print("Failure getting %s metric: %s" % (test_metric, e))
         if result_fn and isfile(result_fn):
             # remove results since they are not complete
             remove(result_fn)
@@ -222,7 +222,7 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
                 p.start()
                 eprocesses.append(p)
             else:
-                print "Error: Failed running Svt Encoder: %s" % mezzanine_fn
+                print("Error: Failed running Svt Encoder: %s" % mezzanine_fn)
                 sys.exit(1)
 
             # Decode YUV (mezzanine_fn -> mezzanine_fifo)
@@ -234,7 +234,7 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
                 p.start()
                 eprocesses.append(p)
             else:
-                print "Error: Failed decoding to YUV: %s" % mezzanine_fn
+                print("Error: Failed decoding to YUV: %s" % mezzanine_fn)
                 sys.exit(1)
 
             # Wait for processes to finish
@@ -270,7 +270,7 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
             p.start()
             eprocesses.append(p)
         else:
-            print "Error: Failed muxing to MP4: %s" % mezzanine_fn
+            print("Error: Failed muxing to MP4: %s" % mezzanine_fn)
             sys.exit(1)
 
         # Wait for processes to finish
@@ -290,7 +290,7 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
             remove(encode_out)
 
         # Exit
-        print "Done with %s Encoding" % encoders
+        print("Done with %s Encoding" % encoders)
         return
 
     if rate_control == "twopass":
@@ -319,9 +319,9 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
                    '-start_at_zero']
         create_encode_cmd = create_encode_cmd + ['/dev/null']
 
-        print "\r FirstPass Encoding [%d] %s..." % (idx, pass_log_fn)
+        print("\r FirstPass Encoding [%d] %s..." % (idx, pass_log_fn))
         for output in execute(create_encode_cmd, encode_log_1):
-            print "\r%s" % output
+            print("\r%s" % output)
         # pass 2
         create_encode_cmd = [encoders, '-loglevel', 'warning', '-hide_banner',
             '-nostats', '-nostdin', '-i', mezzanine_fn] + global_args + test_args + ['-pass', '2',
@@ -346,17 +346,17 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
                    '-start_at_zero']
         create_encode_cmd = create_encode_cmd + [encode_fn]
 
-        print "\r SecondPass Encoding [%d] %s..." % (idx, encode_fn)
+        print("\r SecondPass Encoding [%d] %s..." % (idx, encode_fn))
         for output in execute(create_encode_cmd, encode_log_2):
-            print output
+            print(output)
     else:
-        print "\r [%d] %s - %s encoding in one pass..." % (idx, encode_fn, encoders)
+        print("\r [%d] %s - %s encoding in one pass..." % (idx, encode_fn, encoders))
         encode_log = "%s.log" % encode_fn
 
         if 'ffmpeg' not in encoders:
-            print "---"
-            print "WARNING: Encoder %s is not supported, probably will not work!!!" % encoders
-            print "---"
+            print("---")
+            print("WARNING: Encoder %s is not supported, probably will not work!!!" % encoders)
+            print("---")
 
         ## FFmpeg Encoding
         create_encode_cmd = [encoders, '-loglevel', 'warning', '-hide_banner', '-nostats', '-nostdin',
@@ -380,7 +380,7 @@ def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
         create_encode_cmd = create_encode_cmd + [encode_fn]
 
         for output in execute(create_encode_cmd, encode_log):
-            print output
+            print(output)
 
 def segment_cache_close(lock_file, segments, seg_dir):
     """Handle unlock of mezzanine segment cache."""
@@ -388,8 +388,8 @@ def segment_cache_close(lock_file, segments, seg_dir):
         # close lockfile
         fcntl.lockf(lock_file, fcntl.LOCK_UN)
         lock_file.close()
-    except Exception, e:
-        print "Failed closing lockfile: %s - %s" % (seg_dir, e)
+    except Exception as e:
+        print("Failed closing lockfile: %s - %s" % (seg_dir, e))
         # something is wrong, signal the cache is rotten
         return None
 
@@ -404,8 +404,8 @@ def segment_cache_close(lock_file, segments, seg_dir):
             # stamp this as DONE, can't trust json otherwise
             with open("%s/segments.done" % seg_dir, 'w') as f:
                 f.write("%0.4f" % time.time())
-        except Exception, e:
-            print "failed writing segments json to cache file: %s - %s" % (seg_dir, e)
+        except Exception as e:
+            print("failed writing segments json to cache file: %s - %s" % (seg_dir, e))
             # nothing to do, we failed creating the cache
             return None
     # echo back segments json written out if successful
@@ -434,26 +434,26 @@ def segment_cache_open(seg_dir):
             try:
                 fcntl.lockf(lock_file_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
                 # Locked!
-                print "got lock for %s" % lock_file
+                print("got lock for %s" % lock_file)
                 break # got what we need
-            except IOError, e:
+            except IOError as e:
                 # non-blocking mode, check if we need to retry
                 if e.errno != errno.EAGAIN:
                     # failure
-                    print "IO exception getting lock for %s - %s" % (lock_file, e)
+                    print("IO exception getting lock for %s - %s" % (lock_file, e))
                     return (None, segments)
                 # try again, sleep a second, someone has the lock
-                print "%0.2f seconds Waiting for mezzanine lock %s" % ((time.time() - start_time), lock_file)
+                print("%0.2f seconds Waiting for mezzanine lock %s" % ((time.time() - start_time), lock_file))
                 time.sleep(1)
-            except Exception, e:
+            except Exception as e:
                 # failure
-                print "Generic exception getting lock for %s - %s" % (lock_file, e)
+                print("Generic exception getting lock for %s - %s" % (lock_file, e))
                 return (None, segments)
             # fail after waiting too long
             if time.time() - start_time >= 300:
                 raise IOError("Lockfile timeout failure after %d seconds" % time.time() - start_time)
-    except Exception, e:
-        print "exception opening lock for %s - %s" % (lock_file, e)
+    except Exception as e:
+        print("exception opening lock for %s - %s" % (lock_file, e))
         # generic failure
         return (None, segments)
 
@@ -462,8 +462,8 @@ def segment_cache_open(seg_dir):
     try:
         if not isdir("%s" % seg_dir):
             mkdir("%s" % seg_dir)
-    except Exception, e:
-        print "failed creating mezzanine segment cache directory: %s - %s" % (seg_dir, e)
+    except Exception as e:
+        print("failed creating mezzanine segment cache directory: %s - %s" % (seg_dir, e))
         segment_cache_close(lock_file_fd, segments, seg_dir) # close opened cache lock
         return (None, segments)
 
@@ -475,14 +475,14 @@ def segment_cache_open(seg_dir):
                 # if this exists, cache will be used instead of segmentation
                 segments = json.loads(f.read())
                 # we have a valid cached mezzanine!
-            except Exception, e:
+            except Exception as e:
                 # failure, bad mezzanine segments?
                 # segment them without using cache
-                print "Failed retrieving past mezzanine cache, segmenting instead: %s" % e
+                print("Failed retrieving past mezzanine cache, segmenting instead: %s" % e)
                 segment_cache_close(lock_file_fd, segments, seg_dir) # close opened cache lock
                 return (None, segments)
     else:
-        print "mezzanine not found in cache, segmenting into: %s" % seg_dir
+        print("mezzanine not found in cache, segmenting into: %s" % seg_dir)
 
     # return lock file if we succeeded
     return (lock_file_fd, segments)
@@ -506,15 +506,15 @@ def concat_video_segments(first, second, seg_dir, index, format, ext):
     concat_cmd.extend([merged_segment])
     try:
         output = subprocess.check_output(concat_cmd)
-    except Exception, e:
-        print "Failed combining segment %d[%s] with the last one, %s > %s" % (index, format, second, first)
+    except Exception as e:
+        print("Failed combining segment %d[%s] with the last one, %s > %s" % (index, format, second, first))
         return False
     # move new segment into place over first
     if isfile(merged_segment):
         shutil.move(merged_segment, first)
     else:
         return False
-    print "Source concat segment merge output: %s" % output
+    print("Source concat segment merge output: %s" % output)
     return True
 
 def validate_segment(segment_json):
@@ -522,7 +522,7 @@ def validate_segment(segment_json):
     segment = segment_json['source']
     index = int(segment_json['index'])
     if debug:
-        print "Checking segment %s with attributes %s" % (segment, segment_json)
+        print("Checking segment %s with attributes %s" % (segment, segment_json))
     output = ''
     try:
         # If the first frame isn't a keyframe, this segment isn't valid.
@@ -539,9 +539,9 @@ def validate_segment(segment_json):
         if first_frame['pict_type'] != 'I' or first_frame['key_frame'] != 1:
             raise ValueError("The first frame was not a keyframe. Pict type %s, key_frame %d." % (first_frame['pict_type'],
                                                 first_frame['key_frame']))
-    except Exception, e:
-        print(traceback.format_exc())
-        print "Failed validating segment [%d]%s output %s: %s" % (index, segment, output, e)
+    except Exception as e:
+        print((traceback.format_exc()))
+        print("Failed validating segment [%d]%s output %s: %s" % (index, segment, output, e))
         return False
     return True
 
@@ -568,7 +568,7 @@ def get_segments(playlist_file, seg_dir, video_dir, format, encext):
                 encode_segment = "%s/v%d.%s" % (video_dir, segnum, encext)
                 source_segment = s_file
 
-                print "\rsegment[%d] %0.1f-%0.1f (%0.1f) %s" % (segnum+1, float(segstart), float(segstop), duration, source_segment)
+                print("\rsegment[%d] %0.1f-%0.1f (%0.1f) %s" % (segnum+1, float(segstart), float(segstop), duration, source_segment))
 
                 # store segment name for combination
                 source_segment_dict = dict(
@@ -586,12 +586,12 @@ def get_segments(playlist_file, seg_dir, video_dir, format, encext):
                 segnum += 1
             else:
                 # failed to produce file it claims exists
-                print "Failure to produce a segment in m3u8 list: %s" % s_file
+                print("Failure to produce a segment in m3u8 list: %s" % s_file)
                 return {}
 
     # Confirm we got a list of segments
     if len(segments) <= 0:
-        print "Failed to segment mezzanine, 0 segments output."
+        print("Failed to segment mezzanine, 0 segments output.")
         return {}
 
     # check if we didn't segment, if not then just return
@@ -607,16 +607,16 @@ def get_segments(playlist_file, seg_dir, video_dir, format, encext):
     for s in segments:
         # give up if more than 2 fail
         if (combined_count == 1):
-            print "Too many failed segments %d, giving up on combining" % combined_count
+            print("Too many failed segments %d, giving up on combining" % combined_count)
             return {}
         index = int(s['index']) # we skip bad segments and rewrite the index for them
         segments[index]['index'] = index # renumber index
         if debug:
-            print "Segment Validate [%d]: last [%s], current [%s]" % (index, last_segment, s)
+            print("Segment Validate [%d]: last [%s], current [%s]" % (index, last_segment, s))
         if not validate_segment(s):
             if not last_segment or index == 0:
                 return {} # on first segment, can't repair: failed
-            print "Segment Invalid [%d]: [%s]!" % (index, s)
+            print("Segment Invalid [%d]: [%s]!" % (index, s))
             # attempt to repair segment
             fixed_segments_index = len(fixed_segments) - 1 # get current fixed segments position
             concat_video_segments(last_segment['source'], s['source'], seg_dir, index, format, encext)
@@ -624,11 +624,11 @@ def get_segments(playlist_file, seg_dir, video_dir, format, encext):
             last_index = int(last_segment['index'])
             fixed_segments[fixed_segments_index]['stop'] = s['stop'] # set last segment to this ones stop
             fixed_segments[fixed_segments_index]['duration'] = last_segment['stop'] - last_segment['start'] # calculate new segment duration
-            print "Removed segment %d, combined with last: %s -> %s" % (index, s['source'], last_segment['source'])
+            print("Removed segment %d, combined with last: %s -> %s" % (index, s['source'], last_segment['source']))
             # confirm the reparied segment is ok
             if not validate_segment(fixed_segments[fixed_segments_index]):
                 # this failed, give up, really rare edge case
-                print "Combined Segment Invalid [%d]: [%s], old: [%s]!" % (fixed_segments_index, fixed_segments[fixed_segments_index], s)
+                print("Combined Segment Invalid [%d]: [%s], old: [%s]!" % (fixed_segments_index, fixed_segments[fixed_segments_index], s))
                 return {}
             # extra increment index offset for entry skip
             combined_count += 1
@@ -641,8 +641,8 @@ def get_segments(playlist_file, seg_dir, video_dir, format, encext):
             new_index += 1
 
     if new_index != len(segments):
-        print "Merged %d segments that were invalid for the mezzanine, changed from %d to %d entries" % (combined_count,
-            new_index, len(segments))
+        print("Merged %d segments that were invalid for the mezzanine, changed from %d to %d entries" % (combined_count,
+            new_index, len(segments)))
 
     # fixed up list of merged segments and time information stored as dicts
     return fixed_segments
@@ -652,7 +652,7 @@ def segment_source(mezzanine_fn, vcodec, video_framerate, seg_dir, video_dir, vi
     # calc source segment duration
     source_segment_duration = max(1, int((video_duration/1000.0) / max(1.0, float(processes)))+1)
     if debug:
-        print "Source video duration: %f Segment duration: %f" % (video_duration, source_segment_duration)
+        print("Source video duration: %f Segment duration: %f" % (video_duration, source_segment_duration))
     # setup and lock cache directory for mezzanine segments
     segment_lock = None
     segments = []
@@ -696,14 +696,14 @@ def segment_source(mezzanine_fn, vcodec, video_framerate, seg_dir, video_dir, vi
     cmd.extend([segment_pattern])
     try:
         if debug:
-            print "Running Segmentation cmd: %s" % ' '.join(cmd)
+            print("Running Segmentation cmd: %s" % ' '.join(cmd))
         output = subprocess.check_output(cmd)
         if debug:
-            print "Source segment output: %s" % output
+            print("Source segment output: %s" % output)
         # Extract filenames of segments from playlist and time offsets
         segments = get_segments(playlist_file, seg_dir, video_dir, format, encext)
-    except Exception, e:
-        print "Source segmentation failed: %s" % e
+    except Exception as e:
+        print("Source segmentation failed: %s" % e)
         return []
     finally:
         # unlock cache segments if we got a lock, even if we failed to segment
@@ -717,7 +717,7 @@ def segment_source(mezzanine_fn, vcodec, video_framerate, seg_dir, video_dir, vi
         if 'source' not in segment or not isfile(segment['source']):
             # hit a bad segment, it is all bad, rewrite cache if possible, or give up on segmenting
             # break this loop, we just created a fresh segment so should be fine
-            print "Bad segment list, invalid segment found: %r" % segment
+            print("Bad segment list, invalid segment found: %r" % segment)
             return []
 
     return segments
@@ -735,7 +735,7 @@ def prepare_encode(source_segments, audio_file, tmp_dir, video_file, mezz_fps, e
     with open(concat_list, 'w') as file:
         for segment in source_segments:
             if debug:
-                print "adding encode to source segments: %r" % segment
+                print("adding encode to source segments: %r" % segment)
             encode = segment['encode']
             file.write("file '%s/%s'\n" % (getcwd(), encode))
             file.write("duration %f\n" % segment['duration'])
@@ -771,9 +771,9 @@ def prepare_encode(source_segments, audio_file, tmp_dir, video_file, mezz_fps, e
         concat_cmd.extend(['-movflags', '+faststart'])
     concat_cmd.extend([video_file])
     if debug:
-        print "Running recombine: %s" % ' '.join(concat_cmd)
+        print("Running recombine: %s" % ' '.join(concat_cmd))
     output = subprocess.check_output(concat_cmd)
-    print "Muxed A/V output: %s" % output
+    print("Muxed A/V output: %s" % output)
 
 
 # create directories needed
@@ -807,7 +807,7 @@ for m in mezzanines:
     # get mezzanine duration
     params = "--Inform=General;%Duration%,%OverallBitRate%"
     cmd = ['mediainfo', params, mezzanine_fn]
-    print " - extracting metadata from format..."
+    print(" - extracting metadata from format...")
     stdout = subprocess.check_output(cmd)
     data_string = "".join([line for line in stdout if
                     ((ord(line) >= 32 and ord(line) < 128) or ord(line) == 10 or ord(line) == 13)]).strip()
@@ -815,7 +815,7 @@ for m in mezzanines:
 
     params = "--Inform=Video;%CodecID%,%FrameRate%,%Height%,%Width%,%Format%,%FrameRate_Num%,%FrameRate_Den%,%FrameRate_Maximum%"
     cmd = ['mediainfo', params, mezzanine_fn]
-    print " - extracting metadata from video..."
+    print(" - extracting metadata from video...")
     stdout = subprocess.check_output(cmd)
     data_string = "".join([line for line in stdout if
                     ((ord(line) >= 32 and ord(line) < 128) or ord(line) == 10 or ord(line) == 13)]).strip()
@@ -833,13 +833,13 @@ for m in mezzanines:
     try:
         mezz_num = float(data_string.split(',')[5])
         mezz_den = float(data_string.split(',')[6])
-    except Exception, e:
+    except Exception as e:
         pass
     mezz_frames = int(mezz_fps * (mezz_duration / 1000)+1)
 
-    print "mezzanine:\n\tcodec: %s\n\tformat: %s\n\tframerate: %f\n\tframesize: %s\n\tduration: %0.2f\n\tframes: %d" % (vcodec,
+    print("mezzanine:\n\tcodec: %s\n\tformat: %s\n\tframerate: %f\n\tframesize: %s\n\tduration: %0.2f\n\tframes: %d" % (vcodec,
                                                                     mezz_format, mezz_fps, "%dx%d" % (mezz_width, mezz_height),
-                                                                    mezz_duration, mezz_frames)
+                                                                    mezz_duration, mezz_frames))
 
     good_resolutions = {}
     for test_label in test_labels:
@@ -862,8 +862,8 @@ for m in mezzanines:
         result_base = "%s/%s/%s_%s_%s" % (cur_dir, result_dir, m.split('.')[0], test_label, test_letter)
         result_fn_vmaf = "%s_%s.json" % (result_base, 'vmaf')
         speed_result = "%s/%s/%s_%s_%s_speed.json" % (cur_dir, result_dir, m.split('.')[0], test_label, test_letter)
-        print "\n%s:" % mezzanine_fn
-        print " %s" % encode_fn
+        print("\n%s:" % mezzanine_fn)
+        print(" %s" % encode_fn)
 
         # skip resolutions after we have found a good vmaf
         if resolution not in good_resolutions:
@@ -879,7 +879,7 @@ for m in mezzanines:
                             good_resolutions[resolution] = float(data["avg"][0])
 
             if quality_discovery and good_resolutions[resolution] >= 95.0:
-                print "Using previous cached vmaf avg of %0.2f for Quality check %s" % (good_resolutions[resolution], test_label)
+                print("Using previous cached vmaf avg of %0.2f for Quality check %s" % (good_resolutions[resolution], test_label))
                 if test_letter2 == 'Z':
                     test_letter = test_letter1 + test_letter2 + test_letter3
                     test_letter3 = chr(ord(test_letter3) + 1).upper()
@@ -913,7 +913,7 @@ for m in mezzanines:
                 encext = "%s" % encode_format # final encode extension: TODO make option for encode per line
                 # split mezzanine here
                 if segment or segment_encode:
-                    print " - splitting mezzanine into segments for parallel encoding..."
+                    print(" - splitting mezzanine into segments for parallel encoding...")
                     seg_dir = "%s/%s_%d" % (video_dir, m.split('.')[0], threads)
                     enc_dir = "%s/%s_%d" % (video_dir, "%s_%s_%s" % (m.split('.')[0], test_label, test_letter), threads)
                     if not isdir(enc_dir):
@@ -942,7 +942,7 @@ for m in mezzanines:
                         ext = "mp4" # unknown format / codec
                         format = "mp4"
 
-                    print "Segmenting format: %s extension: %s segment_format: %s segment_extension: %s" % (format, ext, segencfmt, segencext)
+                    print("Segmenting format: %s extension: %s segment_format: %s segment_extension: %s" % (format, ext, segencfmt, segencext))
 
                     source_segments = segment_source(mezzanine_fn, vcodec, mezz_fps, seg_dir, enc_dir, mezz_duration, threads, True, ext, format, segencext, mezz_fps)
                     #
@@ -958,8 +958,8 @@ for m in mezzanines:
                             # calc threads per segment depending on how many segments we got back
                             seg_threads = max(2,min(threads, int((float(threads) * 2.0) / float(len(source_segments)))))
                             if debug:
-                                print "Segment: threads: %d mezzanine: %s encode: %s passlog: %s" % (seg_threads,
-                                                                                                 mezzanine_segment, encode_segment, pass_log_fn)
+                                print("Segment: threads: %d mezzanine: %s encode: %s passlog: %s" % (seg_threads,
+                                                                                                 mezzanine_segment, encode_segment, pass_log_fn))
                             encode_segments.append(encode_segment)
                             p = Process(name=encode_segment, target=encode_video, args=(mezzanine_segment, encode_segment,
                                             rate_control, test_args[test_label_idx], global_args,
@@ -970,7 +970,7 @@ for m in mezzanines:
                                 p.start()
                                 processes.append(p)
                             else:
-                                print "Error: didn't get any mezzanine segments when splitting %s" % mezzanine_fn
+                                print("Error: didn't get any mezzanine segments when splitting %s" % mezzanine_fn)
                                 sys.exit(1)
                 else:
                     p = Process(name=encode_fn, target=encode_video, args=(mezzanine_fn, encode_fn,
@@ -984,8 +984,8 @@ for m in mezzanines:
 
                 # wait for encode processes to finish
                 finished = False
-                print "---"
-                print "Starting encoding processes..."
+                print("---")
+                print("Starting encoding processes...")
                 start_wait_time = time.time()
                 while not finished:
                     running_procs = []
@@ -1014,7 +1014,7 @@ for m in mezzanines:
                     for es in encode_segments:
                         if isfile(es):
                             if debug:
-                                print "Deleting Encode segment: %s" % es
+                                print("Deleting Encode segment: %s" % es)
                             remove(es)
 
                 # clean up mezzanine segments
@@ -1023,22 +1023,22 @@ for m in mezzanines:
                         mezzanine_segment = "%s/%s" % (mezz_dir, ms)
                         if isfile(mezzanine_segment):
                             if debug:
-                                print "Deleting mezzanine segment: %s" % mezzanine_segment
+                                print("Deleting mezzanine segment: %s" % mezzanine_segment)
                             remove(mezzanine_segment)
 
                 end_time = time.time()
                 with open(speed_result, "w") as f:
                     f.write("{\"file\":\"%s\",\"speed\":\"%d\"}" % (encode_fn, int(end_time - start_time)))
-            except Exception, e:
-                print(traceback.format_exc())
-                print "Failure Encoding: %s" % e
+            except Exception as e:
+                print((traceback.format_exc()))
+                print("Failure Encoding: %s" % e)
                 for p in processes:
                     if p.is_alive():
                         p.terminate() # kill processes so they don't hang around
                     if isfile(p.name):
                         remove(p.name) # remove files
         else:
-            print " Encode exists"
+            print(" Encode exists")
 
         #if not isfile(encode_data_fn) or getsize(encode_data_fn) <=0:
         # create data file in json with encode stats
@@ -1046,16 +1046,16 @@ for m in mezzanines:
         filesize = getsize(encode_fn)
         params = "--Inform=General;%Duration%,%OverallBitRate%"
         cmd = ['mediainfo', params, encode_fn]
-        print " - extracting metadata from format..."
+        print(" - extracting metadata from format...")
         stdout = subprocess.check_output(cmd)
         data_string = "".join([line for line in stdout if
                         ((ord(line) >= 32 and ord(line) < 128) or ord(line) == 10 or ord(line) == 13)]).strip()
         duration = -1
-        print "reading media stats: %s" % data_string
+        print("reading media stats: %s" % data_string)
         if data_string != ',':
             duration = "%0.3f" % float(data_string.split(',')[0])
         if duration < 1:
-            print "Error reading media stats: '%s' doesn't contain duration,bitrate bad encoding!!!" % data_string
+            print("Error reading media stats: '%s' doesn't contain duration,bitrate bad encoding!!!" % data_string)
             # increment test label
             test_label_idx += 1
             continue
@@ -1067,7 +1067,7 @@ for m in mezzanines:
         data['video']['vbitrate'] = int(bitrate) / 1000
         params = "--Inform=Video;%FrameRate%,%Height%,%Width%"
         cmd = ['mediainfo', params, encode_fn]
-        print " - extracting metadata from video..."
+        print(" - extracting metadata from video...")
         stdout = subprocess.check_output(cmd)
         data_string = "".join([line for line in stdout if
                         ((ord(line) >= 32 and ord(line) < 128) or ord(line) == 10 or ord(line) == 13)]).strip()
@@ -1082,48 +1082,48 @@ for m in mezzanines:
 
         # decode raw yuv versions of encodes if we are using MSU tools
         if use_msu or keep_raw:
-            print " %s" % mezzanine_video_fn
+            print(" %s" % mezzanine_video_fn)
             if not isfile(mezzanine_video_fn) or getsize(mezzanine_video_fn) <= 0:
                 # Decode mezzanie to raw YUV AVI format for VQMT and Subj PQMT
                 create_mezzanine_video_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-hide_banner', '-y', '-nostats', '-nostdin', '-i', mezzanine_fn,
                     '-f', 'avi', '-vcodec', 'rawvideo', '-pix_fmt', 'yuv420p', '-dn', '-sn', '-an', mezzanine_video_fn]
                 try:
-                    print " - decoding mezzanine to raw YUV..."
+                    print(" - decoding mezzanine to raw YUV...")
                     for output in execute(create_mezzanine_video_cmd):
-                        print output
-                except Exception, e:
-                    print "Failure Decoding: %s" % e
+                        print(output)
+                except Exception as e:
+                    print("Failure Decoding: %s" % e)
             else:
-                print " Mezzanine AVI exists"
-            print " %s" % encode_video_fn
+                print(" Mezzanine AVI exists")
+            print(" %s" % encode_video_fn)
             if not isfile(encode_video_fn) or getsize(encode_video_fn) <= 0:
                 # Decode encode to raw YUV AVI format for VQMT and Subj PQMT
                 create_encode_video_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-hide_banner', '-y', '-nostats', '-nostdin', '-i', encode_fn,
                     '-f', 'avi', '-vcodec', 'rawvideo', '-pix_fmt', 'yuv420p', '-dn', '-sn', '-an', encode_video_fn]
                 try:
-                    print " - decoding encoding to raw YUV..."
+                    print(" - decoding encoding to raw YUV...")
                     for output in execute(create_encode_video_cmd):
-                        print output
-                except Exception, e:
-                    print "Failure Decoding: %s" % e
+                        print(output)
+                except Exception as e:
+                    print("Failure Decoding: %s" % e)
             else:
-                print " Encode AVI exists"
+                print(" Encode AVI exists")
 
         # VQMT metrics results
-        print " %s" % result_base
+        print(" %s" % result_base)
         p = None
         mdata_files = []
         if use_msu:
             for test_metric in test_metrics:
                 result_fn = "%s_%s.json" % (result_base, test_metric)
-                print " - %s" % result_fn
+                print(" - %s" % result_fn)
                 color_component = "YYUV"
                 if not isfile(result_fn) or getsize(result_fn) <= 0:
                     create_result_cmd = [vqmt_bin, '-orig', mezzanine_video_fn, '-in', encode_video_fn,
                         '-metr', test_metric, color_component,
                         #'-resize', 'cubic', 'to', 'orig',
                         '-threads', str(threads), '-terminal', '-json']
-                    print " - calculating the %s score for encoding..." % test_metric
+                    print(" - calculating the %s score for encoding..." % test_metric)
                     p = Process(target=get_results, args=(test_metric, result_fn, encode_video_fn, create_result_cmd,))
                     # run each metric in parallel
                     if p != None:
@@ -1134,14 +1134,14 @@ for m in mezzanines:
             result_fn_json = "%s_%s.json" % (result_base, 'phqm')
             result_fn = "%s_%s.data" % (result_base, 'phqm')
             result_fn_stdout = "%s_%s.stdout" % (result_base, 'phqm')
-            print " - %s" % result_fn
+            print(" - %s" % result_fn)
             # get psnr and perceptual difference metrics
             if not isfile(result_fn) or getsize(result_fn) <= 0:
                 create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-i', encode_fn,
                     '-i', mezzanine_fn, '-nostats', '-nostdin', '-threads', str(threads),
                     '-filter_complex', '[0:v]scale=h=%d:w=%d:flags=bicubic[enc]; [1:v]scale=h=%d:w=%d:flags=bicubic[ref]; [enc][ref]phqm=stats_file=%s' % (height, width, height, width,
                                                                                                                                         result_fn), '-an', '-y', '-f', 'null', '/dev/null']
-                print " - calculating the %s score for encoding..." % "phqm"
+                print(" - calculating the %s score for encoding..." % "phqm")
                 p = Process(target=get_results, args=('phqm', result_fn_stdout, encode_fn, create_result_cmd,))
                 # run each metric in parallel
                 if p != None:
@@ -1154,12 +1154,12 @@ for m in mezzanines:
                 result_fn_json = "%s_%s.json" % (result_base, 'vmaf')
                 result_fn = "%s_%s.data" % (result_base, 'vmaf')
                 result_fn_stdout = "%s_%s.stdout" % (result_base, 'vmaf')
-                print " - %s" % result_fn
+                print(" - %s" % result_fn)
                 if not isfile(result_fn) or getsize(result_fn) <= 0:
                     create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-i', encode_fn, '-i', mezzanine_fn,
                         '-nostats', '-nostdin', '-threads', str(threads),
                         '-filter_complex', '[0:v]scale=h=%d:w=%d:flags=bicubic[enc]; [1:v]scale=h=%d:w=%d:flags=bicubic[ref]; [enc][ref]libvmaf=psnr=1:ms_ssim=1:log_fmt=json:log_path=%s' % (height, width, height, width, result_fn), '-an', '-y', '-f', 'null', '/dev/null']
-                    print " - calculating the %s score for encoding..." % "vmaf"
+                    print(" - calculating the %s score for encoding..." % "vmaf")
                     p = Process(target=get_results, args=('vmaf', result_fn_stdout, encode_fn, create_result_cmd,))
                     if p != None:
                         p.start()
@@ -1254,8 +1254,8 @@ for m in mezzanines:
                     phqm_avg = float(parts[4].split(':')[1])
                     pfhd_avg = float(parts[7].split(':')[1])
                     if debug:
-                        print "PHQM AVG: %0.3f" % phqm_avg
-                        print "PFHD AVG: %0.3f" % pfhd_avg
+                        print("PHQM AVG: %0.3f" % phqm_avg)
+                        print("PFHD AVG: %0.3f" % pfhd_avg)
                     phqm_data["avg"].append(phqm_avg)
                     pfhd_data["avg"].append(pfhd_avg)
 

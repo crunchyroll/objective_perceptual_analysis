@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3
 
 import argparse
 import json
@@ -24,15 +24,15 @@ for d in directories:
         with open(ladder_file, 'r') as lf:
             ladder_json = json.loads(lf.read())
         # mezzanines
-        for m, v in sorted(ladder_json.iteritems()):
+        for m, v in sorted(ladder_json.items()):
             if m not in ladders:
                 ladders[m] = {}
             # resolutions
-            for r, d in sorted(v.iteritems()):
+            for r, d in sorted(v.items()):
                 if r not in ladders[m]:
                     ladders[m][r] = {}
                 # codecs
-                for c, i in sorted(d.iteritems()):
+                for c, i in sorted(d.items()):
                     if c not in ladders[m][r]:
                         # codec information
                         # - bitrate, vmaf score
@@ -41,6 +41,6 @@ for d in directories:
                         ladders[m][r][c]["codec"] = "%s_%s" % (c, r)
                         ladders[m][r][c]["resolution"] = "%s" % (r)
     else:
-        print "Error, missing %s file" % ladder_file
+        print("Error, missing %s file" % ladder_file)
 
-print json.dumps(ladders, indent = True, sort_keys = True)
+print(json.dumps(ladders, indent = True, sort_keys = True))
