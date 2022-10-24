@@ -9,18 +9,22 @@ from os import listdir
 from os import mkfifo
 from os.path import isfile, join
 from os.path import basename
-from os.path import splitext
+from os.path import splitext, split
 from os import environ
 from os import getcwd
 from os import remove
 from os import mkdir
-from os.path import isfile
 from os.path import isdir
 from os.path import getsize
 from os.path import exists
 import subprocess
 import sys
 import time
+import importlib
+import vapoursynth as vs
+import shlex
+from typing import BinaryIO, cast
+import re
 
 environ["PATH"] = "%s/FFmpeg:%s" % (getcwd(), environ["PATH"])
 
@@ -67,6 +71,8 @@ ap.add_argument('-e', '--use_experimental', dest='use_experimental', required=Fa
 ap.add_argument('-r', '--force_framerate', dest='force_framerate', required=False, action='store_true', help="Force FPS by -r FPS using mezzanines value")
 ap.add_argument('-qd', '--quality_discovery', dest='quality_discovery', required=False, action='store_true', help="Discovery best quality resolution of test cases bitrates")
 ap.add_argument('-rl', '--reference_label', dest='reference_label', required=False, default='1080p08000kX264H264', help="Encoding Label to use for reference encoding in quality testing")
+ap.add_argument('-vs', '--vs_filter_chain', dest='vs_filter_chain', required=False, help="Specify vapoursynth filter_chain with arguments to create a filtered mezzanine from for specific labels, e.g. Label1,Label2,...|vs_example.example_wrapper|1920,1080;Label3|vs_example.example_wrapper|1280,720;...")
+ap.add_argument('-vp', '--vs_prefilter', dest='vs_prefilter', required=False, action='store_true', help="Run vapoursynth filter_chain as a prefilter (reference encode will be the filtered mezzanine)")
 args = vars(ap.parse_args())
 
 keep_raw = args['keep_raw']
@@ -83,8 +89,11 @@ segment = args['segment']
 audio_codec = args['audio_codec']
 quality_discovery = args['quality_discovery']
 reference_label = args['reference_label']
+vs_prefilter = args['vs_prefilter']
 
 mezz_dir = "%s/mezzanines" % base_directory
+mezz_filtered_dir = "%s/mezzanines_filtered" % base_directory
+mezz_index_dir = "%s/mezzanines_indexes" % base_directory
 encode_dir = "%s/encodes" % base_directory
 video_dir = "%s/videos" % base_directory
 result_dir = "%s/results" % base_directory
@@ -110,7 +119,7 @@ if args['tests'] != None:
         lparts = i.split('|')
         if debug:
             print("Got: %r" % lparts)
-        label = lparts[0]
+        label = re.sub(r"[\n\t\s]*", "", lparts[0])
         encoder = lparts[1]
         rate_control = lparts[2]
         flags = lparts[3]
@@ -130,13 +139,26 @@ if args['tests'] != None:
         audio_codecs.append(ac)
         test_resolutions.append(resolution)
 
+vs_filter_chains = []
+if args['vs_filter_chain'] != None:
+    vs_filter_chain_list = args['vs_filter_chain'].split(';')
+    for fc in vs_filter_chain_list:
+        if not fc or fc == '' or '|' not in fc:
+            continue # skip empty args / last ; at end
+        vs_filter_profiles = fc.split('|')
+        vs_filter_chains.append({
+            'labels': re.sub(r"[\n\t\s]*", "", vs_filter_profiles[0]),
+            'filters': vs_filter_profiles[1],
+            'args': vs_filter_profiles[2]
+        })
+
 print("Running test in %s directory" % base_directory)
 
 def execute(command, output_file = None):
     if debug:
         print("  # (%s) " % " ".join(command))
     process = subprocess.Popen(command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                               cwd="%s" % base_directory)
+                               cwd="%s" % base_directory, encoding='UTF-8')
 
     # Poll process for new output until finished
     while True:
@@ -168,6 +190,63 @@ def get_results(test_metric, result_fn, encode_video_fn, create_result_cmd):
         if result_fn and isfile(result_fn):
             # remove results since they are not complete
             remove(result_fn)
+
+def encode_filtered_mezz(labels, mezzanine_fn, filter_chain, filter_args):
+    core = vs.core
+    try:
+        filter_module = filter_chain.split('.')[0]
+        filter_wrapper = filter_chain.split('.')[1]
+        filter_module_load = importlib.import_module(f"include.{filter_module}")
+        filters = getattr(filter_module_load, filter_wrapper)
+    except Exception as e:
+        print(f"Could not load filter chain: {e}")
+        sys.exit(1)
+
+    print(f"Encoding filtered mezzanine for label(s): {labels}")
+
+    if not isdir(f"{cur_dir}/{mezz_filtered_dir}"):
+        mkdir(f"{cur_dir}/{mezz_filtered_dir}")
+    if not isdir(f"{cur_dir}/{mezz_index_dir}"):
+        mkdir(f"{cur_dir}/{mezz_index_dir}")
+
+    mezzanine_dest = f"{cur_dir}/{mezz_filtered_dir}/{splitext(split(mezzanine_fn)[1])[0]}_filtered_{labels}.mkv"
+    if (exists(mezzanine_dest) and getsize(mezzanine_dest) > 0):
+        print(f"Skipping filtered mezzanine (already exists) for label(s): {labels}")
+        return mezzanine_dest
+    mezzanine_index = f"{cur_dir}/{mezz_index_dir}/{splitext(split(mezzanine_fn)[1])[0]}.lwi"
+
+    video = core.lsmas.LWLibavSource(source=mezzanine_fn, cachefile=mezzanine_index)
+    filter_args_split = filter_args.split(',')
+    video = filters(video, filter_args_split)
+
+    video_ss = (video.format.subsampling_w, video.format.subsampling_h)
+    video_bitdepth = video.format.bits_per_sample
+
+    if (video_ss == (1,1)) and (video_bitdepth == 8):
+        pix_fmt = "yuv420p"
+    elif (video_ss == (1,0)) and (video_bitdepth == 8):
+        pix_fmt = "yuv422p"
+    elif (video_ss == (0,0)) and (video_bitdepth == 8):
+        pix_fmt = "yuv444p"
+    elif (video_ss == (1,1)) and (video_bitdepth > 8):
+        pix_fmt = "yuv420p10le"
+    elif (video_ss == (1,0)) and (video_bitdepth > 8):
+        pix_fmt = "yuv422p10le"
+    elif (video_ss == (0,0)) and (video_bitdepth > 8):
+        pix_fmt = "yuv444p10le"
+    else:
+        print("Mezzanine input format not supported for filtering")
+        sys.exit(1)
+
+    ffmpeg_cmd = f"ffmpeg -y -hide_banner -loglevel error -i pipe: -c:v libx264 -qp 0 -pix_fmt {pix_fmt} -an {mezzanine_dest}"
+    try:
+        with subprocess.Popen(shlex.split(ffmpeg_cmd), stdin=subprocess.PIPE) as process:
+            video.output(cast(BinaryIO, process.stdin), y4m=True)
+    except Exception as e:
+        print(f"Error encoding filtered mezzanine: {e}")
+        sys.exit(1)
+
+    return mezzanine_dest
 
 def encode_video(mezzanine_fn, encode_fn, rate_control, test_args,
                  global_args, encoders, pass_log_fn, threads, idx,
@@ -837,6 +916,15 @@ for m in mezzanines:
                                                                     mezz_format, mezz_fps, "%dx%d" % (mezz_width, mezz_height),
                                                                     mezz_duration, mezz_frames))
 
+    # prepare filtered mezzanines
+    filtered_mezzanine_list = []
+    if len(vs_filter_chains) > 0:
+        for fc in vs_filter_chains:
+            filtered_mezzanine_list.append({
+                'labels': fc['labels'],
+                'filtered_mezzanine_fn': encode_filtered_mezz(fc['labels'], mezzanine_fn, fc['filters'], fc['args'])
+            })
+
     good_resolutions = {}
     for test_label in test_labels:
         rate_control = rate_controls[test_label_idx]
@@ -848,6 +936,11 @@ for m in mezzanines:
         encode_format = encode_formats[test_label_idx]
         ac = audio_codecs[test_label_idx]
 
+        # Overwrite mezzanine filename if filtered mezzanine exists
+        mezzanine_fn_current = mezzanine_fn
+        filtered_mezzanine = next((vsf for vsf in filtered_mezzanine_list if test_label in vsf.get('labels', '')), False)
+        if filtered_mezzanine:
+            mezzanine_fn_current = filtered_mezzanine['filtered_mezzanine_fn']
 
         # Filenames 
         encode_fn = "%s/%s/%s_%s_%s.%s" % (cur_dir, encode_dir, m.split('.')[0], test_label, test_letter, encode_format)
@@ -858,7 +951,7 @@ for m in mezzanines:
         result_base = "%s/%s/%s_%s_%s" % (cur_dir, result_dir, m.split('.')[0], test_label, test_letter)
         result_fn_vmaf = "%s_%s.json" % (result_base, 'vmaf')
         speed_result = "%s/%s/%s_%s_%s_speed.json" % (cur_dir, result_dir, m.split('.')[0], test_label, test_letter)
-        print("\n%s:" % mezzanine_fn)
+        print("\n%s:" % mezzanine_fn_current)
         print(" %s" % encode_fn)
 
         # skip resolutions after we have found a good vmaf
@@ -940,7 +1033,7 @@ for m in mezzanines:
 
                     print("Segmenting format: %s extension: %s segment_format: %s segment_extension: %s" % (format, ext, segencfmt, segencext))
 
-                    source_segments = segment_source(mezzanine_fn, vcodec, mezz_fps, seg_dir, enc_dir, mezz_duration, threads, True, ext, format, segencext, mezz_fps)
+                    source_segments = segment_source(mezzanine_fn_current, vcodec, mezz_fps, seg_dir, enc_dir, mezz_duration, threads, True, ext, format, segencext, mezz_fps)
                     #
                     # run multiple processes for each segment
                     if len(source_segments) > 0:
@@ -966,10 +1059,10 @@ for m in mezzanines:
                                 p.start()
                                 processes.append(p)
                             else:
-                                print("Error: didn't get any mezzanine segments when splitting %s" % mezzanine_fn)
+                                print("Error: didn't get any mezzanine segments when splitting %s" % mezzanine_fn_current)
                                 sys.exit(1)
                 else:
-                    p = Process(name=encode_fn, target=encode_video, args=(mezzanine_fn, encode_fn,
+                    p = Process(name=encode_fn, target=encode_video, args=(mezzanine_fn_current, encode_fn,
                                     rate_control, test_args[test_label_idx], global_args,
                                     encoders[test_label_idx], pass_log_fn, threads, 1,
                                     mezz_fps, encext, test_force_framerate, mezz_height, mezz_width, mezz_num, mezz_den, mezz_frames, resolution))
@@ -1003,7 +1096,7 @@ for m in mezzanines:
 
                 # mux together encoding segments if needed
                 if segment or segment_encode:
-                    prepare_encode(source_segments, mezzanine_fn, enc_dir, encode_fn, mezz_fps, encext, ac)
+                    prepare_encode(source_segments, mezzanine_fn_current, enc_dir, encode_fn, mezz_fps, encext, ac)
 
                 # mux segmented parallel encoding parts into one
                 if len(encode_segments) > 0:
@@ -1077,7 +1170,7 @@ for m in mezzanines:
             print(" %s" % mezzanine_video_fn)
             if not isfile(mezzanine_video_fn) or getsize(mezzanine_video_fn) <= 0:
                 # Decode mezzanie to raw YUV AVI format for VQMT and Subj PQMT
-                create_mezzanine_video_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-hide_banner', '-y', '-nostats', '-nostdin', '-i', mezzanine_fn,
+                create_mezzanine_video_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-hide_banner', '-y', '-nostats', '-nostdin', '-i', mezzanine_fn_current,
                     '-f', 'avi', '-vcodec', 'rawvideo', '-pix_fmt', 'yuv420p', '-dn', '-sn', '-an', mezzanine_video_fn]
                 try:
                     print(" - decoding mezzanine to raw YUV...")
@@ -1128,9 +1221,13 @@ for m in mezzanines:
             result_fn_stdout = "%s_%s.stdout" % (result_base, 'phqm')
             print(" - %s" % result_fn)
             # get psnr and perceptual difference metrics
+            if vs_prefilter:
+                mezzanine_ref = mezzanine_fn_current
+            else:
+                mezzanine_ref = mezzanine_fn
             if not isfile(result_fn) or getsize(result_fn) <= 0:
                 create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-i', encode_fn,
-                    '-i', mezzanine_fn, '-nostats', '-nostdin', '-threads', str(threads),
+                    '-i', mezzanine_ref, '-nostats', '-nostdin', '-threads', str(threads),
                     '-filter_complex', '[0:v]scale=h=%d:w=%d:flags=bicubic[enc]; [1:v]scale=h=%d:w=%d:flags=bicubic[ref]; [enc][ref]phqm=stats_file=%s' % (height, width, height, width,
                                                                                                                                         result_fn), '-an', '-y', '-f', 'null', '/dev/null']
                 print(" - calculating the %s score for encoding..." % "phqm")
