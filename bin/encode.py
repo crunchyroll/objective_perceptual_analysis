@@ -808,17 +808,13 @@ for m in mezzanines:
     params = "--Inform=General;%Duration%,%OverallBitRate%"
     cmd = ['mediainfo', params, mezzanine_fn]
     print(" - extracting metadata from format...")
-    stdout = subprocess.check_output(cmd)
-    data_string = "".join([line for line in stdout if
-                    ((ord(line) >= 32 and ord(line) < 128) or ord(line) == 10 or ord(line) == 13)]).strip()
+    data_string = subprocess.check_output(cmd, encoding='UTF-8').strip()
     mezz_duration = float(data_string.split(',')[0])
 
     params = "--Inform=Video;%CodecID%,%FrameRate%,%Height%,%Width%,%Format%,%FrameRate_Num%,%FrameRate_Den%,%FrameRate_Maximum%"
     cmd = ['mediainfo', params, mezzanine_fn]
     print(" - extracting metadata from video...")
-    stdout = subprocess.check_output(cmd)
-    data_string = "".join([line for line in stdout if
-                    ((ord(line) >= 32 and ord(line) < 128) or ord(line) == 10 or ord(line) == 13)]).strip()
+    data_string = subprocess.check_output(cmd, encoding='UTF-8').strip()
     vcodec = "%s" % data_string.split(',')[0].lower()
     mezz_fps = float(data_string.split(',')[1])
     mezz_fps_max = data_string.split(',')[7]
