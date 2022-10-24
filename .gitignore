@@ -1,0 +1,4 @@
+tests/*
+build.log
+id_rsa*
+bin/include/*
