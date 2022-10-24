@@ -12,8 +12,12 @@ elif [ "$OS" == "Linux" ]; then
         echo "Setting up for Linux CentOS 7"
         echo
         ./setupCentOS7.sh
+    elif [ -f /etc/arch-release ]; then
+        echo "Setting up for ArchLinux"
+        echo
+        ./setupArch.sh
     else
-        echo "This Linux OS isn't supported. Try running ./setupCentOS7.sh manually if brave"
+        echo "This Linux OS isn't supported. Try running ./setupCentOS7.sh or ./setupArch.sh manually if brave"
     fi
 fi
 
