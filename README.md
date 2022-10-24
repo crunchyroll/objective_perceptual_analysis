@@ -21,7 +21,7 @@ Also research via bin/encode.py and bin/results.py script:
 
 - Parallel Encoding / can set per test for comparisons
 - Quality both Objective and setup for Subjective tests
-- Easy encoding tests for H.254, VP9 and AV1
+- Easy encoding tests for H.265, VP9 and AV1
 - Perceptual Hash research with encoding decisions and metrics
 - Simple Objective metrics calculated
 - Frame images and metrics burn in per frame via SRT
@@ -33,12 +33,14 @@ for the most part. Please report back any issues so this can be improved for edg
 See the bin/readme.md file for information on bin/encode.py and bin/results.py.
 See the scripts/readme.md file for information on setting up tests.
 
-*Currenty works on CentOS 7 and Mac OS X*
+*Currenty works on Arch Linux (recommended), CentOS 7 (deprecated) and Mac OS X*
 *VMAF, libVPX, libAOM, libRav1e, svt-av1, libx264, libOpenCV build of FFmpeg*
 - rav1e support based off of work by Derek Buitenhuis
   https://github.com/dwbuiten/FFmpeg
+  
+## Setup
 
-*Dockerfile setup: Easy and safest*
+### Dockerfile setup: Easy and safest
 
 ```
 type: make docker
@@ -54,7 +56,7 @@ Makefile will run the proper setup script and install mediainfo, opencv, libx264
 git, wget, freetype-devel... Everything should be done for you, although if not report it as a bug.
 *Warning: Scripts will install / alter system packages via Sudo. Please keep this in mind*
 
-type: ```make```
+### type: ```make```
 
 This uses an FFmpeg with an extra video filter which uses OpenCV to
 compute hamming distance values from each frames hash vs. the previous
@@ -67,14 +69,14 @@ There is a ffmpeg_modifications.diff patch included...
 ```
     git clone https://git.ffmpeg.org/ffmpeg.git FFmpeg
     cd FFmpeg
-    git checkout remotes/origin/release/4.2
+    git checkout tags/n5.1.2
     cat ../ffmpeg_modifications.diff | patch -p1
 ```
 
 You can run tests using the bin/encode.py script. See the /bin/readme.md for more
 details.
 
-FFmpeg Commands:
+## FFmpeg Commands
 
 Perceptual Hash Quality Metric: (output a stats file with psnr/mse/phqm (perceptual hash quality metric)
 
@@ -114,6 +116,30 @@ This is implementing a Patent by Christopher Kennedy @ Ellation / Crunchyroll:
 
 Patent for https://patents.justia.com/patent/10244234
 Adaptive compression rate control
+
+## VapourSynth support
+
+OPA can run VapourSynth filter chains on the mezzanines which can be associated to test labels. When using VapourSynth, new filtered mezzanines are being created which will be used as source files for the test encodes tagged with the same label. Metrics can either be calculated against the original mezzanine or the filtered mezzanine.
+
+### Usage:
+
+- Make sure that the filters you want to use are installed on your system. On Arch Linux distributions you can simply run `setupArch.sh` to setup a VapourSynth environment with most relevant filter libraries and wrapper scripts.
+- Create wrapper scripts in the `bin/include` directory with your filter chains. They must have `src` and `args` arguments. They also need `return video` (or whatever your clip object is called) at the bottom. See `bin/include/vs_example.py` for an example.
+- Pass the `-vs` parameter to `bin/encode.py` with the following structure: `Label1,Label2,...|wrapper_script.wrapper_function|arg1,arg2,...;Label3|wrapper_script.wrapper_function|arg1,arg2,...;...`
+- Pass the `-vp` parameter to `bin/encode.py` to calculate encode metrics against the filtered mezzanines.
+
+Docker example:
+
+```
+docker run --rm -v `pwd`/tests:/opaencoder/tests opaencoder bin/encode.py -m vmaf,psnr \
+        -n tests/test000 -p 2 \
+        -t "01000X264H264|ffmpeg|twopass|S|mp4||1080|-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-profile:v|high|-preset|slow|-vcodec|libx264|-bf|0|-refs|4|-b:v|1000k|-maxrate:v|1500k|-bufsize:v|3000k|-minrate:v|1000k|-tune|animation|-x264opts|rc-lookahead=48:keyint=96|-keyint_min|48|-g|96|-force_key_frames|expr:eq(mod(n,48),0)|-hide_banner|-nostats" \
+        -vs "01000X264H264|vs_example.example_wrapper|640,360" \
+        -vp
+```
+
+
+## Notes
 
 Nov 18, 2016
 
