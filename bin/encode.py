@@ -1043,13 +1043,11 @@ for m in mezzanines:
         params = "--Inform=General;%Duration%,%OverallBitRate%"
         cmd = ['mediainfo', params, encode_fn]
         print(" - extracting metadata from format...")
-        stdout = subprocess.check_output(cmd)
-        data_string = "".join([line for line in stdout if
-                        ((ord(line) >= 32 and ord(line) < 128) or ord(line) == 10 or ord(line) == 13)]).strip()
+        data_string = subprocess.check_output(cmd, encoding='UTF-8').strip()
         duration = -1
         print("reading media stats: %s" % data_string)
         if data_string != ',':
-            duration = "%0.3f" % float(data_string.split(',')[0])
+            duration = float("%0.3f" % float(data_string.split(',')[0]))
         if duration < 1:
             print("Error reading media stats: '%s' doesn't contain duration,bitrate bad encoding!!!" % data_string)
             # increment test label
@@ -1064,9 +1062,7 @@ for m in mezzanines:
         params = "--Inform=Video;%FrameRate%,%Height%,%Width%"
         cmd = ['mediainfo', params, encode_fn]
         print(" - extracting metadata from video...")
-        stdout = subprocess.check_output(cmd)
-        data_string = "".join([line for line in stdout if
-                        ((ord(line) >= 32 and ord(line) < 128) or ord(line) == 10 or ord(line) == 13)]).strip()
+        data_string = subprocess.check_output(cmd, encoding='UTF-8').strip()
         framerate = float(data_string.split(',')[0])
         height = int(data_string.split(',')[1])
         width = int(data_string.split(',')[2])
@@ -1146,15 +1142,24 @@ for m in mezzanines:
             if not isfile(result_fn_json):
                 mdata_files.append("%s:%s:%s" % (result_fn, result_fn_stdout, 'phqm'))
             # only do vmaf if ssim or it has been requested
-            if 'ssim' in test_metrics or 'vmaf' in test_metrics:
+            if 'psnr' in test_metrics or 'ssim' in test_metrics or 'vmaf' in test_metrics:
                 result_fn_json = "%s_%s.json" % (result_base, 'vmaf')
                 result_fn = "%s_%s.data" % (result_base, 'vmaf')
                 result_fn_stdout = "%s_%s.stdout" % (result_base, 'vmaf')
                 print(" - %s" % result_fn)
                 if not isfile(result_fn) or getsize(result_fn) <= 0:
-                    create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-i', encode_fn, '-i', mezzanine_fn,
+                    # TODO: Run PSNR and SSIM calculation separately (deprecated in libvmaf)
+                    if 'psnr' in test_metrics:
+                        run_psnr = 'psnr=1:'
+                    else:
+                        run_psnr = ''
+                    if 'ssim' in test_metrics:
+                        run_ssim = 'ms_ssim=1:'
+                    else:
+                        run_ssim = ''
+                    create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-i', encode_fn, '-i', mezzanine_ref,
                         '-nostats', '-nostdin', '-threads', str(threads),
-                        '-filter_complex', '[0:v]scale=h=%d:w=%d:flags=bicubic[enc]; [1:v]scale=h=%d:w=%d:flags=bicubic[ref]; [enc][ref]libvmaf=psnr=1:ms_ssim=1:log_fmt=json:log_path=%s' % (height, width, height, width, result_fn), '-an', '-y', '-f', 'null', '/dev/null']
+                        '-filter_complex', '[0:v]scale=h=%d:w=%d:flags=bicubic[enc]; [1:v]scale=h=%d:w=%d:flags=bicubic[ref]; [enc][ref]libvmaf=%s%slog_fmt=json:log_path=%s' % (height, width, height, width, run_psnr, run_ssim, result_fn), '-an', '-y', '-f', 'null', '/dev/null']
                     print(" - calculating the %s score for encoding..." % "vmaf")
                     p = Process(target=get_results, args=('vmaf', result_fn_stdout, encode_fn, create_result_cmd,))
                     if p != None:
@@ -1179,7 +1184,7 @@ for m in mezzanines:
         for p in processes:
             p.join()
 
-        # parse any non-json data metric files from ffmpeg
+        # parse any metric files from ffmpeg
         for d in mdata_files:
             files = d.split(':')
             result_fn = files[0]
@@ -1192,30 +1197,24 @@ for m in mezzanines:
                 psnr_data = {"avg":[]}
                 msssim_data = {"avg":[]}
                 vmaf_data = {"avg":[]}
-                """
-                Exec FPS: 2.300914
-                VMAF score = 54.891245
-                PSNR score = 31.984645
-                MS-SSIM score = 0.918881
-                """
+
                 dline = []
-                with open(result_fn_stdout, "r") as f:
-                    data = f.readlines()
-                for i, line in enumerate(data):
-                    if "VMAF score = " in line:
-                        dline.append(line)
-                        vmaf_avg = float(line.split('=')[1])
-                        vmaf_data["avg"].append(vmaf_avg)
-                    elif "PSNR score = " in line:
-                        dline.append(line)
-                        psnr_avg = float(line.split('=')[1])
-                        psnr_data["avg"].append(psnr_avg)
-                    elif "MS-SSIM score = " in line:
-                        dline.append(line)
-                        msssim_avg = float(line.split('=')[1])
-                        msssim_data["avg"].append(msssim_avg)
-                    if len(dline) >= 3:
-                        break
+                data = open(result_fn, 'r')
+                vmaf_metrics = json.load(data)
+
+                if 'vmaf' in vmaf_metrics['pooled_metrics']:
+                    vmaf_avg = vmaf_metrics['pooled_metrics']['vmaf']['mean']
+                    vmaf_data["avg"].append(vmaf_avg)
+
+                if 'psnr_y' in vmaf_metrics['pooled_metrics']:
+                    psnr_avg = vmaf_metrics['pooled_metrics']['psnr_y']['mean']
+                    psnr_data["avg"].append(psnr_avg)
+
+                if 'float_ms_ssim' in vmaf_metrics['pooled_metrics']:
+                    msssim_avg = vmaf_metrics['pooled_metrics']['float_ms_ssim']['mean']
+                    msssim_data["avg"].append(msssim_avg)
+
+                data.close()
 
                 if len(msssim_data["avg"]) > 0:
                     with open(result_fn_msssim, "w") as f:
