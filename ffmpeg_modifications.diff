@@ -135,117 +135,6 @@ index 5ebacfde27..9c9ebc990e 100644
  extern const AVFilter ff_vf_premultiply;
  extern const AVFilter ff_vf_prewitt;
  extern const AVFilter ff_vf_prewitt_opencl;
-diff --git a/libavfilter/vf_phqm.c b/libavfilter/vf_phqm.c
-index a7b73cf061..af644dbdf5 100644
---- a/libavfilter/vf_phqm.c
-+++ b/libavfilter/vf_phqm.c
-@@ -354,8 +354,7 @@ static const AVFilterPad phqm_inputs[] = {
-         .name         = "reference",
-         .type         = AVMEDIA_TYPE_VIDEO,
-         .config_props = config_input_ref,
--    },
--    { NULL }
-+    }
- };
- 
- static const AVFilterPad phqm_outputs[] = {
-@@ -363,20 +362,19 @@ static const AVFilterPad phqm_outputs[] = {
-         .name          = "default",
-         .type          = AVMEDIA_TYPE_VIDEO,
-         .config_props  = config_output,
--    },
--    { NULL }
-+    }
- };
- 
--AVFilter ff_vf_phqm= {
-+AVFilter ff_vf_phqm = {
-     .name          = "phqm",
-     .description   = NULL_IF_CONFIG_SMALL("PHQM: Calculate the Perceptual Hash Hamming Difference between two video streams."),
-     .preinit       = phqm_framesync_preinit,
-     .init          = init,
-     .uninit        = uninit,
--    .query_formats = query_formats,
-     .activate      = activate,
-     .priv_size     = sizeof(PHQMContext),
-     .priv_class    = &phqm_class,
--    .inputs        = phqm_inputs,
--    .outputs       = phqm_outputs,
-+    FILTER_INPUTS(phqm_inputs),
-+    FILTER_OUTPUTS(phqm_outputs),
-+    FILTER_QUERY_FUNC(query_formats),
- };
-diff --git a/libavformat/mpegenc.c b/libavformat/mpegenc.c
-index 3ab4bd3f9b..e33ba5135e 100644
---- a/libavformat/mpegenc.c
-+++ b/libavformat/mpegenc.c
-@@ -979,7 +979,7 @@ static int remove_decoded_packets(AVFormatContext *ctx, int64_t scr)
-                scr > pkt_desc->dts) { // FIXME: > vs >=
-             if (stream->buffer_index < pkt_desc->size ||
-                 stream->predecode_packet == stream->premux_packet) {
--                av_log(ctx, AV_LOG_ERROR,
-+                av_log(ctx, AV_LOG_WARNING,
-                        "buffer underflow st=%d bufi=%d size=%d\n",
-                        i, stream->buffer_index, pkt_desc->size);
-                 break;
-@@ -1060,7 +1060,7 @@ retry:
-                     scr / 90000.0, best_dts / 90000.0);
- 
-             if (scr >= best_dts + 1 && !ignore_constraints) {
--                av_log(ctx, AV_LOG_ERROR,
-+                av_log(ctx, AV_LOG_WARNING,
-                     "packet too large, ignoring buffer limits to mux it\n");
-                 ignore_constraints = 1;
-             }
-diff --git a/libavutil/frame.c b/libavutil/frame.c
-index 4c16488c66..5d19742dcc 100644
---- a/libavutil/frame.c
-+++ b/libavutil/frame.c
-@@ -73,6 +73,8 @@ static void get_frame_defaults(AVFrame *frame)
-     frame->color_range         = AVCOL_RANGE_UNSPECIFIED;
-     frame->chroma_location     = AVCHROMA_LOC_UNSPECIFIED;
-     frame->flags               = 0;
-+    frame->perceptual_score    = -1;
-+    frame->perceptual_score_factor    = 2.0;
- }
- 
- static void free_side_data(AVFrameSideData **ptr_sd)
-@@ -306,6 +308,8 @@ static int frame_copy_props(AVFrame *dst, const AVFrame *src, int force_copy)
-     dst->colorspace             = src->colorspace;
-     dst->color_range            = src->color_range;
-     dst->chroma_location        = src->chroma_location;
-+    dst->perceptual_score       = src->perceptual_score;
-+    dst->perceptual_score_factor       = src->perceptual_score_factor;
- 
-     av_dict_copy(&dst->metadata, src->metadata, 0);
- 
-@@ -357,6 +361,8 @@ FF_ENABLE_DEPRECATION_WARNINGS
-     dst->width          = src->width;
-     dst->height         = src->height;
-     dst->nb_samples     = src->nb_samples;
-+    dst->perceptual_score = src->perceptual_score;
-+    dst->perceptual_score_factor = src->perceptual_score_factor;
- #if FF_API_OLD_CHANNEL_LAYOUT
- FF_DISABLE_DEPRECATION_WARNINGS
-     dst->channels       = src->channels;
-diff --git a/libavutil/frame.h b/libavutil/frame.h
-index 33fac2054c..a748045daa 100644
---- a/libavutil/frame.h
-+++ b/libavutil/frame.h
-@@ -702,6 +702,13 @@ typedef struct AVFrame {
-      * Channel layout of the audio data.
-      */
-     AVChannelLayout ch_layout;
-+
-+    /**
-+     * perceptual score
-+     * 0.00 - 1.00 percentage of perceptual match to the previous frame
-+     */
-+    float perceptual_score;
-+    float perceptual_score_factor;
- } AVFrame;
- 
- 
 diff --git a/libavfilter/img_hash.cpp b/libavfilter/img_hash.cpp
 new file mode 100644
 index 0000000000..4d5843da22
@@ -404,10 +293,10 @@ index 0000000000..76f55c3013
 +#endif
 diff --git a/libavfilter/vf_phqm.c b/libavfilter/vf_phqm.c
 new file mode 100644
-index 0000000000..a7b73cf061
+index 0000000000..af644dbdf5
 --- /dev/null
 +++ b/libavfilter/vf_phqm.c
-@@ -0,0 +1,382 @@
+@@ -0,0 +1,380 @@
 +/*
 + * Copyright (c) 2019 Christopher Kennedy
 + *
@@ -764,8 +653,7 @@ index 0000000000..a7b73cf061
 +        .name         = "reference",
 +        .type         = AVMEDIA_TYPE_VIDEO,
 +        .config_props = config_input_ref,
-+    },
-+    { NULL }
++    }
 +};
 +
 +static const AVFilterPad phqm_outputs[] = {
@@ -773,20 +661,90 @@ index 0000000000..a7b73cf061
 +        .name          = "default",
 +        .type          = AVMEDIA_TYPE_VIDEO,
 +        .config_props  = config_output,
-+    },
-+    { NULL }
++    }
 +};
 +
-+AVFilter ff_vf_phqm= {
++AVFilter ff_vf_phqm = {
 +    .name          = "phqm",
 +    .description   = NULL_IF_CONFIG_SMALL("PHQM: Calculate the Perceptual Hash Hamming Difference between two video streams."),
 +    .preinit       = phqm_framesync_preinit,
 +    .init          = init,
 +    .uninit        = uninit,
-+    .query_formats = query_formats,
 +    .activate      = activate,
 +    .priv_size     = sizeof(PHQMContext),
 +    .priv_class    = &phqm_class,
-+    .inputs        = phqm_inputs,
-+    .outputs       = phqm_outputs,
++    FILTER_INPUTS(phqm_inputs),
++    FILTER_OUTPUTS(phqm_outputs),
++    FILTER_QUERY_FUNC(query_formats),
 +};
+diff --git a/libavformat/mpegenc.c b/libavformat/mpegenc.c
+index 3ab4bd3f9b..e33ba5135e 100644
+--- a/libavformat/mpegenc.c
++++ b/libavformat/mpegenc.c
+@@ -979,7 +979,7 @@ static int remove_decoded_packets(AVFormatContext *ctx, int64_t scr)
+                scr > pkt_desc->dts) { // FIXME: > vs >=
+             if (stream->buffer_index < pkt_desc->size ||
+                 stream->predecode_packet == stream->premux_packet) {
+-                av_log(ctx, AV_LOG_ERROR,
++                av_log(ctx, AV_LOG_WARNING,
+                        "buffer underflow st=%d bufi=%d size=%d\n",
+                        i, stream->buffer_index, pkt_desc->size);
+                 break;
+@@ -1060,7 +1060,7 @@ retry:
+                     scr / 90000.0, best_dts / 90000.0);
+ 
+             if (scr >= best_dts + 1 && !ignore_constraints) {
+-                av_log(ctx, AV_LOG_ERROR,
++                av_log(ctx, AV_LOG_WARNING,
+                     "packet too large, ignoring buffer limits to mux it\n");
+                 ignore_constraints = 1;
+             }
+diff --git a/libavutil/frame.c b/libavutil/frame.c
+index 4c16488c66..5d19742dcc 100644
+--- a/libavutil/frame.c
++++ b/libavutil/frame.c
+@@ -73,6 +73,8 @@ static void get_frame_defaults(AVFrame *frame)
+     frame->color_range         = AVCOL_RANGE_UNSPECIFIED;
+     frame->chroma_location     = AVCHROMA_LOC_UNSPECIFIED;
+     frame->flags               = 0;
++    frame->perceptual_score    = -1;
++    frame->perceptual_score_factor    = 2.0;
+ }
+ 
+ static void free_side_data(AVFrameSideData **ptr_sd)
+@@ -306,6 +308,8 @@ static int frame_copy_props(AVFrame *dst, const AVFrame *src, int force_copy)
+     dst->colorspace             = src->colorspace;
+     dst->color_range            = src->color_range;
+     dst->chroma_location        = src->chroma_location;
++    dst->perceptual_score       = src->perceptual_score;
++    dst->perceptual_score_factor       = src->perceptual_score_factor;
+ 
+     av_dict_copy(&dst->metadata, src->metadata, 0);
+ 
+@@ -357,6 +361,8 @@ FF_ENABLE_DEPRECATION_WARNINGS
+     dst->width          = src->width;
+     dst->height         = src->height;
+     dst->nb_samples     = src->nb_samples;
++    dst->perceptual_score = src->perceptual_score;
++    dst->perceptual_score_factor = src->perceptual_score_factor;
+ #if FF_API_OLD_CHANNEL_LAYOUT
+ FF_DISABLE_DEPRECATION_WARNINGS
+     dst->channels       = src->channels;
+diff --git a/libavutil/frame.h b/libavutil/frame.h
+index 33fac2054c..a748045daa 100644
+--- a/libavutil/frame.h
++++ b/libavutil/frame.h
+@@ -702,6 +702,13 @@ typedef struct AVFrame {
+      * Channel layout of the audio data.
+      */
+     AVChannelLayout ch_layout;
++
++    /**
++     * perceptual score
++     * 0.00 - 1.00 percentage of perceptual match to the previous frame
++     */
++    float perceptual_score;
++    float perceptual_score_factor;
+ } AVFrame;
+ 
+ 
