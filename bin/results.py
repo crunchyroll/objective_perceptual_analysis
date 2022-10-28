@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3
 
 import argparse
 import datetime
@@ -68,7 +68,7 @@ for m in mezzanines:
     # remove mezzanine file extension for base name of test files
     mbase = "%s" % splitext(m)[0]
     if debug:
-        print "\nMezzanine %s:" % mbase
+        print("\nMezzanine %s:" % mbase)
 
     fkey = mbase
     result_key_spacer = "%s-1000" % (fkey)
@@ -82,8 +82,8 @@ for m in mezzanines:
         elabel = ebase[len(mbase):]
         if len(elabel[1:].split('_')) > 2 or (len(mbase) > len(ebase)) or elabel[0] != '_':
             if debug:
-                print "Warning: Wrong encode status file for %s: %s" % (mbase, es)
-                print "\t- %s, %s, %s, %s" % (m, ebase, mbase, elabel[1:])
+                print("Warning: Wrong encode status file for %s: %s" % (mbase, es))
+                print("\t- %s, %s, %s, %s" % (m, ebase, mbase, elabel[1:]))
             continue
         n, l = elabel[1:].split('_')
         # turn alphabet character into an index number for human readable label
@@ -97,7 +97,7 @@ for m in mezzanines:
         elif len(l) == 1:
             hindex = (ord(l.lower()) - 96) - 1
         else:
-            print "ERROR: Invalid index letter %s" % l
+            print("ERROR: Invalid index letter %s" % l)
             continue
         # test label as setup in encode.py
         hlabel = n
@@ -127,9 +127,9 @@ for m in mezzanines:
                     height = float(ed['height'])
                 if 'width' in ed:
                     width = float(ed['width'])
-            except Exception, e:
+            except Exception as e:
                 if debug:
-                    print "error: %s %s" % (es, e)
+                    print("error: %s %s" % (es, e))
 
         # Combine PHQM segment scores with VMAF
         result_base = result_dir + '/' + ebase
@@ -226,8 +226,8 @@ for m in mezzanines:
                         # write combined metrics to a json file for scd
                         with open(phqm_scd, "w") as f:
                             f.write("%s" % json.dumps(sections, sort_keys=True))
-        except Exception, e:
-            print "Error opening %s: %s" % (vmaf_data, e)
+        except Exception as e:
+            print("Error opening %s: %s" % (vmaf_data, e))
 
         # read scd file if it was created
         scenes = []
@@ -300,7 +300,7 @@ for m in mezzanines:
                         cmd.append(video_concat)
 
                         if debug:
-                            print "Running cmd: %r" % cmd
+                            print("Running cmd: %r" % cmd)
                         subprocess.call(cmd)
 
         # grab MSU results list for this mezzanine
@@ -326,9 +326,9 @@ for m in mezzanines:
                     # encoding speed (system dependent)
                     if label == 'speed' and 'speed' in rd:
                         speed = float(rd['speed'])
-                except Exception, e:
+                except Exception as e:
                     if debug:
-                        print "Bad stats file: %s" % result_stats_json
+                        print("Bad stats file: %s" % result_stats_json)
                     continue # skip this, probably truncated in progress writing
             # save score as type
             if score:
@@ -346,9 +346,9 @@ for m in mezzanines:
         result_key = "%s_%s" % (fkey, elabel[1:])
         result[result_key] = {}
 
-        print " %s:" % result_key
-        print "  Encode [%s]:" % elabel
-        print "    Stats: {\"bitrate\": %d, \"filesize\": %d, \"duration\": %0.2f}" % (bitrate, filesize, duration)
+        print(" %s:" % result_key)
+        print("  Encode [%s]:" % elabel)
+        print("    Stats: {\"bitrate\": %d, \"filesize\": %d, \"duration\": %0.2f}" % (bitrate, filesize, duration))
         # pick out specific codec values we are testing
         result[result_key]['bitrate'] = bitrate
         result[result_key]['filesize'] = filesize
@@ -357,10 +357,10 @@ for m in mezzanines:
         result[result_key]['label'] = hlabel
 
         phqm_normalized = min(100, (100 - (min(phqm, 5) * 20.0)))
-        print "   Metrics: {\"speed\": %0.2f, \"pfhd\": %0.2f, \"hamm\": %0.2f, \"phqm\": %0.2f, \"vmaf\": %0.2f, \"ssim\": %0.2f, \"psnr\": %0.2f}" % (speed,
-                                pfhd, phqm, phqm_normalized, vmaf, ssim, psnr)
+        print("   Metrics: {\"speed\": %0.2f, \"pfhd\": %0.2f, \"hamm\": %0.2f, \"phqm\": %0.2f, \"vmaf\": %0.2f, \"ssim\": %0.2f, \"psnr\": %0.2f}" % (speed,
+                                pfhd, phqm, phqm_normalized, vmaf, ssim, psnr))
         for s in scenes:
-            print "    %s" % s
+            print("    %s" % s)
 
         result[result_key]['speed'] =  speed
         result[result_key]['phqm'] = "%0.3f" % phqm_normalized
@@ -374,14 +374,14 @@ for m in mezzanines:
     if float(vmaf) > 0 and float(ssim) > 0 and float(psnr) > 0 and float(phqm) >= 0:
         results.append(result)
     elif debug:
-        print "Skipping: %s" % m
+        print("Skipping: %s" % m)
 
 with open("%s/stats.json" % base_directory, "w") as f:
     f.write("%s" % json.dumps(results, sort_keys=True))
 
 results_avg = {}
 for result in sorted(results):
-    for label, data in sorted(result.iteritems()):
+    for label, data in sorted(result.items()):
         bitrate = 0
         phqm = 0.0
         vmaf = 0.0
@@ -390,7 +390,7 @@ for result in sorted(results):
         pfhd = 0.0
         test_label = label
         speed = 0
-        for key, value in data.iteritems():
+        for key, value in data.items():
             if key == "bitrate":
                 bitrate = value
             elif key == "phqm":
@@ -430,7 +430,7 @@ for result in sorted(results):
 
 # create dat file for CSV or GNUPlot
 body = "# test\tpfhd\tphqm\tvmaf\tssim\tpsnr\tbitrate\tspeed\n"
-for label, data in sorted(results_avg.iteritems()):
+for label, data in sorted(results_avg.items()):
     bitrate = 0
     vmaf = 0.0
     phqm = 0.0
@@ -438,7 +438,7 @@ for label, data in sorted(results_avg.iteritems()):
     ssim = 0.0
     psnr = 0.0
     speed = 0
-    for key, value in data.iteritems():
+    for key, value in data.items():
         if key == "bitrate":
             for b in value:
                 bitrate += int(b)

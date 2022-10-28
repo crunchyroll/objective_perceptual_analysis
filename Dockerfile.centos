@@ -1,0 +1,106 @@
+# Christopher Kennedy - Objective Perceptual Analysis Encoders Dockerfile
+#
+# Access to Git ORG using SSH KEY CERT
+# by setting ARG SSH_PRIVATE_KEY=<rsa_id_file>
+# must put clear public key (no passphrase) into objective_perceptual_analysis/id_rsa
+# during building the docker to allow github access for building ffmpeg.
+#
+## create docker container
+# docker build --rm --build-arg SSH_PRIVATE_KEY=id_rsa -t opaencoder .
+#
+## execute scripts on files via docker
+# docker run --rm -v `pwd`/tests:/opaencoder/tests opaencoder sh scripts/run_example.sh
+#
+## open a shell in docker container
+# docker run --rm -it opaencoder /bin/bash
+FROM centos:7
+
+ARG SSH_PRIVATE_KEY
+WORKDIR /root/
+
+# Dev
+RUN yum install -y -q https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+RUN yum -y update
+RUN yum -y -q group install "Development Tools"
+RUN yum install -y -q \
+    wget \
+    git \
+    clang \
+    cargo \
+    rust \
+    cmake3 \
+    sudo \
+    gnuplot \
+    mediainfo \
+    freetype-devel \
+    libass-devel \
+    fontconfig-devel \
+    meson \
+    ninja-build \
+    zlib-devel \
+    libpng-devel \
+    bzip2 \
+    which \
+    yasm \
+    python \
+    mediainfo \
+    openssl-devel
+
+# Setup GitHub Credentials
+RUN mkdir /root/.ssh/
+COPY ${SSH_PRIVATE_KEY} /root/.ssh/id_rsa
+RUN touch /root/.ssh/known_hosts
+RUN chmod 600 /root/.ssh/*
+RUN ssh-keyscan github.com >> /root/.ssh/known_hosts
+
+# Get opaencoder
+RUN git clone git@github.com:crunchyroll/objective_perceptual_analysis.git opaencoder
+
+ENV PATH=/root/opaencoder/bin:/root/opaencoder:$PATH
+
+COPY ./setupCentOS7.sh /root/opaencoder/setupCentOS7.sh
+COPY ./Makefile /root/opaencoder/Makefile
+
+# Build system
+RUN cd opaencoder && make
+
+WORKDIR /root/opaencoder
+
+
+RUN yum clean all
+RUN rm -rf /var/cache/yum
+RUN rm -rf /var/lib/rpm
+
+# Clean up
+RUN cp /root/opaencoder/FFmpeg/ffmpeg /root/opaencoder/bin/ffmpeg
+RUN cp /root/opaencoder/FFmpeg/ffprobe /root/opaencoder/bin/ffprobe
+RUN rm -rf /root/opaencoder/FFmpeg
+RUN rm -rf /root/opaencoder/x264
+RUN rm -rf /root/opaencoder/aom
+RUN rm -rf /root/opaencoder/rav1e
+RUN rm -rf /root/opaencoder/SVT-AV1
+RUN rm -rf /root/opaencoder/opencv*
+RUN rm -rf /root/opaencoder/libvpx
+RUN rm -rf /root/opaencoder/dav1d
+RUN rm -rf /root/opaencoder/vmaf
+RUN rm -rf /root/opaencoder/nasm*
+RUN rm -rf /root/opaencoder/.git
+RUN rm -rf /usr/local/lib/*.a
+RUN rm -rf /usr/local/include
+
+RUN mv /root/opaencoder /
+RUN sudo chmod +x /opaencoder/scripts/*.sh
+
+WORKDIR /opaencoder
+
+LABEL version="0.2"
+LABEL description="Objective Perceptual Analysis Encoder"
+
+# Runtime
+ENV PATH=/opaencoder/bin:/opaencoder:/usr/local/bin:$PATH
+ENV LD_LIBRARY_PATH=/usr/local/lib64:$LD_LIBRARY_PATH
+RUN ldconfig
+RUN ffmpeg -version
+
+CMD ["ffmpeg", "-h", "full"]
+

@@ -60,8 +60,11 @@ if [ ! -e /usr/bin/meson ]; then
     sudo python3 -m pip install meson
     sudo yum -y -q install meson
 fi
-if [ ! -e /usr/local/bin/nija ]; then
+if [ ! -e /usr/local/bin/ninja ]; then
     sudo python3 -m pip install ninja
+fi
+if [ ! -e /usr/bin/openssl ]; then
+    sudo yum -y -q install openssl-devel
 fi
 
 ## get opencv and opencv_contrib
@@ -100,7 +103,7 @@ if [ ! -d "aom" ]; then
 fi
 
 if [ ! -d "SVT-AV1" ]; then
-    git clone https://github.com/OpenVisualCloud/SVT-AV1.git
+    git clone https://gitlab.com/AOMediaCodec/SVT-AV1.git
     cd SVT-AV1
     # TODO find stable version
     cd ../
@@ -132,7 +135,7 @@ if [ ! -d "FFmpeg" ]; then
     git clone https://git.ffmpeg.org/ffmpeg.git FFmpeg
     cd FFmpeg
     git checkout d99f3dc6b211509d9f6bbb82bbb59bff86a9e3a5
-    cat ../ffmpeg_modifications.diff | patch -p1
+    cat ../ffmpeg4_modifications.diff | patch -p1
     cd ../
 fi
 
@@ -143,13 +146,11 @@ if [ ! -d "vmaf" ]; then
     #fi
 fi
 
-# GCC 5.4.0 install to /usr/local/
+# GCC 11.x install to /usr/local/
 if [ ! -f "/usr/local/bin/gcc" ]; then
-    sh setupGCC_540.sh
+    sudo yum install -y -q centos-release-scl
+    sudo yum install -y -q devtoolset-11-gcc*
 fi
-# setup path to point to GCC 5.4.0
-export PATH=/usr/local/bin:$PATH
-export LD_LIBRARY_PATH=/usr/local/lib64:$LD_LIBRARY_PATH
 
 # requirement for x264
 if [ ! -f "nasm-2.15.05.tar.bz2" ]; then
@@ -168,74 +169,74 @@ if [ ! -d "opencv/build" ]; then
     cd build
 
     # build with only what we need
-    cmake3 \
-                   -DCMAKE_INSTALL_PREFIX=/usr \
-                   -DCMAKE_INSTALL_LIBDIR=lib \
-                   -DBUILD_SHARED_LIBS=True \
-                   -DCMAKE_BUILD_TYPE=Release \
-                   -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
-                   -DCMAKE_C_FLAGS="$CFLAGS" \
-                   -DENABLE_PRECOMPILED_HEADERS=OFF \
-                   -DWITH_OPENMP=OFF \
-                   -WITH_OPENCL=OFF \
-                   -DWITH_IPP=OFF \
-                   -DBUILD_EXAMPLES=OFF \
-                   -DWITH_FFMPEG=OFF -DWITH_JASPER=OFF -DWITH_PNG=OFF \
-                   -DBUILD_opencv_python=OFF \
-                   -DOPENCV_EXTRA_MODULES_PATH=../../opencv_contrib/modules \
-                   -DOPENCV_GENERATE_PKGCONFIG=True \
-                   -DBUILD_opencv_core=ON \
-                   -DBUILD_opencv_imgproc=ON \
-                   -DBUILD_opencv_img_hash=ON \
-                   -DBUILD_opencv_imgcodecs=ON \
-                   -DBUILD_opencv_highgui=ON \
-                   -DBUILD_opencv_aruco=OFF \
-                   -DBUILD_opencv_bgsegm=OFF \
-                   -DBUILD_opencv_bioinspired=OFF \
-                   -DBUILD_opencv_calib3d=OFF \
-                   -DBUILD_opencv_ccalib=OFF \
-                   -DBUILD_opencv_datasets=OFF \
-                   -DBUILD_opencv_dnn=OFF \
-                   -DBUILD_opencv_dnn_objdetect=OFF \
-                   -DBUILD_opencv_dpm=OFF \
-                   -DBUILD_opencv_face=OFF \
-                   -DBUILD_opencv_features2d=OFF \
-                   -DBUILD_opencv_flann=OFF \
-                   -DBUILD_opencv_fuzzy=OFF \
-                   -DBUILD_opencv_gapi=OFF \
-                   -DBUILD_opencv_hfs=OFF \
-                   -DBUILD_opencv_line_descriptor=OFF \
-                   -DBUILD_opencv_ml=OFF \
-                   -DBUILD_opencv_objdetect=OFF \
-                   -DBUILD_opencv_optflow=OFF \
-                   -DBUILD_opencv_phase_unwrapping=OFF \
-                   -DBUILD_opencv_photo=OFF \
-                   -DBUILD_opencv_plot=OFF \
-                   -DBUILD_opencv_python2=OFF \
-                   -DBUILD_opencv_quality=OFF \
-                   -DBUILD_opencv_reg=OFF \
-                   -DBUILD_opencv_rgbd=OFF \
-                   -DBUILD_opencv_saliency=OFF \
-                   -DBUILD_opencv_shape=OFF \
-                   -DBUILD_opencv_stereo=OFF \
-                   -DBUILD_opencv_stitching=OFF \
-                   -DBUILD_opencv_structured_light=OFF \
-                   -DBUILD_opencv_superres=OFF \
-                   -DBUILD_opencv_surface_matching=OFF \
-                   -DBUILD_opencv_text=OFF \
-                   -DBUILD_opencv_tracking=OFF \
-                   -DBUILD_opencv_ts=OFF \
-                   -DBUILD_opencv_video=OFF \
-                   -DBUILD_opencv_videoio=OFF \
-                   -DBUILD_opencv_videostab=OFF \
-                   -DBUILD_opencv_xfeatures2d=OFF \
-                   -DBUILD_opencv_ximgproc=OFF \
-                   -DBUILD_opencv_xobjdetect=OFF \
-                   -DBUILD_opencv_xphoto=OFF \
-                   ..
+    scl enable devtoolset-11 'cmake3 \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+        -DCMAKE_INSTALL_LIBDIR=lib \
+        -DBUILD_SHARED_LIBS=True \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+        -DCMAKE_C_FLAGS="$CFLAGS" \
+        -DENABLE_PRECOMPILED_HEADERS=OFF \
+        -DWITH_OPENMP=OFF \
+        -WITH_OPENCL=OFF \
+        -DWITH_IPP=OFF \
+        -DBUILD_EXAMPLES=OFF \
+        -DWITH_FFMPEG=OFF -DWITH_JASPER=OFF -DWITH_PNG=OFF \
+        -DBUILD_opencv_python=OFF \
+        -DOPENCV_EXTRA_MODULES_PATH=../../opencv_contrib/modules \
+        -DOPENCV_GENERATE_PKGCONFIG=True \
+        -DBUILD_opencv_core=ON \
+        -DBUILD_opencv_imgproc=ON \
+        -DBUILD_opencv_img_hash=ON \
+        -DBUILD_opencv_imgcodecs=ON \
+        -DBUILD_opencv_highgui=ON \
+        -DBUILD_opencv_aruco=OFF \
+        -DBUILD_opencv_bgsegm=OFF \
+        -DBUILD_opencv_bioinspired=OFF \
+        -DBUILD_opencv_calib3d=OFF \
+        -DBUILD_opencv_ccalib=OFF \
+        -DBUILD_opencv_datasets=OFF \
+        -DBUILD_opencv_dnn=OFF \
+        -DBUILD_opencv_dnn_objdetect=OFF \
+        -DBUILD_opencv_dpm=OFF \
+        -DBUILD_opencv_face=OFF \
+        -DBUILD_opencv_features2d=OFF \
+        -DBUILD_opencv_flann=OFF \
+        -DBUILD_opencv_fuzzy=OFF \
+        -DBUILD_opencv_gapi=OFF \
+        -DBUILD_opencv_hfs=OFF \
+        -DBUILD_opencv_line_descriptor=OFF \
+        -DBUILD_opencv_ml=OFF \
+        -DBUILD_opencv_objdetect=OFF \
+        -DBUILD_opencv_optflow=OFF \
+        -DBUILD_opencv_phase_unwrapping=OFF \
+        -DBUILD_opencv_photo=OFF \
+        -DBUILD_opencv_plot=OFF \
+        -DBUILD_opencv_python2=OFF \
+        -DBUILD_opencv_quality=OFF \
+        -DBUILD_opencv_reg=OFF \
+        -DBUILD_opencv_rgbd=OFF \
+        -DBUILD_opencv_saliency=OFF \
+        -DBUILD_opencv_shape=OFF \
+        -DBUILD_opencv_stereo=OFF \
+        -DBUILD_opencv_stitching=OFF \
+        -DBUILD_opencv_structured_light=OFF \
+        -DBUILD_opencv_superres=OFF \
+        -DBUILD_opencv_surface_matching=OFF \
+        -DBUILD_opencv_text=OFF \
+        -DBUILD_opencv_tracking=OFF \
+        -DBUILD_opencv_ts=OFF \
+        -DBUILD_opencv_video=OFF \
+        -DBUILD_opencv_videoio=OFF \
+        -DBUILD_opencv_videostab=OFF \
+        -DBUILD_opencv_xfeatures2d=OFF \
+        -DBUILD_opencv_ximgproc=OFF \
+        -DBUILD_opencv_xobjdetect=OFF \
+        -DBUILD_opencv_xphoto=OFF \
+        ..'
 
     # build opencv
-    make -j8
+    scl enable devtoolset-11 'make -j$(nproc)'
 
     # install opencv
     sudo make install
@@ -252,13 +253,13 @@ fi
 
 ## Setup x264
 if [ ! -f /usr/lib/libx264.a ]; then
-    make x264lib
+    scl enable devtoolset-11 'make x264lib'
     sudo ldconfig
 fi
 
 ## Setup VMAF
 if [ ! -f /usr/local/lib/libvmaf.a ]; then
-    make vmaflib
+    scl enable devtoolset-11 'make vmaflib'
     sudo ln -s /usr/local/lib/pkgconfig/libvmaf.pc /usr/share/pkgconfig/
 fi
 
@@ -271,27 +272,47 @@ fi
 
 ## Setup VPX
 if [ ! -f /usr/lib/libvpx.a ]; then
-    make vpxlib
+    scl enable devtoolset-11 'make vpxlib'
     sudo ldconfig
 fi
 
 ## Setup AOM AV1
 if [ ! -f /usr/lib/libaom.so ]; then
-    make aomlib
+    scl enable devtoolset-11 'make aomlib'
     sudo ln -s /usr/lib/pkgconfig/aom.pc /usr/share/pkgconfig/
     sudo ldconfig
 fi
 
 # Setup SVT-AV1
 if [ ! -f "/usr/local/lib/pkgconfig/SvtAv1Dec.pc" ]; then
-    make svtav1lib
+    cd SVT-AV1/Build && \
+    scl enable devtoolset-11 'cmake3 .. -G"Unix Makefiles" \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_CXX_FLAGS="-I/usr/local/include -L/usr/local/lib" \
+        -DCMAKE_C_FLAGS="-I/usr/local/include -L/usr/local/lib" \
+        -DCMAKE_CXX_COMPILER=$(which g++) \
+        -DCMAKE_CC_COMPILER=$(which gcc) \
+        -DCMAKE_C_COMPILER=$(which gcc)' && \
+    scl enable devtoolset-11 'make -j$(nproc)' && \
+    sudo make install
+    cd ../../
     sudo cp -f SVT-AV1/Build/SvtAv1Enc.pc /usr/share/pkgconfig/
     sudo cp -f SVT-AV1/Build/SvtAv1Dec.pc /usr/share/pkgconfig/
 fi
 
 # Setup SVT-VP9
 if [ ! -f "/usr/local/lib/pkgconfig/SvtVp9Enc.pc" ]; then
-    make svtvp9lib
+    cd SVT-VP9/Build && \
+    scl enable devtoolset-11 'cmake3 .. -G"Unix Makefiles" \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_CXX_FLAGS="-I/usr/local/include -L/usr/local/lib" \
+        -DCMAKE_C_FLAGS="-I/usr/local/include -L/usr/local/lib" \
+        -DCMAKE_CXX_COMPILER=$(which g++) \
+        -DCMAKE_CC_COMPILER=$(which gcc) \
+        -DCMAKE_C_COMPILER=$(which gcc)' && \
+    scl enable devtoolset-11 'make -j$(nproc)' && \
+    sudo make install
+    cd ../../
     sudo cp -f SVT-VP9/Build/SvtVp9Enc.pc /usr/share/pkgconfig/
 fi
 
@@ -308,11 +329,11 @@ fi
 
 ## Setup FFmpeg
 if [ ! -f FFmpeg/ffmpeg ]; then
-    make ffmpegbin
+    scl enable devtoolset-11 'make ffmpegbin'
 fi
 
 # build tools
-make reference
+scl enable devtoolset-11 'make reference'
 
 echo
 echo "To install FFmpeg into /usr/bin/ffmpeg type: 'make install'"
