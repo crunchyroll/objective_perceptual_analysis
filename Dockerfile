@@ -15,13 +15,11 @@ RUN pacman --noconfirm -Syu && pacman --noconfirm -S make
 
 # build opaencoder
 WORKDIR /opaencoder
-RUN make setup
-RUN make reference
+RUN /bin/sh setupArch.sh
 
 # cleanup
-
-RUN rm -R /root/_opaencoder_deps
-RUN sudo chmod +x /opaencoder/scripts/*.sh
+# RUN rm -R /root/_opaencoder_deps
+RUN chmod +x /opaencoder/scripts/*.sh
 
 LABEL version="0.2"
 LABEL description="Objective Perceptual Analysis Encoder"

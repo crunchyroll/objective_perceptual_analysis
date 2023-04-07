@@ -854,6 +854,20 @@ def prepare_encode(source_segments, audio_file, tmp_dir, video_file, mezz_fps, e
     output = subprocess.check_output(concat_cmd)
     print("Muxed A/V output: %s" % output)
 
+def getFeatureString(test_metrics):
+    featuresArr = []
+
+    if 'psnr' in test_metrics:
+        featuresArr.append('name=psnr')
+    if 'ssim' in test_metrics:
+        featuresArr.append('name=float_ssim')
+    if 'cambi' in test_metrics:
+        featuresArr.append('name=cambi')
+
+    if len(featuresArr) > 0:
+        return ''.join(['feature=', '|'.join(featuresArr)])
+    else:
+        return ''
 
 # create directories needed
 if not isdir(base_directory):
@@ -1228,8 +1242,7 @@ for m in mezzanines:
             if not isfile(result_fn) or getsize(result_fn) <= 0:
                 create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-i', encode_fn,
                     '-i', mezzanine_ref, '-nostats', '-nostdin', '-threads', str(threads),
-                    '-filter_complex', '[0:v]scale=h=%d:w=%d:flags=bicubic[enc]; [1:v]scale=h=%d:w=%d:flags=bicubic[ref]; [enc][ref]phqm=stats_file=%s' % (height, width, height, width,
-                                                                                                                                        result_fn), '-an', '-y', '-f', 'null', '/dev/null']
+                    '-filter_complex', '[0:v]scale=%dx%d:flags=bicubic[enc]; [1:v]scale=%dx%d:flags=bicubic[ref]; [enc][ref]phqm=stats_file=%s' % (width, height, width, height, result_fn), '-an', '-y', '-f', 'null', '/dev/null']
                 print(" - calculating the %s score for encoding..." % "phqm")
                 p = Process(target=get_results, args=('phqm', result_fn_stdout, encode_fn, create_result_cmd,))
                 # run each metric in parallel
@@ -1245,18 +1258,13 @@ for m in mezzanines:
                 result_fn_stdout = "%s_%s.stdout" % (result_base, 'vmaf')
                 print(" - %s" % result_fn)
                 if not isfile(result_fn) or getsize(result_fn) <= 0:
-                    # TODO: Run PSNR and SSIM calculation separately (deprecated in libvmaf)
-                    if 'psnr' in test_metrics:
-                        run_psnr = 'psnr=1:'
-                    else:
-                        run_psnr = ''
-                    if 'ssim' in test_metrics:
-                        run_ssim = 'ms_ssim=1:'
-                    else:
-                        run_ssim = ''
+                    featureString = getFeatureString(test_metrics)
+                    if featureString != "":
+                        featureString += ":"
+
                     create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-i', encode_fn, '-i', mezzanine_ref,
                         '-nostats', '-nostdin', '-threads', str(threads),
-                        '-filter_complex', '[0:v]scale=h=%d:w=%d:flags=bicubic[enc]; [1:v]scale=h=%d:w=%d:flags=bicubic[ref]; [enc][ref]libvmaf=%s%slog_fmt=json:log_path=%s' % (height, width, height, width, run_psnr, run_ssim, result_fn), '-an', '-y', '-f', 'null', '/dev/null']
+                        '-filter_complex', '[0:v]scale=%dx%d:flags=bicubic[enc]; [1:v]scale=%dx%d:flags=bicubic[ref]; [enc][ref]libvmaf=\'%slog_fmt=json:log_path=%s\'' % (width, height, width, height, featureString, result_fn), '-an', '-y', '-f', 'null', '/dev/null']
                     print(" - calculating the %s score for encoding..." % "vmaf")
                     p = Process(target=get_results, args=('vmaf', result_fn_stdout, encode_fn, create_result_cmd,))
                     if p != None:

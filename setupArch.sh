@@ -106,10 +106,10 @@ cmake \
     make -j$(nproc) && make install && ldconfig
 
 # build vmaf
-# cd ~/_opaencoder_deps
-# git clone -b v1.3.15 https://github.com/Netflix/vmaf.git vmaf
-# cd vmaf
-# make -j$(nproc) && make install && ldconfig
+cd ~/_opaencoder_deps
+git clone -b v1.3.15 https://github.com/Netflix/vmaf.git vmaf
+cd vmaf
+make -j$(nproc) && make install && ldconfig
 
 # build ffmpeg
 cd ~/_opaencoder_deps
