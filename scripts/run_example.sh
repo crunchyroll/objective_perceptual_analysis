@@ -1,7 +1,7 @@
 #!/bin/sh
 
 bin/encode.py \
-        -m vmaf,psnr,phqm,ssim \
+        -m vmaf,psnr,phqm,ssim,cambi \
         -n tests/test000 \
         -p 16 -t "\
 1080p08000kX264H264|ffmpeg|twopass|S|mp4||1080|-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-profile:v|high|-preset|slow|-vcodec|libx264|-bf|0|-refs|4|-b:v|8000k|-maxrate:v|12000k|-bufsize:v|24000k|-minrate:v|8000k|-tune|animation|-x264opts|rc-lookahead=48:keyint=96|-keyint_min|48|-g|96|-force_key_frames|expr:eq(mod(n,48),0)|-hide_banner|-nostats;\
