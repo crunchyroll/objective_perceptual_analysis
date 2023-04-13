@@ -1242,7 +1242,7 @@ for m in mezzanines:
             if not isfile(result_fn) or getsize(result_fn) <= 0:
                 create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-i', encode_fn,
                     '-i', mezzanine_ref, '-nostats', '-nostdin', '-threads', str(threads),
-                    '-filter_complex', '[0:v]scale=%dx%d:flags=bicubic[enc]; [1:v]scale=%dx%d:flags=bicubic[ref]; [enc][ref]phqm=stats_file=%s' % (width, height, width, height, result_fn), '-an', '-y', '-f', 'null', '/dev/null']
+                    '-filter_complex', '[0:v]scale=%dx%d:flags=bicubic[enc]; [1:v]scale=%dx%d:flags=bicubic[ref]; [enc][ref]phqm=stats_file=%s' % (mezz_width, mezz_height, mezz_width, mezz_height, result_fn), '-an', '-y', '-f', 'null', '/dev/null']
                 print(" - calculating the %s score for encoding..." % "phqm")
                 p = Process(target=get_results, args=('phqm', result_fn_stdout, encode_fn, create_result_cmd,))
                 # run each metric in parallel
@@ -1264,7 +1264,7 @@ for m in mezzanines:
 
                     create_result_cmd = [ffmpeg_bin, '-loglevel', 'warning', '-i', encode_fn, '-i', mezzanine_ref,
                         '-nostats', '-nostdin', '-threads', str(threads),
-                        '-filter_complex', '[0:v]scale=%dx%d:flags=bicubic[enc]; [1:v]scale=%dx%d:flags=bicubic[ref]; [enc][ref]libvmaf=\'%slog_fmt=json:log_path=%s\'' % (width, height, width, height, featureString, result_fn), '-an', '-y', '-f', 'null', '/dev/null']
+                        '-filter_complex', '[0:v]scale=%dx%d:flags=bicubic[enc]; [1:v]scale=%dx%d:flags=bicubic[ref]; [enc][ref]libvmaf=\'%slog_fmt=json:log_path=%s\'' % (mezz_width, mezz_height, mezz_width, mezz_height, featureString, result_fn), '-an', '-y', '-f', 'null', '/dev/null']
                     print(" - calculating the %s score for encoding..." % "vmaf")
                     p = Process(target=get_results, args=('vmaf', result_fn_stdout, encode_fn, create_result_cmd,))
                     if p != None:
