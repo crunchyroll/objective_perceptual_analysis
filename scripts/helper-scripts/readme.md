@@ -7,10 +7,10 @@ This script generates a list of tiers that can be run through the objective_perc
 Example run command:
 > node generate-objective-perceptual-analysis-tiers.js
 
-### build-per-title-ladder
+### build-per-title-ladder.js
 This script takes in a folder, target vmaf score for top tier, and the desired number of tiers and builds a per-title ladder based off the metrics it finds in that folder.
 
-In order to run you need to first install the npm packages:
+In order to run you need to first install the npm packages (will need to install npm if not already installed):
 > npm i
 
 Example run command: 
