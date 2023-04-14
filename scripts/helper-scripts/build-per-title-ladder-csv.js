@@ -4,15 +4,18 @@ const path = require('path');
 
 let folder = args.folder;
 let topTierTarget = parseInt(args.target);
-let desiredTiers = parseInt(args.tiersDesired);
+let desiredTiers = args.tiersDesired ? parseInt(args.tiersDesired) : 5;
 
 let files = fs.readdirSync(folder);
 
 // Focus on vmaf files only
 files = files.filter(d => d.endsWith('_vmaf.json'));
 
+// Extract all tiers/scores
 let tierScores = [];
 files.forEach(f => {
+    // Filename example:
+    // {mezz-filename}_240p00120X264H264_ZZD_vmaf.data
     let fullPath = path.join(folder, f);
     let filenameParts = f.split('_');
     let tier = filenameParts[filenameParts.length - 3];
@@ -30,66 +33,30 @@ files.forEach(f => {
     });
 });
 
-tierScores = tierScores.sort((a, b) => b.bitrate - a.bitrate);
+// Sort by bitrate descending
+// tierScores = tierScores.sort((a, b) => b.bitrate - a.bitrate);
 
-let tierResults = [findLowestBitrateOverVmaf(tierScores, topTierTarget)];
+// Find our top tier to start
+let idealLadder = [findLowestBitrateOverVmaf(tierScores, topTierTarget)];
 let tierFound = true;
-let lastBitrateFound = tierResults[0].bitrate;
+let lastBitrateFound = idealLadder[0].bitrate;
 
-while (tierFound && tierResults.length < desiredTiers) {
+// Loop until we have no more tiers or we have the desired number of tiers
+while (tierFound && idealLadder.length < desiredTiers) {
     let targetBitrate = lastBitrateFound * .6;
     let maxBitrate = targetBitrate + 200;
     let minBitrate = targetBitrate - 200;
 
-    let nextTier = findHighestVmafInBitrateRange(tierScores, maxBitrate, minBitrate, tierResults);
+    let nextTier = findHighestVmafInBitrateRange(tierScores, maxBitrate, minBitrate, idealLadder);
     if (nextTier) {
-        tierResults.push(nextTier);
+        idealLadder.push(nextTier);
         lastBitrateFound = nextTier.bitrate;
     } else {
         tierFound = false;
     }
 }
 
-function findLowestBitrateOverVmaf(tiers, vmafTarget){
-    let returning = tiers[0];
-
-    tiers.forEach(t => {
-        if (t.bitrate < returning.bitrate && t.vmaf > vmafTarget) {
-            returning = t;
-        }
-    });
-
-    if (returning.vmaf < vmafTarget) {
-        returning = tiers.sort((a, b) => b.vmaf - a.vmaf)[0];
-    }
-
-    return returning;
-}
-
-function findHighestVmafInBitrateRange(tiers, maxBitrate, minBitrate, existingTiers){
-    let filtered = tiers.filter(t => {
-        let fits = t.bitrate >= minBitrate && t.bitrate <= maxBitrate
-        if (!fits) {
-            return false;
-        } else {
-            let matching = existingTiers.filter(e => e.bitrate == t.bitrate);
-            if (matching.length > 0){
-                return false;
-            }
-
-            return true;
-        }
-    });
-
-
-    if (filtered.length > 0){
-        return filtered.sort((a, b) => b.vmaf - a.vmaf)[0];
-    }
-
-    return undefined;
-}
-
-// Organize by bit-rate so we can build a proper csv for generating graphs
+// Organize by bit-rate so we can build an ordered csv for generating graphs
 let bitrates = [];
 let heights = ['ideal ladder'];
 tierScores.forEach(t => {
@@ -115,11 +82,11 @@ bitrates.forEach(b => {
     for (let i = 0; i < heights.length; i++){
         if (i == 0) {
             // Ideal ladder row
-            let idealTier = tierResults.filter(tr => tr.bitrate == b);
+            let idealTier = idealLadder.filter(tr => tr.bitrate == b);
             if (idealTier.length > 0) {
                 row.push(idealTier[0].vmaf);
             } else {
-                row.push('-');
+                row.push('');
             }
         } else {
             let height = heights[i];
@@ -135,3 +102,46 @@ bitrates.forEach(b => {
 });
 
 console.log(results.map(r => r.join(',')).join('\n'));
+
+
+function findLowestBitrateOverVmaf(tiers, vmafTarget){
+    let filteredTiers = tiers.filter(t => t.vmaf > vmafTarget);
+
+    if (filteredTiers.length > 0){
+        let returning = filteredTiers[0];
+
+        filteredTiers.forEach(t => {
+            if (t.bitrate < returning.bitrate) {
+                returning = t;
+            }
+        });
+
+        return returning;
+    }
+
+    // If we don't have a tier, return the highest vmaf score we found
+    returning = tiers.sort((a, b) => b.vmaf - a.vmaf)[0];
+}
+
+function findHighestVmafInBitrateRange(tiers, maxBitrate, minBitrate, existingTiers){
+    let filtered = tiers.filter(t => {
+        let fits = t.bitrate >= minBitrate && t.bitrate <= maxBitrate
+        if (!fits) {
+            return false;
+        } else {
+            let matching = existingTiers.filter(e => e.bitrate == t.bitrate);
+            if (matching.length > 0){
+                return false;
+            }
+
+            return true;
+        }
+    });
+
+
+    if (filtered.length > 0){
+        return filtered.sort((a, b) => b.vmaf - a.vmaf)[0];
+    }
+
+    return undefined;
+}
