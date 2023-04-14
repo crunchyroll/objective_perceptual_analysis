@@ -33,9 +33,6 @@ files.forEach(f => {
     });
 });
 
-// Sort by bitrate descending
-// tierScores = tierScores.sort((a, b) => b.bitrate - a.bitrate);
-
 // Find our top tier to start
 let idealLadder = [findLowestBitrateOverVmaf(tierScores, topTierTarget)];
 let tierFound = true;
