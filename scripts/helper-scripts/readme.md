@@ -11,17 +11,16 @@ Results will look like this:
 ```
 240p00200X264H264|ffmpeg|twopass|S|mp4||240|-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-profile:v|high|-preset|slow|-vcodec|libx264|-bf|0|-refs|4|-b:v|200k|-maxrate:v|300k|-bufsize:v|600k|-minrate:v|200k|-tune|animation|-x264opts|rc-lookahead=48:keyint=96|-keyint_min|48|-g|96|-force_key_frames|expr:eq(mod(n,48),0)|-hide_banner|-nostats;\
 240p00120X264H264|ffmpeg|twopass|S|mp4||240|-pix_fmt|yuv420p|-f|mp4|-movflags|+faststart|-profile:v|high|-preset|slow|-vcodec|libx264|-bf|0|-refs|4|-b:v|120k|-maxrate:v|180k|-bufsize:v|360k|-minrate:v|120k|-tune|animation|-x264opts|rc-lookahead=48:keyint=96|-keyint_min|48|-g|96|-force_key_frames|expr:eq(mod(n,48),0)|-hide_banner|-nostats;\
-...
 ```
 
 ## build-per-title-ladder.js
-This script takes in a folder, target vmaf score for top tier, and the desired number of tiers and builds a per-title ladder based off the metrics it finds in that folder.
+This script takes in a folder, target vmaf score for top tier, and the desired number of tiers and builds a per-title ladder based off the metrics it finds in that folder. It utiilizes a 5th percentile target for the scoring. So if you input a target of 93 it will find a tier that ensures 95% of frames are at, or above, that score. Using this approach helps alleviate low-quality frames from your asset that using a simple average would not catch.
 
 In order to run you need to first install the npm packages (will need to install npm if not already installed):
 > npm i
 
 Example run command: 
-> node build-per-title-ladder-csv.js --folder=../../tests/test000/results/ --target=95 --tiersDesired=5
+> node build-per-title-ladder-csv.js --folder=../../tests/test000/results/ --target=93 --tiersDesired=5
 
 Results will look like this:
 ```
