@@ -1,0 +1,34 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: content-delivery
+  description: Content Delivery service to encode one-off mezzanines requirements
+    and deliver them to partner distributors
+  annotations:
+    github.com/project-slug: crunchyroll/objective_perceptual_analysis
+    backstage.io/techdocs-ref: dir:.
+    snyk.io/org-id: ''
+    snyk.io/target-id: ''
+    datadoghq.com/dashboard-url: ''
+    datadoghq.com/graph-token: ''
+    datadoghq.com/site: us5.datadoghq.com
+    datadoghq.com/graph-size: x-large
+    service-iam-role: ''
+    aws-accounts: 490645551402,366843697376,978969509086
+    ci-cd-tools: jenkins
+    code-runtime: golang
+    cloud: aws
+    caching: ''
+    cdn: ''
+    observability: datadog
+    vendor-dependencies: ''
+    public-endpoints: ''
+    private-endpoints: ''
+    waf: ''
+    test-frameworks: ''
+    compute-platform: ec2
+    iac: cloudformation
+    service: content-delivery
+spec:
+  type: service
+  lifecycle: production
